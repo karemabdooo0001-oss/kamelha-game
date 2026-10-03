@@ -7,38 +7,67 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-body {
+html, body {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
   background: radial-gradient(circle at center, #1b162b 0%, #0d0914 100%);
   color: #fff;
-  min-height: 100vh;
   overflow: hidden;
 }
 
 .screen {
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
+  overflow: hidden;
 }
 
 .hidden { display: none !important; }
 
-/* شريط الإشعار العائم */
+/* أزرار كتم الصوت */
+.sound-toggle-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: 1.3rem;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  transition: transform 0.2s;
+}
+.sound-toggle-btn:active { transform: scale(0.9); }
+
+.sound-toggle-mini {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #555;
+  color: #fff;
+  padding: 3px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+/* شريط الإشعارات */
 .toast {
   position: fixed;
-  top: 15px;
+  top: 12px;
   left: 50%;
   transform: translateX(-50%);
   background: #ffcc00;
   color: #111;
-  padding: 10px 24px;
+  padding: 8px 20px;
   border-radius: 30px;
   font-weight: 800;
   z-index: 999;
   box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   text-align: center;
   max-width: 90vw;
   animation: slideDown 0.3s ease-out;
@@ -46,61 +75,69 @@ body {
 
 @keyframes slideDown {
   from { top: -50px; opacity: 0; }
-  to { top: 15px; opacity: 1; }
+  to { top: 12px; opacity: 1; }
 }
 
-/* اللوبي */
+/* صندوق اللوبي */
 .lobby-box {
   background: rgba(26, 20, 41, 0.95);
-  padding: 25px;
+  padding: 22px;
   border-radius: 20px;
   border: 2px solid #ffcc00;
   box-shadow: 0 10px 40px rgba(0,0,0,0.8);
   text-align: center;
   width: 90%;
-  max-width: 400px;
+  max-width: 390px;
 }
 
 .game-logo {
-  font-size: 2.8rem;
+  font-size: 2.6rem;
   color: #ffcc00;
   text-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
 }
 
-.tagline { color: #aaa; margin-bottom: 20px; font-size: 0.9rem; }
-.input-group label { display: block; text-align: right; margin-bottom: 6px; font-size: 0.85rem; }
+.tagline { color: #aaa; margin-bottom: 16px; font-size: 0.85rem; }
+.input-group label { display: block; text-align: right; margin-bottom: 5px; font-size: 0.85rem; }
 
 input {
   width: 100%;
-  padding: 12px;
+  padding: 11px;
   border-radius: 10px;
   border: 1px solid #444;
   background: #111;
   color: #fff;
-  font-size: 1rem;
+  font-size: 0.95rem;
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .btn {
-  padding: 12px;
+  padding: 11px;
   border-radius: 10px;
   font-weight: 800;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
   border: none;
-  transition: transform 0.15s, filter 0.15s;
+  transition: transform 0.15s;
   width: 100%;
+  text-decoration: none;
+  display: inline-block;
 }
 .btn:active { transform: scale(0.96); }
 .primary-btn { background: #ffcc00; color: #111; }
 .secondary-btn { background: #5c6bc0; color: #fff; }
+.info-btn { background: rgba(0, 230, 118, 0.15); border: 1px solid #00e676; color: #00e676; }
+.order-btn { background: linear-gradient(45deg, #e65100, #ff9800); color: #fff; box-shadow: 0 0 10px rgba(230, 81, 0, 0.4); }
+
+.whatsapp-btn { background: #25d366; color: #fff; font-size: 1rem; }
+.call-btn { background: #007bff; color: #fff; font-size: 1rem; }
+
 .kamelha-btn {
   background: linear-gradient(45deg, #ff0055, #ffcc00);
   color: #fff;
   width: auto;
-  padding: 8px 18px;
-  font-size: 1rem;
+  padding: 6px 16px;
+  font-size: 0.95rem;
   box-shadow: 0 0 15px rgba(255,0,85,0.6);
   animation: bounce 1.5s infinite;
 }
@@ -110,50 +147,191 @@ input {
   50% { transform: translateY(-4px); }
 }
 
-.separator { margin: 10px 0; color: #666; font-size: 0.85rem; }
+.separator { margin: 8px 0; color: #666; font-size: 0.85rem; }
 .join-group { display: flex; gap: 8px; }
 .code-badge { background: #ffcc00; color: #000; padding: 2px 10px; border-radius: 8px; }
-.player-list-box { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 12px; margin: 15px 0; }
-#players-list { list-style: none; margin-top: 8px; }
-#players-list li { background: #251d38; padding: 6px; border-radius: 6px; margin-bottom: 5px; font-size: 0.9rem; }
+.player-list-box { background: rgba(0,0,0,0.4); padding: 10px; border-radius: 12px; margin: 12px 0; }
+#players-list { list-style: none; margin-top: 6px; }
+#players-list li { background: #251d38; padding: 5px; border-radius: 6px; margin-bottom: 4px; font-size: 0.85rem; }
 
-/* شاشة الجيم المتجاوبة */
+.lobby-extra-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.footer-brand {
+  margin-top: 15px;
+  font-size: 0.75rem;
+  color: #777;
+}
+.footer-brand b { color: #ffcc00; }
+
+/* شاشة اللعبة */
 #game-screen {
   flex-direction: column;
   justify-content: space-between;
-  padding: 12px;
+  padding: 8px 12px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
+  box-sizing: border-box;
 }
 
 .game-header {
   width: 100%;
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.top-row {
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  width: 100%;
   flex-wrap: wrap;
+  gap: 5px;
+}
+
+.game-controls {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.game-room-tag {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 3px 6px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.game-room-tag b { color: #ffcc00; }
+
+.btn-copy-mini {
+  background: #ffcc00;
+  color: #111;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.btn-copy-tiny {
+  background: rgba(255, 204, 0, 0.2);
+  border: 1px solid #ffcc00;
+  color: #ffcc00;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.room-code-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
 }
 
 .badge {
   background: #ffcc00;
   color: #111;
-  padding: 6px 14px;
-  border-radius: 15px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.timer-badge {
+  background: #251d38;
+  border: 1px solid #ffcc00;
+  color: #ffcc00;
+  padding: 3px 8px;
+  border-radius: 10px;
   font-weight: 800;
   font-size: 0.85rem;
 }
 
+.leave-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid #555;
+  color: #ccc;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.timer-bar-container {
+  width: 100%;
+  height: 5px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.timer-bar {
+  height: 100%;
+  width: 100%;
+  background: #00e676;
+  transition: width 0.2s linear, background-color 0.3s;
+}
+
 .players-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
-.other-player-badge {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-size: 0.8rem;
+.player-score-chip {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 3px 8px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+}
+
+.player-score-chip.active-turn {
+  border-color: #00e676;
+  background: rgba(0, 230, 118, 0.15);
+}
+
+.chip-name { font-weight: 700; color: #fff; }
+.chip-score { color: #ffcc00; font-weight: 800; }
+
+.immune-player {
+  border-color: #ffd700 !important;
+  background: rgba(255, 215, 0, 0.2) !important;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+.lock-tag {
+  color: #ffcc00;
+  font-size: 0.7rem;
+  background: rgba(0,0,0,0.4);
+  padding: 1px 5px;
+  border-radius: 6px;
+  margin-right: 4px;
+}
+
+.leader-score {
+  background: #ffcc00 !important;
+  color: #000 !important;
+  font-weight: 900;
+  box-shadow: 0 0 8px rgba(255, 204, 0, 0.6);
 }
 
 /* الطاولة */
@@ -161,26 +339,20 @@ input {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: min(8vw, 35px);
+  gap: min(8vw, 25px);
   width: 100%;
   margin: auto 0;
+  flex: 1;
+  min-height: 0;
 }
 
-.deck-spot {
-  text-align: center;
-  cursor: pointer;
-}
-.deck-spot p {
-  margin-top: 6px;
-  font-size: 0.8rem;
-  color: #aaa;
-  font-weight: 600;
-}
+.deck-spot { text-align: center; cursor: pointer; }
+.deck-spot p { margin-top: 4px; font-size: 0.75rem; color: #aaa; font-weight: 600; }
 
-/* كروت اللعب (Scalable Cards) */
+/* الكروت */
 .card {
-  width: clamp(70px, 18vw, 100px);
-  height: clamp(105px, 27vw, 150px);
+  width: clamp(65px, 18vw, 95px);
+  height: clamp(95px, 26vw, 140px);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -192,8 +364,8 @@ input {
   position: relative;
   transition: transform 0.2s;
   cursor: pointer;
+  flex-shrink: 0;
 }
-
 .card:active { transform: scale(0.95); }
 
 .card-back {
@@ -201,31 +373,30 @@ input {
   border: 2px solid #ffcc00;
   color: #ffcc00;
 }
-.logo-txt { font-size: 1.1rem; }
+.logo-txt { font-size: 1rem; }
 .deck-count-num {
   position: absolute;
-  bottom: 8px;
+  bottom: 6px;
   background: #ffcc00;
   color: #000;
   border-radius: 50%;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
 }
 
-/* ألوان الأرقام من صورك */
 .card-num { background: #1c1a24; }
 .card-num .circle-badge {
-  width: clamp(45px, 12vw, 62px);
-  height: clamp(45px, 12vw, 62px);
+  width: clamp(40px, 11vw, 58px);
+  height: clamp(40px, 11vw, 58px);
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: clamp(1.6rem, 4.5vw, 2.3rem);
+  font-size: clamp(1.4rem, 4vw, 2.1rem);
   color: #111;
 }
 
@@ -238,14 +409,9 @@ input {
 .num-7 .circle-badge { background: #29b6f6; }
 .num-8 .circle-badge { background: #3f51b5; color: #fff; }
 .num-9 .circle-badge { background: #7e57c2; color: #fff; text-decoration: underline; }
-.num-10 .circle-badge { background: #e040fb; color: #fff; font-size: 1.4rem; }
+.num-10 .circle-badge { background: #e040fb; color: #fff; font-size: 1.3rem; }
 
-/* ألوان الكوماندز */
-.card-cmd {
-  font-size: clamp(0.75rem, 2.2vw, 0.95rem);
-  text-align: center;
-  padding: 6px;
-}
+.card-cmd { font-size: clamp(0.7rem, 2vw, 0.9rem); text-align: center; padding: 5px; }
 .cmd-joker { background: #006064; border-color: #00e5ff; }
 .cmd-hunt { background: #1b5e20; border-color: #00e676; }
 .cmd-bank { background: #e65100; border-color: #ffeb3b; }
@@ -254,13 +420,14 @@ input {
 .cmd-annoy { background: #311b92; border-color: #ea80fc; }
 .cmd-wild { background: #bf360c; border-color: #ffd180; }
 
-/* يد اللاعب */
 .player-zone {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-bottom: 2px;
 }
 
 .zone-header {
@@ -268,31 +435,22 @@ input {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 480px;
-  font-size: 0.85rem;
+  max-width: 440px;
+  font-size: 0.8rem;
   color: #ffcc00;
   font-weight: 800;
 }
 
 .cards-hand {
   display: flex;
-  gap: clamp(6px, 2vw, 15px);
+  gap: clamp(5px, 2vw, 12px);
   justify-content: center;
   width: 100%;
 }
 
-/* الكروت التفاعلية المميزة */
-.selectable {
-  box-shadow: 0 0 15px 4px #00e676 !important;
-  transform: translateY(-8px);
-  animation: pulse 1s infinite alternate;
-}
-@keyframes pulse {
-  from { transform: translateY(-8px) scale(1); }
-  to { transform: translateY(-12px) scale(1.05); }
-}
+.selectable { box-shadow: 0 0 15px 4px #00e676 !important; transform: translateY(-6px); }
 
-/* النوافذ المنبثقة للكوماندز */
+/* المودال وقوائم القواعد والشراء */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -301,29 +459,75 @@ input {
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: 15px;
+  padding: 12px;
 }
-
 .modal-card {
   background: #201a30;
   border: 2px solid #ffcc00;
   border-radius: 18px;
-  padding: 20px;
+  padding: 18px;
   width: 100%;
   max-width: 380px;
   text-align: center;
-  max-height: 90vh;
+  max-height: 85vh;
   overflow-y: auto;
 }
 
-.modal-card h2 { font-size: 1.3rem; margin-bottom: 10px; color: #ffcc00; }
-.modal-card p { font-size: 0.9rem; color: #ccc; margin-bottom: 15px; }
-
-.modal-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+.rules-scroll-content {
+  text-align: right;
+  max-height: 250px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  margin: 15px 0;
-  max-height: 200px;
-  overflow-y: auto;
+  padding-left: 5px;
 }
+
+.rule-section {
+  background: rgba(0,0,0,0.3);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-right: 3px solid #ffcc00;
+}
+.rule-section h3 {
+  color: #ffcc00;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.buy-card-info {
+  background: rgba(0,0,0,0.4);
+  padding: 15px;
+  border-radius: 12px;
+  margin: 12px 0;
+  border: 1px solid rgba(255, 204, 0, 0.3);
+}
+
+.brand-badge {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #ffcc00;
+  letter-spacing: 1px;
+}
+
+.phone-number-display {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 6px 0;
+  direction: ltr;
+}
+
+.hunt-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 8px; }
+.hunt-num-btn { font-size: 1rem; padding: 7px; }
+
+.modal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; margin: 12px 0; max-height: 180px; overflow-y: auto; }
+
+.revealed-container { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; max-height: 240px; overflow-y: auto; text-align: right; }
+.revealed-player-row { background: rgba(0,0,0,0.3); padding: 7px; border-radius: 10px; }
+.rev-name { display: block; font-size: 0.8rem; font-weight: 800; margin-bottom: 5px; color: #ffcc00; }
+.rev-cards { display: flex; gap: 5px; justify-content: center; }
+.rev-cards .card { width: 48px !important; height: 70px !important; box-shadow: none; }
+.rev-cards .circle-badge { width: 28px !important; height: 28px !important; font-size: 1rem !important; }
+.rev-cards .card-cmd { font-size: 0.6rem !important; }

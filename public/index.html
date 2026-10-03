@@ -8,12 +8,28 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- بوابة فحص الرقم السري للزوار -->
+  <div id="gate-screen" class="screen">
+    <div class="lobby-box">
+      <h1 class="game-logo">كمّلها</h1>
+      <div style="font-size:2.5rem;margin:10px 0;">🔒</div>
+      <p style="color:#ffcc00;font-weight:bold;margin-bottom:8px;">أهلاً بك في لعبة كمّلها!</p>
+      <p style="color:#aaa;font-size:0.85rem;margin-bottom:15px;">أدخل الرقم السري لتلعب مع أصحابك:</p>
+      
+      <input type="text" id="gate-pass-input" placeholder="اكتب الرقم السري هنا...">
+      <button id="btn-submit-gate" class="btn primary-btn">دخول للعبة 🎮</button>
+      <p style="color:#666;font-size:0.75rem;margin-top:12px;">للحصول على الرقم السري تواصل مع Wello_0: 01121040020</p>
+    </div>
+  </div>
 
   <!-- شريط الإشعارات العلوي -->
   <div id="toast-banner" class="toast hidden"></div>
 
-  <!-- شاشة الدخول والغرف -->
+  <!-- شاشة الدخول والغرف (Lobby) -->
   <div id="lobby-screen" class="screen">
+    <!-- زر كتم الصوت في شاشة البداية -->
+    <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">🔊</button>
+
     <div class="lobby-box">
       <h1 class="game-logo">كمّلها</h1>
       <p class="tagline">لعبة الذكاء والسرعة والتحدي</p>
@@ -29,13 +45,26 @@
         <input type="text" id="room-code-input" placeholder="كود الغرفة">
         <button id="btn-join" class="btn secondary-btn">دخول</button>
       </div>
+
+      <!-- أزرار القواعد والشراء -->
+      <div class="lobby-extra-buttons">
+        <button id="btn-rules" class="btn info-btn">📖 طريقة وقواعد اللعبة</button>
+        <button id="btn-buy" class="btn order-btn">📦 اطلب النسخة الورقية الأصلية</button>
+      </div>
+
+      <div class="footer-brand">
+        صُنعت بحب بواسطة <b>Wello_0</b> • 📞 01121040020
+      </div>
     </div>
   </div>
 
-  <!-- غرفة الانتظار -->
+  <!-- غرفة الانتظار (Lobby Room) -->
   <div id="waiting-screen" class="screen hidden">
     <div class="lobby-box">
-      <h2>كود الغرفة: <span id="display-room-code" class="code-badge"></span></h2>
+      <div class="room-code-header">
+        <h2>كود الغرفة: <span id="display-room-code" class="code-badge"></span></h2>
+        <button id="btn-copy-code-wait" class="btn-copy-mini">نسخ 📋</button>
+      </div>
       <p class="share-hint">شارك هذا الكود مع أصحابك للدخول</p>
       
       <div class="player-list-box">
@@ -43,22 +72,40 @@
         <ul id="players-list"></ul>
       </div>
 
-      <button id="btn-start" class="btn primary-btn hidden">ابدأ اللعبة 🎮</button>
+      <div class="waiting-actions">
+        <button id="btn-start" class="btn primary-btn hidden">ابدأ اللعبة 🎮</button>
+        <button id="btn-leave-waiting" class="btn secondary-btn">خروج من الغرفة 🚪</button>
+      </div>
       <p id="wait-msg">في انتظار صاحب الغرفة لبدء الجيم...</p>
     </div>
   </div>
 
-  <!-- شاشة اللعب الرئيسية (Responsive Game Board) -->
+  <!-- شاشة اللعب الرئيسية (Game Board) -->
   <div id="game-screen" class="screen hidden">
-    <!-- الشريط العلوي -->
     <header class="game-header">
-      <div id="turn-badge" class="badge">دور: <span id="current-player-name">--</span></div>
+      <div class="top-row">
+        <div class="game-room-tag">
+          غرفة: <b id="game-room-code-txt">--</b>
+          <button id="btn-copy-code-game" class="btn-copy-tiny">نسخ 📋</button>
+        </div>
+
+        <div id="turn-badge" class="badge">دور: <span id="current-player-name">--</span></div>
+        <div id="timer-box" class="timer-badge">⏳ <span id="timer-sec">15</span>ث</div>
+
+        <div class="game-controls">
+          <button id="btn-sound-game" class="sound-toggle-mini" title="كتم/تشغيل الصوت">🔊</button>
+          <button id="btn-leave" class="leave-btn">خروج 🚪</button>
+        </div>
+      </div>
+
+      <div class="timer-bar-container">
+        <div id="timer-bar" class="timer-bar"></div>
+      </div>
       <div id="other-players" class="players-row"></div>
     </header>
 
     <!-- وسط الطاولة -->
     <main class="table-area">
-      <!-- كارت السحب -->
       <div class="deck-spot" id="draw-deck">
         <div class="card card-back">
           <span class="logo-txt">كمّلها</span>
@@ -67,7 +114,6 @@
         <p>اسحب كارت</p>
       </div>
 
-      <!-- كارت الأرض المكشوف -->
       <div class="deck-spot" id="discard-deck">
         <div id="top-discard-card" class="card-placeholder">لا يوجد</div>
         <p>الأرض المكشوفة</p>
@@ -78,13 +124,13 @@
     <footer class="player-zone">
       <div class="zone-header">
         <span>كروتك الحالية:</span>
-        <button id="btn-kamelha" class="btn kamelha-btn">كمّلهااا! 👑</button>
+        <button id="btn-kamelha" class="btn kamelha-btn">كمّلتهااا! 👑</button>
       </div>
       <div id="my-hand" class="cards-hand"></div>
     </footer>
   </div>
 
-  <!-- حاوية النوافذ المنبثقة للكوماندز والخيارات -->
+  <!-- النوافذ المنبثقة -->
   <div id="modal-overlay" class="modal-overlay hidden">
     <div id="modal-container" class="modal-card"></div>
   </div>
