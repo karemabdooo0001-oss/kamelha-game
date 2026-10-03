@@ -1,0 +1,329 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Cairo', sans-serif;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: radial-gradient(circle at center, #1b162b 0%, #0d0914 100%);
+  color: #fff;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.screen {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.hidden { display: none !important; }
+
+/* شريط الإشعار العائم */
+.toast {
+  position: fixed;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffcc00;
+  color: #111;
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-weight: 800;
+  z-index: 999;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  font-size: 0.95rem;
+  text-align: center;
+  max-width: 90vw;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { top: -50px; opacity: 0; }
+  to { top: 15px; opacity: 1; }
+}
+
+/* اللوبي */
+.lobby-box {
+  background: rgba(26, 20, 41, 0.95);
+  padding: 25px;
+  border-radius: 20px;
+  border: 2px solid #ffcc00;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+  text-align: center;
+  width: 90%;
+  max-width: 400px;
+}
+
+.game-logo {
+  font-size: 2.8rem;
+  color: #ffcc00;
+  text-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
+}
+
+.tagline { color: #aaa; margin-bottom: 20px; font-size: 0.9rem; }
+.input-group label { display: block; text-align: right; margin-bottom: 6px; font-size: 0.85rem; }
+
+input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #444;
+  background: #111;
+  color: #fff;
+  font-size: 1rem;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.btn {
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.15s, filter 0.15s;
+  width: 100%;
+}
+.btn:active { transform: scale(0.96); }
+.primary-btn { background: #ffcc00; color: #111; }
+.secondary-btn { background: #5c6bc0; color: #fff; }
+.kamelha-btn {
+  background: linear-gradient(45deg, #ff0055, #ffcc00);
+  color: #fff;
+  width: auto;
+  padding: 8px 18px;
+  font-size: 1rem;
+  box-shadow: 0 0 15px rgba(255,0,85,0.6);
+  animation: bounce 1.5s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.separator { margin: 10px 0; color: #666; font-size: 0.85rem; }
+.join-group { display: flex; gap: 8px; }
+.code-badge { background: #ffcc00; color: #000; padding: 2px 10px; border-radius: 8px; }
+.player-list-box { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 12px; margin: 15px 0; }
+#players-list { list-style: none; margin-top: 8px; }
+#players-list li { background: #251d38; padding: 6px; border-radius: 6px; margin-bottom: 5px; font-size: 0.9rem; }
+
+/* شاشة الجيم المتجاوبة */
+#game-screen {
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.game-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  background: #ffcc00;
+  color: #111;
+  padding: 6px 14px;
+  border-radius: 15px;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.players-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.other-player-badge {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+}
+
+/* الطاولة */
+.table-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: min(8vw, 35px);
+  width: 100%;
+  margin: auto 0;
+}
+
+.deck-spot {
+  text-align: center;
+  cursor: pointer;
+}
+.deck-spot p {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: #aaa;
+  font-weight: 600;
+}
+
+/* كروت اللعب (Scalable Cards) */
+.card {
+  width: clamp(70px, 18vw, 100px);
+  height: clamp(105px, 27vw, 150px);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-weight: 900;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  border: 2px solid rgba(255,255,255,0.25);
+  position: relative;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.card:active { transform: scale(0.95); }
+
+.card-back {
+  background: linear-gradient(135deg, #1c0e35, #441c7a);
+  border: 2px solid #ffcc00;
+  color: #ffcc00;
+}
+.logo-txt { font-size: 1.1rem; }
+.deck-count-num {
+  position: absolute;
+  bottom: 8px;
+  background: #ffcc00;
+  color: #000;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+/* ألوان الأرقام من صورك */
+.card-num { background: #1c1a24; }
+.card-num .circle-badge {
+  width: clamp(45px, 12vw, 62px);
+  height: clamp(45px, 12vw, 62px);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: clamp(1.6rem, 4.5vw, 2.3rem);
+  color: #111;
+}
+
+.num-1 .circle-badge { background: #ff5252; }
+.num-2 .circle-badge { background: #ff9800; }
+.num-3 .circle-badge { background: #cddc39; }
+.num-4 .circle-badge { background: #4caf50; }
+.num-5 .circle-badge { background: #00e676; }
+.num-6 .circle-badge { background: #00b0ff; text-decoration: underline; }
+.num-7 .circle-badge { background: #29b6f6; }
+.num-8 .circle-badge { background: #3f51b5; color: #fff; }
+.num-9 .circle-badge { background: #7e57c2; color: #fff; text-decoration: underline; }
+.num-10 .circle-badge { background: #e040fb; color: #fff; font-size: 1.4rem; }
+
+/* ألوان الكوماندز */
+.card-cmd {
+  font-size: clamp(0.75rem, 2.2vw, 0.95rem);
+  text-align: center;
+  padding: 6px;
+}
+.cmd-joker { background: #006064; border-color: #00e5ff; }
+.cmd-hunt { background: #1b5e20; border-color: #00e676; }
+.cmd-bank { background: #e65100; border-color: #ffeb3b; }
+.cmd-reverse { background: #b71c1c; border-color: #ff5252; }
+.cmd-keda { background: #3e2723; border-color: #ffab40; }
+.cmd-annoy { background: #311b92; border-color: #ea80fc; }
+.cmd-wild { background: #bf360c; border-color: #ffd180; }
+
+/* يد اللاعب */
+.player-zone {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.zone-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 480px;
+  font-size: 0.85rem;
+  color: #ffcc00;
+  font-weight: 800;
+}
+
+.cards-hand {
+  display: flex;
+  gap: clamp(6px, 2vw, 15px);
+  justify-content: center;
+  width: 100%;
+}
+
+/* الكروت التفاعلية المميزة */
+.selectable {
+  box-shadow: 0 0 15px 4px #00e676 !important;
+  transform: translateY(-8px);
+  animation: pulse 1s infinite alternate;
+}
+@keyframes pulse {
+  from { transform: translateY(-8px) scale(1); }
+  to { transform: translateY(-12px) scale(1.05); }
+}
+
+/* النوافذ المنبثقة للكوماندز */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 15px;
+}
+
+.modal-card {
+  background: #201a30;
+  border: 2px solid #ffcc00;
+  border-radius: 18px;
+  padding: 20px;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-card h2 { font-size: 1.3rem; margin-bottom: 10px; color: #ffcc00; }
+.modal-card p { font-size: 0.9rem; color: #ccc; margin-bottom: 15px; }
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+  gap: 10px;
+  margin: 15px 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
