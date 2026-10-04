@@ -10,11 +10,11 @@ app.use(express.static('public'));
 
 // ================= الإعدادات والأمان =================
 const MASTER_KEY = "8050"; // كود الماستر لدخول الأدمن
-let GAME_PASSCODE = "2026"; // الرقم السري لدخول اللعبة
+let GAME_PASSCODE = "2026"; // باسوورد الطوارئ العام
 
-// سجل اللاعبين الدائم وقائمة المحظورين
-const registeredPlayers = new Map(); // playerId => { id, name, lastSeen, isOnline, currentRoom }
-const bannedPlayerIds = new Set(); // قائمة الـ IDs المحظورة
+const registeredPlayers = new Map(); // playerId => info
+const bannedPlayerIds = new Set(); // قائمة المحظورين
+const vouchers = new Map(); // code => voucher data
 
 const rooms = {};
 const DEFAULT_TURN_TIME = 15;
@@ -83,21 +83,63 @@ function checkLastManStanding(room) {
       scores: room.players,
       reason: 'فوز تلقائي لانسحاب باقي اللاعبين من الجيم! 🏆'
     });
+    expireRoomOneMatchVouchers(room);
     return true;
   }
   return false;
 }
 
+// إنهاء تذاكر "الجيم الواحد" بعد انتهاء المباراة
+function expireRoomOneMatchVouchers(room) {
+  room.players.forEach(p => {
+    for (const [code, v] of vouchers.entries()) {
+      if (v.duration === '1match' && v.devices.includes(p.playerId)) {
+        v.usedMatch = true;
+        v.status = 'منتهية (تم لعب الجيم)';
+      }
+    }
+  });
+}
+
+// دالة التحقق من التذكرة الذكية
+function validateVoucher(code, playerId) {
+  if (code === GAME_PASSCODE) return { valid: true, msg: 'دخول بكود المطور العام' };
+
+  const v = vouchers.get(code);
+  if (!v) return { valid: false, msg: 'كود التذكرة غير موجود أو غير صحيح!' };
+  if (v.status === 'ملغاة') return { valid: false, msg: 'تم إلغاء هذه التذكرة بواسطة المطور!' };
+
+  // فحص الوقت
+  if (v.expiresAt && Date.now() > v.expiresAt) {
+    v.status = 'منتهية الصلاحية';
+    return { valid: false, msg: 'هذه التذكرة انتهت صلاحيتها الزمنية!' };
+  }
+
+  // فحص جيم واحد
+  if (v.duration === '1match' && v.usedMatch) {
+    return { valid: false, msg: 'تم استخدام هذه التذكرة في جيم سابق وانتهت!' };
+  }
+
+  // فحص الأجهزة
+  if (v.devices.includes(playerId)) {
+    return { valid: true, voucher: v };
+  }
+
+  if (v.devices.length >= v.maxDevices) {
+    return { valid: false, msg: `عفواً! استهلكت التذكرة الحد الأقصى للأجهزة المصرح بها (${v.maxDevices} جهاز)!` };
+  }
+
+  v.devices.push(playerId);
+  return { valid: true, voucher: v };
+}
+
 io.on('connection', (socket) => {
 
-  // تسجيل وحفظ اللاعب في السجل العام عند دخوله
   socket.on('registerPlayerIdentity', ({ playerId, name }) => {
-    if (bannedPlayerIds.has(playerId)) {
-      return socket.emit('bannedKickNotification');
-    }
+    if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
     registeredPlayers.set(playerId, {
       playerId,
-      name: name || 'زائر',
+      name: name || 'لاعب',
       lastSeen: new Date().toLocaleTimeString('ar-EG'),
       isOnline: true,
       currentRoom: null,
@@ -105,26 +147,22 @@ io.on('connection', (socket) => {
     });
   });
 
-  // فحص باسوورد بوابة الدخول
+  // فحص التذكرة أو الباسوورد عند بوابة الدخول
   socket.on('verifyGatePasscode', ({ passcode, playerId }) => {
-    if (bannedPlayerIds.has(playerId)) {
-      return socket.emit('bannedKickNotification');
-    }
-    if (passcode === GAME_PASSCODE) {
-      socket.emit('gateAccessGranted');
+    if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
+
+    const result = validateVoucher(passcode.trim(), playerId);
+    if (result.valid) {
+      socket.emit('gateAccessGranted', { voucherCode: passcode.trim() });
     } else {
-      socket.emit('gateAccessDenied');
+      socket.emit('gateAccessDenied', result.msg);
     }
   });
 
-  // ================= أوامر لوحة الأدمن =================
+  // ================= أوامر لوحة الأدمن والتذاكر =================
   socket.on('adminLogin', (key) => {
     if (key === MASTER_KEY) {
-      socket.emit('adminLoginSuccess', {
-        passcode: GAME_PASSCODE,
-        players: Array.from(registeredPlayers.values()),
-        banned: Array.from(bannedPlayerIds)
-      });
+      socket.emit('adminLoginSuccess', getAdminDashboardData());
     } else {
       socket.emit('adminLoginFail');
     }
@@ -132,34 +170,73 @@ io.on('connection', (socket) => {
 
   socket.on('adminRefreshData', (key) => {
     if (key === MASTER_KEY) {
-      socket.emit('adminDataUpdated', {
-        passcode: GAME_PASSCODE,
-        players: Array.from(registeredPlayers.values()),
-        banned: Array.from(bannedPlayerIds)
-      });
+      socket.emit('adminDataUpdated', getAdminDashboardData());
     }
+  });
+
+  function getAdminDashboardData() {
+    return {
+      passcode: GAME_PASSCODE,
+      players: Array.from(registeredPlayers.values()),
+      banned: Array.from(bannedPlayerIds),
+      vouchers: Array.from(vouchers.values())
+    };
+  }
+
+  // توليد تذكرة جديدة
+  socket.on('adminCreateVoucher', ({ masterKey, type, duration, price }) => {
+    if (masterKey !== MASTER_KEY) return;
+
+    const code = 'KM-' + Math.floor(10000 + Math.random() * 90000);
+    const maxDevices = type === 'single' ? 1 : 4;
+
+    let expiresAt = null;
+    const now = Date.now();
+    if (duration === '1hour') expiresAt = now + (60 * 60 * 1000);
+    else if (duration === '1day') expiresAt = now + (24 * 60 * 60 * 1000);
+    else if (duration === '7days') expiresAt = now + (7 * 24 * 60 * 60 * 1000);
+    else if (duration === '30days') expiresAt = now + (30 * 24 * 60 * 60 * 1000);
+
+    const newVoucher = {
+      code,
+      type,
+      maxDevices,
+      duration,
+      price: price || '0',
+      createdAt: new Date().toLocaleDateString('ar-EG'),
+      expiresAt,
+      usedMatch: false,
+      devices: [],
+      status: 'نشطة'
+    };
+
+    vouchers.set(code, newVoucher);
+    socket.emit('adminDataUpdated', getAdminDashboardData());
+  });
+
+  socket.on('adminDeleteVoucher', ({ masterKey, code }) => {
+    if (masterKey !== MASTER_KEY) return;
+    vouchers.delete(code);
+    socket.emit('adminDataUpdated', getAdminDashboardData());
   });
 
   socket.on('adminChangePasscode', ({ masterKey, newPasscode }) => {
     if (masterKey === MASTER_KEY && newPasscode) {
       GAME_PASSCODE = newPasscode.trim();
       socket.emit('passcodeUpdated', GAME_PASSCODE);
-      io.emit('notify', 'تم تحديث كود دخول اللعبة بواسطة المطور!');
+      io.emit('notify', 'تم تحديث كود الطوارئ العام بواسطة المطور!');
     }
   });
 
-  // حظر لاعب بالـ ID الفريد بتاعه
   socket.on('adminBanPlayer', ({ masterKey, targetPlayerId }) => {
     if (masterKey !== MASTER_KEY) return;
     bannedPlayerIds.add(targetPlayerId);
 
-    // طرده فوراً من أي غرفة ومن اللعبة بالكامل
     const playerRecord = registeredPlayers.get(targetPlayerId);
     if (playerRecord && playerRecord.socketId) {
       io.to(playerRecord.socketId).emit('bannedKickNotification');
     }
 
-    // إزالته من أي غرفة كان يلعب فيها
     for (const rId in rooms) {
       const room = rooms[rId];
       const found = room.players.find(p => p.playerId === targetPlayerId);
@@ -176,23 +253,13 @@ io.on('connection', (socket) => {
         }
       }
     }
-
-    socket.emit('adminDataUpdated', {
-      passcode: GAME_PASSCODE,
-      players: Array.from(registeredPlayers.values()),
-      banned: Array.from(bannedPlayerIds)
-    });
+    socket.emit('adminDataUpdated', getAdminDashboardData());
   });
 
-  // إلغاء حظر لاعب
   socket.on('adminUnbanPlayer', ({ masterKey, targetPlayerId }) => {
     if (masterKey !== MASTER_KEY) return;
     bannedPlayerIds.delete(targetPlayerId);
-    socket.emit('adminDataUpdated', {
-      passcode: GAME_PASSCODE,
-      players: Array.from(registeredPlayers.values()),
-      banned: Array.from(bannedPlayerIds)
-    });
+    socket.emit('adminDataUpdated', getAdminDashboardData());
   });
 
   // ================= منطق اللعبة والغرف =================
@@ -649,6 +716,7 @@ io.on('connection', (socket) => {
     if (matchWinner) {
       io.to(room.id).emit('gameOver', { winnerName: matchWinner.name, scores: room.players, revealedHands });
       room.gameStarted = false;
+      expireRoomOneMatchVouchers(room); // إنهاء تذاكر الجيم الواحد
     } else {
       io.to(room.id).emit('roundEnded', { msg: winMessage, revealedHands });
       setTimeout(() => {

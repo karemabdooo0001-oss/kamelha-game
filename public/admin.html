@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>لوحة تحكم Wello_0 | الإدارة والحظر</title>
+  <title>لوحة تحكم Wello_0 | مولد التذاكر والإدارة</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap" rel="stylesheet">
   <style>
     .admin-container {
-      max-width: 650px;
+      max-width: 750px;
       width: 95%;
       margin: 20px auto;
       background: #1a162b;
@@ -17,60 +17,55 @@
       padding: 20px;
       text-align: center;
       box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-      max-height: 90vh;
+      max-height: 92vh;
       overflow-y: auto;
     }
-    .current-pass-box {
-      background: rgba(255,204,0,0.1);
-      border: 1px dashed #ffcc00;
-      padding: 10px;
-      border-radius: 12px;
-      margin: 12px 0;
-      font-size: 1rem;
+    .ticket-gen-box {
+      background: rgba(0, 230, 118, 0.08);
+      border: 1px solid #00e676;
+      padding: 15px;
+      border-radius: 14px;
+      margin: 15px 0;
+      text-align: right;
+    }
+    .gen-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .gen-grid label { font-size: 0.8rem; color: #aaa; display: block; margin-bottom: 4px; }
+    .gen-grid select, .gen-grid input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      background: #111;
+      border: 1px solid #444;
+      color: #fff;
+      font-size: 0.85rem;
     }
     .admin-table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 10px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
     .admin-table th, .admin-table td {
-      padding: 8px;
+      padding: 7px;
       border: 1px solid #333;
       text-align: center;
     }
-    .admin-table th {
-      background: #251d38;
-      color: #ffcc00;
-    }
-    .btn-ban {
-      background: #ff1744;
-      color: #fff;
-      padding: 4px 8px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-size: 0.75rem;
-      font-weight: bold;
-    }
-    .btn-unban {
-      background: #00e676;
-      color: #111;
-      padding: 4px 8px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-size: 0.75rem;
-      font-weight: bold;
-    }
+    .admin-table th { background: #251d38; color: #ffcc00; }
+    .btn-action-copy { background: #00e5ff; color: #000; border: none; padding: 3px 6px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    .btn-action-del { background: #ff1744; color: #fff; border: none; padding: 3px 6px; border-radius: 4px; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body style="display:flex;justify-content:center;align-items:center;min-height:100vh;">
 
-  <!-- شاشة الدخول السرية -->
+  <!-- تسجيل دخول الأدمن -->
   <div id="admin-login" class="admin-container" style="max-width:400px;">
     <h1 style="color:#ffcc00;margin-bottom:10px;">👑 لوحة تحكم Wello_0</h1>
-    <p style="color:#aaa;font-size:0.85rem;margin-bottom:15px;">أدخل كود الماستر السري للدخول:</p>
+    <p style="color:#aaa;font-size:0.85rem;margin-bottom:15px;">أدخل كود الماستر السري:</p>
     <input type="password" id="master-key-input" placeholder="كود الماستر">
     <button id="btn-admin-login" class="btn primary-btn">دخول للوحة التحكم 🔓</button>
   </div>
@@ -78,27 +73,64 @@
   <!-- لوحة الإدارة الكاملة -->
   <div id="admin-panel" class="admin-container hidden">
     <div style="display:flex;justify-content:space-between;align-items:center;">
-      <h2 style="color:#ffcc00;">لوحة تحكم Wello_0 ⚙️</h2>
-      <button id="btn-refresh" class="btn secondary-btn" style="width:auto;padding:5px 12px;font-size:0.8rem;">تحديث السجل 🔄</button>
+      <h2 style="color:#ffcc00;">لوحة إدارة وتوليد التذاكر 🎟️</h2>
+      <button id="btn-refresh" class="btn secondary-btn" style="width:auto;padding:5px 12px;font-size:0.8rem;">تحديث 🔄</button>
     </div>
 
-    <!-- إدارة كلمة السر -->
-    <div class="current-pass-box">
-      الرقم السري الحالي للعبة هو: 
-      <b id="txt-current-pass" style="color:#ffcc00;font-size:1.6rem;letter-spacing:2px;display:block;">--</b>
+    <!-- مولد التذاكر الذكية -->
+    <div class="ticket-gen-box">
+      <h3 style="color:#00e676;margin-bottom:8px;">🎟️ إنشاء تذكرة دخول جديدة للعميل:</h3>
+      
+      <div class="gen-grid">
+        <div>
+          <label>نوع التذكرة:</label>
+          <select id="ticket-type">
+            <option value="single">فردي (1 جهاز فقط)</option>
+            <option value="group">شلة / غرفة (4 أجهزة)</option>
+          </select>
+        </div>
+        <div>
+          <label>مدة الصلاحية:</label>
+          <select id="ticket-duration">
+            <option value="1match">جيم واحد فقط (حتى الفوز)</option>
+            <option value="1hour">ساعة واحدة</option>
+            <option value="1day">يوم كامل (24 ساعة)</option>
+            <option value="7days">أسبوع (7 أيام)</option>
+            <option value="30days">شهر (30 يوماً)</option>
+          </select>
+        </div>
+        <div>
+          <label>السعر (ج.م):</label>
+          <input type="number" id="ticket-price" placeholder="مثلاً: 25" value="20">
+        </div>
+      </div>
+
+      <button id="btn-generate-ticket" class="btn primary-btn" style="margin-top:8px;">توليد التذكرة فوراً وحفظها 🎫</button>
     </div>
 
-    <div style="display:flex;gap:8px;">
-      <input type="text" id="new-pass-input" placeholder="اكتب باسوورد جديد هنا" style="margin-bottom:0;">
-      <button id="btn-save-pass" class="btn primary-btn" style="width:auto;white-space:nowrap;">تغيير الكود 💾</button>
-    </div>
-    
-    <button id="btn-copy-vip-link" class="btn secondary-btn" style="margin-top:10px;">نسخ رابط الدعوة المباشر الجاهز 📋</button>
+    <!-- جدول التذاكر النشطة -->
+    <h3 style="color:#ffcc00;text-align:right;margin-top:15px;">📊 سجل التذاكر الصادرة:</h3>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>كود التذكرة</th>
+          <th>النوع</th>
+          <th>المدة</th>
+          <th>الأجهزة</th>
+          <th>السعر</th>
+          <th>الحالة</th>
+          <th>إجراء</th>
+        </tr>
+      </thead>
+      <tbody id="vouchers-table-body"></tbody>
+    </table>
 
     <hr style="border-color:#333;margin:18px 0;">
 
-    <!-- سجل اللاعبين والتحكم -->
-    <h3 style="color:#00e676;text-align:right;">📋 سجل اللاعبين وأرقامهم الفريدة:</h3>
+    <!-- سجل اللاعبين والمحظورين -->
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="color:#00e676;">📋 اللاعبين المتصلين:</h3>
+    </div>
     <table class="admin-table">
       <thead>
         <tr>
@@ -113,7 +145,6 @@
 
     <hr style="border-color:#333;margin:18px 0;">
 
-    <!-- قائمة المحظورين -->
     <h3 style="color:#ff1744;text-align:right;">🚫 قائمة المحظورين:</h3>
     <table class="admin-table">
       <thead>
@@ -133,21 +164,22 @@
     const adminPanelDiv = document.getElementById('admin-panel');
     const masterKeyInput = document.getElementById('master-key-input');
     const btnAdminLogin = document.getElementById('btn-admin-login');
-    const txtCurrentPass = document.getElementById('txt-current-pass');
-    const newPassInput = document.getElementById('new-pass-input');
-    const btnSavePass = document.getElementById('btn-save-pass');
-    const btnCopyVipLink = document.getElementById('btn-copy-vip-link');
     const btnRefresh = document.getElementById('btn-refresh');
 
+    const ticketType = document.getElementById('ticket-type');
+    const ticketDuration = document.getElementById('ticket-duration');
+    const ticketPrice = document.getElementById('ticket-price');
+    const btnGenerateTicket = document.getElementById('btn-generate-ticket');
+
+    const vouchersTableBody = document.getElementById('vouchers-table-body');
     const playersTableBody = document.getElementById('players-table-body');
     const bannedTableBody = document.getElementById('banned-table-body');
 
     let currentMasterKey = '';
-    let activePasscode = '';
 
     btnAdminLogin.onclick = () => {
       const key = masterKeyInput.value.trim();
-      if (!key) return alert('أدخل الكود!');
+      if (!key) return alert('أدخل كود الماستر!');
       socket.emit('adminLogin', key);
     };
 
@@ -161,14 +193,48 @@
     socket.on('adminLoginFail', () => alert('كود الماستر غير صحيح!'));
     socket.on('adminDataUpdated', (data) => renderDashboard(data));
 
+    // توليد تذكرة جديدة
+    btnGenerateTicket.onclick = () => {
+      socket.emit('adminCreateVoucher', {
+        masterKey: currentMasterKey,
+        type: ticketType.value,
+        duration: ticketDuration.value,
+        price: ticketPrice.value.trim()
+      });
+    };
+
     function renderDashboard(data) {
-      activePasscode = data.passcode;
-      txtCurrentPass.innerText = data.passcode;
+      // جدول التذاكر
+      vouchersTableBody.innerHTML = '';
+      if (!data.vouchers || data.vouchers.length === 0) {
+        vouchersTableBody.innerHTML = '<tr><td colspan="7" style="color:#777;">لم يتم إنشاء تذاكر بعد</td></tr>';
+      } else {
+        data.vouchers.slice().reverse().forEach(v => {
+          const tr = document.createElement('tr');
+          const typeTxt = v.type === 'single' ? 'فردي (1)' : 'شلة (4)';
+          const durMap = { '1match': 'جيم واحد', '1hour': 'ساعة', '1day': '24 ساعة', '7days': '7 أيام', '30days': 'شهر' };
+          const durTxt = durMap[v.duration] || v.duration;
+
+          tr.innerHTML = `
+            <td><b style="color:#ffcc00;font-size:0.95rem;">${v.code}</b></td>
+            <td>${typeTxt}</td>
+            <td>${durTxt}</td>
+            <td><b style="color:${v.devices.length >= v.maxDevices ? '#ff1744' : '#00e676'};">${v.devices.length}/${v.maxDevices}</b></td>
+            <td>${v.price} ج.م</td>
+            <td>${v.status}</td>
+            <td>
+              <button class="btn-action-copy" onclick="copyTicketLink('${v.code}')" title="نسخ رابط مباشر">رابط 📋</button>
+              <button class="btn-action-del" onclick="deleteTicket('${v.code}')" title="حذف">حذف ❌</button>
+            </td>
+          `;
+          vouchersTableBody.appendChild(tr);
+        });
+      }
 
       // جدول اللاعبين
       playersTableBody.innerHTML = '';
-      if (data.players.length === 0) {
-        playersTableBody.innerHTML = '<tr><td colspan="4" style="color:#777;">لا يوجد لاعبين مسجلين بعد</td></tr>';
+      if (!data.players || data.players.length === 0) {
+        playersTableBody.innerHTML = '<tr><td colspan="4" style="color:#777;">لا يوجد لاعبين</td></tr>';
       } else {
         data.players.forEach(p => {
           const isBanned = data.banned.includes(p.playerId);
@@ -176,11 +242,11 @@
           tr.innerHTML = `
             <td><b style="color:#ffcc00;">${p.playerId}</b></td>
             <td>${p.name}</td>
-            <td>${p.currentRoom ? `<span style="color:#00e676;">${p.currentRoom}</span>` : 'في اللوبي'}</td>
+            <td>${p.currentRoom ? `<span style="color:#00e676;">${p.currentRoom}</span>` : 'اللوبي'}</td>
             <td>
               ${isBanned 
-                ? '<span style="color:#ff1744;font-weight:bold;">محظور</span>'
-                : `<button class="btn-ban" onclick="banPlayer('${p.playerId}')">حظر 🚫</button>`}
+                ? '<span style="color:#ff1744;">محظور</span>'
+                : `<button class="btn-ban" style="background:#ff1744;color:#fff;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;" onclick="banPlayer('${p.playerId}')">حظر 🚫</button>`}
             </td>
           `;
           playersTableBody.appendChild(tr);
@@ -189,14 +255,14 @@
 
       // جدول المحظورين
       bannedTableBody.innerHTML = '';
-      if (data.banned.length === 0) {
-        bannedTableBody.innerHTML = '<tr><td colspan="2" style="color:#777;">القائمة نظيفة (لا يوجد محظورين)</td></tr>';
+      if (!data.banned || data.banned.length === 0) {
+        bannedTableBody.innerHTML = '<tr><td colspan="2" style="color:#777;">لا يوجد محظورين</td></tr>';
       } else {
         data.banned.forEach(bId => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td><b style="color:#ff1744;">${bId}</b></td>
-            <td><button class="btn-unban" onclick="unbanPlayer('${bId}')">فك الحظر 🟢</button></td>
+            <td><button class="btn-unban" style="background:#00e676;color:#111;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;" onclick="unbanPlayer('${bId}')">فك الحظر 🟢</button></td>
           `;
           bannedTableBody.appendChild(tr);
         });
@@ -205,35 +271,28 @@
 
     btnRefresh.onclick = () => socket.emit('adminRefreshData', currentMasterKey);
 
-    btnSavePass.onclick = () => {
-      const newPass = newPassInput.value.trim();
-      if (!newPass) return alert('اكتب باسوورد جديد!');
-      socket.emit('adminChangePasscode', { masterKey: currentMasterKey, newPasscode: newPass });
-    };
-
-    socket.on('passcodeUpdated', (newPass) => {
-      activePasscode = newPass;
-      txtCurrentPass.innerText = newPass;
-      newPassInput.value = '';
-      alert('تم تحديث الرقم السري بنجاح!');
-    });
-
-    btnCopyVipLink.onclick = () => {
-      const fullUrl = window.location.origin + '/?pass=' + encodeURIComponent(activePasscode);
+    window.copyTicketLink = (code) => {
+      const fullUrl = window.location.origin + '/?pass=' + encodeURIComponent(code);
       navigator.clipboard.writeText(fullUrl).then(() => {
-        alert('تم نسخ الرابط المباشر بنجاح!');
+        alert(`تم نسخ رابط التذكرة المباشر (${code})! ابعته للعميل وهيفتح معاه فوراً.`);
       });
     };
 
-    window.banPlayer = (playerId) => {
-      if (confirm(`هل أنت متأكد من حظر اللاعب صاحب الرقم الفريد (${playerId}) وطرده فوراً؟`)) {
-        socket.emit('adminBanPlayer', { masterKey: currentMasterKey, targetPlayerId: playerId });
+    window.deleteTicket = (code) => {
+      if (confirm(`حذف وإلغاء التذكرة (${code})؟ لن يتمكن أحد من الدخول بها مجدداً.`)) {
+        socket.emit('adminDeleteVoucher', { masterKey: currentMasterKey, code });
       }
     };
 
-    window.unbanPlayer = (playerId) => {
-      if (confirm(`إلغاء حظر اللاعب (${playerId})؟`)) {
-        socket.emit('adminUnbanPlayer', { masterKey: currentMasterKey, targetPlayerId: playerId });
+    window.banPlayer = (id) => {
+      if (confirm(`حظر اللاعب (${id})؟`)) {
+        socket.emit('adminBanPlayer', { masterKey: currentMasterKey, targetPlayerId: id });
+      }
+    };
+
+    window.unbanPlayer = (id) => {
+      if (confirm(`فك حظر (${id})؟`)) {
+        socket.emit('adminUnbanPlayer', { masterKey: currentMasterKey, targetPlayerId: id });
       }
     };
   </script>

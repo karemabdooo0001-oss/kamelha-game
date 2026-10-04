@@ -8,39 +8,47 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- بوابة فحص الرقم السري للزوار -->
-  <div id="gate-screen" class="screen">
-    <div class="lobby-box">
-      <h1 class="game-logo">كمّلها</h1>
-      <div style="font-size:2.5rem;margin:10px 0;">🔒</div>
-      <p style="color:#ffcc00;font-weight:bold;margin-bottom:8px;">أهلاً بك في لعبة كمّلها!</p>
-      <p style="color:#aaa;font-size:0.85rem;margin-bottom:15px;">أدخل الرقم السري لتلعب مع أصحابك:</p>
-      
-      <input type="text" id="gate-pass-input" placeholder="اكتب الرقم السري هنا...">
-      <button id="btn-submit-gate" class="btn primary-btn">دخول للعبة 🎮</button>
-      <p style="color:#666;font-size:0.75rem;margin-top:12px;">للحصول على الرقم السري تواصل مع Wello_0: 01121040020</p>
-    </div>
-  </div>
 
   <!-- شريط الإشعارات العلوي -->
   <div id="toast-banner" class="toast hidden"></div>
 
-  <!-- شاشة الدخول والغرف (Lobby) -->
-  <div id="lobby-screen" class="screen">
-    <!-- زر كتم الصوت في شاشة البداية -->
+  <!-- 1. شاشة بوابة الدخول والتذاكر (الوحيدة التي تظهر في البداية) -->
+  <div id="gate-screen" class="screen">
+    <div class="lobby-box">
+      <h1 class="game-logo">كمّلها</h1>
+      <div style="font-size:3.5rem;margin:10px 0;">🔒</div>
+      <h2 style="color:#ffcc00;margin-bottom:6px;">بوابة الدخول</h2>
+      <p style="color:#ccc;font-size:0.9rem;margin-bottom:15px;">أدخل كود التذكرة المصرح لك بها للعب مع أصحابك:</p>
+
+      <input type="text" id="gate-pass-input" placeholder="اكتب كود التذكرة هنا (مثلاً: KM-84912)">
+      <button id="btn-submit-gate" class="btn primary-btn">تأكيد التذكرة والدخول 🎮</button>
+
+      <div class="lobby-extra-buttons" style="margin-top:15px;">
+        <button id="btn-buy" class="btn order-btn">📦 شراء تذكرة / النسخة الأصلية</button>
+        <button id="btn-rules" class="btn info-btn">📖 طريقة وقواعد اللعبة</button>
+      </div>
+
+      <div class="footer-brand">
+        صُنعت بواسطة <b>Wello_0</b> • 📞 01121040020
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. شاشة اللوبي (مخفية تماماً ولن تفتح إلا بالتذكرة الصحيحة) -->
+  <div id="lobby-screen" class="screen hidden">
     <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">🔊</button>
 
     <div class="lobby-box">
       <h1 class="game-logo">كمّلها</h1>
       <p class="tagline">لعبة الذكاء والسرعة والتحدي</p>
 
+      <!-- الرقم الفريد الدائم للاعب -->
+      <div class="my-uid-badge">رقمك التعريفي الفريد: <b id="display-my-uid">--</b></div>
+
       <div class="input-group">
         <label>اسمك في اللعبة:</label>
         <input type="text" id="player-name" placeholder="اكتب اسمك...">
       </div>
-
-      <!-- الرقم الفريد الدائم للاعب -->
-      <div class="my-uid-badge">رقمك التعريفي الفريد: <b id="display-my-uid">--</b></div>
 
       <button id="btn-create" class="btn primary-btn">إنشاء غرفة جديدة 🎲</button>
       <div class="separator">أو</div>
@@ -49,19 +57,13 @@
         <button id="btn-join" class="btn secondary-btn">دخول</button>
       </div>
 
-      <!-- أزرار القواعد والشراء -->
-      <div class="lobby-extra-buttons">
-        <button id="btn-rules" class="btn info-btn">📖 طريقة وقواعد اللعبة</button>
-        <button id="btn-buy" class="btn order-btn">📦 اطلب النسخة الورقية الأصلية</button>
-      </div>
-
-      <div class="footer-brand">
-        صُنعت بحب بواسطة <b>Wello_0</b> • 📞 01121040020
+      <div class="footer-brand" style="margin-top:15px;">
+        المطور: <b>Wello_0</b> • تذكرة نشطة ومصرحة ✅
       </div>
     </div>
   </div>
 
-  <!-- غرفة الانتظار (Lobby Room) -->
+  <!-- 3. غرفة الانتظار (Lobby Room) -->
   <div id="waiting-screen" class="screen hidden">
     <div class="lobby-box">
       <div class="room-code-header">
@@ -83,7 +85,7 @@
     </div>
   </div>
 
-  <!-- شاشة اللعب الرئيسية (Game Board) -->
+  <!-- 4. شاشة اللعب الرئيسية (Game Board) -->
   <div id="game-screen" class="screen hidden">
     <header class="game-header">
       <div class="top-row">

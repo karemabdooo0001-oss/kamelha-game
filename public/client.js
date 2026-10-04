@@ -1,6 +1,6 @@
 const socket = io();
 
-// توليد رقم فريد دائم ومميز للمستخدم (مثل: WL-4821)
+// توليد رقم فريد دائم للجهاز (مثل: WL-4821)
 let myPlayerId = localStorage.getItem('kamelha_uid');
 if (!myPlayerId) {
   const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -8,64 +8,75 @@ if (!myPlayerId) {
   localStorage.setItem('kamelha_uid', myPlayerId);
 }
 
-// عرض الرقم الفريد للمستخدم في الشاشة
-window.addEventListener('DOMContentLoaded', () => {
-  const uidEl = document.getElementById('display-my-uid');
-  if (uidEl) uidEl.innerText = myPlayerId;
+// عناصر DOM الخاصة بالبوابة والشاشات
+const gateScreen = document.getElementById('gate-screen');
+const gatePassInput = document.getElementById('gate-pass-input');
+const btnSubmitGate = document.getElementById('btn-submit-gate');
+
+const lobbyScreen = document.getElementById('lobby-screen');
+const waitingScreen = document.getElementById('waiting-screen');
+const gameScreen = document.getElementById('game-screen');
+const toastBanner = document.getElementById('toast-banner');
+
+const displayMyUid = document.getElementById('display-my-uid');
+if (displayMyUid) displayMyUid.innerText = myPlayerId;
+
+// ================= فحص التذكرة عند الدخول =================
+const urlParams = new URLSearchParams(window.location.search);
+const ticketInUrl = urlParams.get('pass') || urlParams.get('ticket');
+
+if (ticketInUrl) {
+  // دخول تلقائي عبر رابط التذكرة المباشر
+  socket.emit('verifyGatePasscode', { passcode: ticketInUrl, playerId: myPlayerId });
+} else {
+  // فحص إذا كان المستخدم مسجل دخول بتذكرة صالحة مسبقاً
+  const savedTicket = sessionStorage.getItem('kamelha_gate_ticket');
+  if (savedTicket) {
+    socket.emit('verifyGatePasscode', { passcode: savedTicket, playerId: myPlayerId });
+  }
+}
+
+// الضغط على زر إدخال التذكرة
+if (btnSubmitGate) {
+  btnSubmitGate.onclick = () => {
+    const code = gatePassInput.value.trim();
+    if (!code) return alert('من فضلك اكتب كود التذكرة أولاً!');
+    socket.emit('verifyGatePasscode', { passcode: code, playerId: myPlayerId });
+  };
+}
+
+// التذكرة مقبولة: إخفاء شاشة القفل وإظهار اللعبة فوراً
+socket.on('gateAccessGranted', (data) => {
+  const code = (data && data.voucherCode) ? data.voucherCode : 'active';
+  sessionStorage.setItem('kamelha_gate_ticket', code);
+
+  gateScreen.classList.add('hidden');
+  lobbyScreen.classList.remove('hidden'); // إظهار اللوبي الآن فقط!
 });
 
-// إشعار فوري بالحظر والطرد
+// التذكرة مرفوضة أو منتهية
+socket.on('gateAccessDenied', (errMsg) => {
+  sessionStorage.removeItem('kamelha_gate_ticket');
+  alert(errMsg || 'كود التذكرة غير صحيح أو منتهي الصلاحية! تواصل مع المطور Wello_0: 01121040020');
+});
+
+// طرد فوري إذا كان محظوراً
 socket.on('bannedKickNotification', () => {
   document.body.innerHTML = `
     <div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#0d0914;color:#fff;text-align:center;font-family:'Cairo',sans-serif;padding:20px;">
       <div style="background:#1a162b;border:2px solid #ff1744;padding:30px;border-radius:20px;max-width:400px;box-shadow:0 0 30px rgba(255,23,68,0.5);">
         <h1 style="color:#ff1744;font-size:3rem;margin-bottom:10px;">🚫</h1>
         <h2 style="color:#ff1744;margin-bottom:10px;">تم حظرك من اللعبة!</h2>
-        <p style="color:#ccc;font-size:0.95rem;line-height:1.6;">تم حظر جهازك ورقمك التعريفي (<b style="color:#ffcc00;">${myPlayerId}</b>) من دخول اللعبة بواسطة المطور <b>Wello_0</b>.</p>
-        <p style="color:#777;font-size:0.8rem;margin-top:15px;">للاستفسار تواصل مع المطور: 01121040020</p>
+        <p style="color:#ccc;font-size:0.95rem;line-height:1.6;">تم حظر جهازك ورقمك التعريفي (<b style="color:#ffcc00;">${myPlayerId}</b>) بواسطة المطور <b>Wello_0</b>.</p>
+        <p style="color:#777;font-size:0.8rem;margin-top:15px;">للاستفسار: 01121040020</p>
       </div>
     </div>
   `;
 });
 
-// تسجيل الهوية لدى السيرفر فور الاتصال
+// تسجيل هوية اللاعب في السيرفر
 const savedName = localStorage.getItem('kamelha_name') || 'لاعب';
 socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name: savedName });
-
-// ================= فحص بوابة الدخول =================
-const gateScreen = document.getElementById('gate-screen');
-const gatePassInput = document.getElementById('gate-pass-input');
-const btnSubmitGate = document.getElementById('btn-submit-gate');
-
-const urlParams = new URLSearchParams(window.location.search);
-const passInUrl = urlParams.get('pass');
-
-if (passInUrl) {
-  socket.emit('verifyGatePasscode', { passcode: passInUrl, playerId: myPlayerId });
-} else {
-  const savedPass = sessionStorage.getItem('kamelha_gate_unlocked');
-  if (savedPass) {
-    socket.emit('verifyGatePasscode', { passcode: savedPass, playerId: myPlayerId });
-  }
-}
-
-if (btnSubmitGate) {
-  btnSubmitGate.onclick = () => {
-    const entered = gatePassInput.value.trim();
-    if (!entered) return alert('أدخل الرقم السري أولاً!');
-    socket.emit('verifyGatePasscode', { passcode: entered, playerId: myPlayerId });
-  };
-}
-
-socket.on('gateAccessGranted', () => {
-  sessionStorage.setItem('kamelha_gate_unlocked', '1234');
-  if (gateScreen) gateScreen.classList.add('hidden');
-});
-
-socket.on('gateAccessDenied', () => {
-  sessionStorage.removeItem('kamelha_gate_unlocked');
-  alert('الرقم السري غير صحيح! تواصل مع صاحب اللعبة Wello_0 للحصول على الكود.');
-});
 
 // ================= نظام الصوت =================
 const SoundManager = {
@@ -124,12 +135,7 @@ const SoundManager = {
 window.addEventListener('click', () => SoundManager.init(), { once: true });
 window.addEventListener('touchstart', () => SoundManager.init(), { once: true });
 
-// DOM
-const lobbyScreen = document.getElementById('lobby-screen');
-const waitingScreen = document.getElementById('waiting-screen');
-const gameScreen = document.getElementById('game-screen');
-const toastBanner = document.getElementById('toast-banner');
-
+// DOM اللعبة
 const btnSoundLobby = document.getElementById('btn-sound-lobby');
 const btnSoundGame = document.getElementById('btn-sound-game');
 const btnRules = document.getElementById('btn-rules');
@@ -183,7 +189,7 @@ updateSoundIcons();
 if (btnSoundLobby) btnSoundLobby.addEventListener('click', () => SoundManager.toggleMute());
 if (btnSoundGame) btnSoundGame.addEventListener('click', () => SoundManager.toggleMute());
 
-// شرح القواعد والطلب
+// شرح القواعد والشراء
 if (btnRules) {
   btnRules.addEventListener('click', () => {
     openModal(`
@@ -201,7 +207,7 @@ if (btnRules) {
         </div>
         <div class="rule-section">
           <h3>🔒 قفل الحصانة:</h3>
-          <p>من يقول <b>"كمّلتها"</b> يحمى بقفل 🔒 ولا يمكن لأحد استهدافه بأي كوماند!</p>
+          <p>من يقول <b>"كمّلتها"</b> يُقفل عليه بحصانة 🔒 ولا يمكن لأحد استهدافه بأي كوماند!</p>
         </div>
         <div class="rule-section">
           <h3>⚡ الكوماندز:</h3>
@@ -222,14 +228,14 @@ if (btnRules) {
 if (btnBuy) {
   btnBuy.addEventListener('click', () => {
     openModal(`
-      <h2 style="color:#ffcc00;margin-bottom:6px;">📦 النسخة الورقية الحقيقية</h2>
+      <h2 style="color:#ffcc00;margin-bottom:6px;">📦 شراء التذاكر / النسخة الأصلية</h2>
       <div class="buy-card-info">
         <div class="brand-badge">Wello_0</div>
         <p class="phone-number-display">📞 01121040020</p>
-        <p style="font-size:0.85rem;color:#aaa;margin-top:5px;">علبة فاخرة + 62 كارت أصلي بجودة خرافية</p>
+        <p style="font-size:0.85rem;color:#aaa;margin-top:5px;">شراء تذاكر لعب أونلاين فردية أو لشلة + النسخة الورقية الحقيقية</p>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
-        <a href="https://wa.me/201121040020?text=أهلاً%20Wello_0،%20عايز%20أطلب%20نسخة%20من%20لعبة%20كملها%20الحقيقية" target="_blank" class="btn whatsapp-btn">💬 اطلب عبر واتساب</a>
+        <a href="https://wa.me/201121040020?text=أهلاً%20Wello_0،%20عايز%20أشتري%20تذكرة%20دخول%20للعبة%20كملها" target="_blank" class="btn whatsapp-btn">💬 تواصل عبر واتساب للشراء</a>
         <a href="tel:01121040020" class="btn call-btn">📞 اتصال هاتفي مباشر</a>
         <button class="btn secondary-btn" onclick="closeModal()">إغلاق</button>
       </div>
@@ -237,7 +243,7 @@ if (btnBuy) {
   });
 }
 
-// استعادة الجلسة
+// إعادة الاتصال التلقائي
 window.addEventListener('load', () => {
   const savedName = localStorage.getItem('kamelha_name');
   if (savedName && playerNameInput) playerNameInput.value = savedName;
