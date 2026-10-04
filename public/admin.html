@@ -3,58 +3,127 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>لوحة تحكم المطور | Wello_0</title>
+  <title>لوحة تحكم Wello_0 | الإدارة والحظر</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap" rel="stylesheet">
   <style>
-    .admin-card {
+    .admin-container {
+      max-width: 650px;
+      width: 95%;
+      margin: 20px auto;
       background: #1a162b;
       border: 2px solid #ffcc00;
       border-radius: 20px;
-      padding: 25px;
-      max-width: 420px;
-      width: 90%;
+      padding: 20px;
       text-align: center;
       box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      max-height: 90vh;
+      overflow-y: auto;
     }
     .current-pass-box {
       background: rgba(255,204,0,0.1);
       border: 1px dashed #ffcc00;
-      padding: 12px;
+      padding: 10px;
       border-radius: 12px;
-      margin: 15px 0;
-      font-size: 1.1rem;
+      margin: 12px 0;
+      font-size: 1rem;
+    }
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 0.85rem;
+    }
+    .admin-table th, .admin-table td {
+      padding: 8px;
+      border: 1px solid #333;
+      text-align: center;
+    }
+    .admin-table th {
+      background: #251d38;
+      color: #ffcc00;
+    }
+    .btn-ban {
+      background: #ff1744;
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+    .btn-unban {
+      background: #00e676;
+      color: #111;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: bold;
     }
   </style>
 </head>
 <body style="display:flex;justify-content:center;align-items:center;min-height:100vh;">
 
-  <!-- شاشة الدخول السرية لـ Wello -->
-  <div id="admin-login" class="admin-card">
+  <!-- شاشة الدخول السرية -->
+  <div id="admin-login" class="admin-container" style="max-width:400px;">
     <h1 style="color:#ffcc00;margin-bottom:10px;">👑 لوحة تحكم Wello_0</h1>
-    <p style="color:#aaa;font-size:0.9rem;margin-bottom:15px;">أدخل كود الماستر الخاص بك للدخول:</p>
-    <input type="password" id="master-key-input" placeholder="كود الماستر السري">
+    <p style="color:#aaa;font-size:0.85rem;margin-bottom:15px;">أدخل كود الماستر السري للدخول:</p>
+    <input type="password" id="master-key-input" placeholder="كود الماستر">
     <button id="btn-admin-login" class="btn primary-btn">دخول للوحة التحكم 🔓</button>
   </div>
 
-  <!-- لوحة إدارة كلمة السر -->
-  <div id="admin-panel" class="admin-card hidden">
-    <h1 style="color:#ffcc00;margin-bottom:5px;">لوحة تحكم اللعبة ⚙️</h1>
-    <p style="color:#aaa;font-size:0.85rem;">تحكم فيمن يمكنه لعب كمّلها</p>
-
-    <div class="current-pass-box">
-      الرقم السري الحالي للعبة هو: <br>
-      <b id="txt-current-pass" style="color:#ffcc00;font-size:1.8rem;letter-spacing:3px;">--</b>
+  <!-- لوحة الإدارة الكاملة -->
+  <div id="admin-panel" class="admin-container hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h2 style="color:#ffcc00;">لوحة تحكم Wello_0 ⚙️</h2>
+      <button id="btn-refresh" class="btn secondary-btn" style="width:auto;padding:5px 12px;font-size:0.8rem;">تحديث السجل 🔄</button>
     </div>
 
-    <div style="text-align:right;margin-bottom:5px;font-size:0.85rem;">اكتب الرقم السري الجديد:</div>
-    <input type="text" id="new-pass-input" placeholder="مثلاً: 2025 أو 9988">
-    <button id="btn-save-pass" class="btn primary-btn" style="margin-bottom:12px;">حفظ وتغيير الرقم السري فوراً 💾</button>
+    <!-- إدارة كلمة السر -->
+    <div class="current-pass-box">
+      الرقم السري الحالي للعبة هو: 
+      <b id="txt-current-pass" style="color:#ffcc00;font-size:1.6rem;letter-spacing:2px;display:block;">--</b>
+    </div>
 
-    <hr style="border-color:#333;margin:15px 0;">
+    <div style="display:flex;gap:8px;">
+      <input type="text" id="new-pass-input" placeholder="اكتب باسوورد جديد هنا" style="margin-bottom:0;">
+      <button id="btn-save-pass" class="btn primary-btn" style="width:auto;white-space:nowrap;">تغيير الكود 💾</button>
+    </div>
+    
+    <button id="btn-copy-vip-link" class="btn secondary-btn" style="margin-top:10px;">نسخ رابط الدعوة المباشر الجاهز 📋</button>
 
-    <button id="btn-copy-vip-link" class="btn secondary-btn">نسخ رابط الدعوة المباشر الجاهز 📋</button>
-    <p style="color:#888;font-size:0.75rem;margin-top:6px;">(الرابط ده بيفتح اللعبة علطول بدون ما يطلب منهم كتابة باسوورد)</p>
+    <hr style="border-color:#333;margin:18px 0;">
+
+    <!-- سجل اللاعبين والتحكم -->
+    <h3 style="color:#00e676;text-align:right;">📋 سجل اللاعبين وأرقامهم الفريدة:</h3>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>الرقم الفريد</th>
+          <th>الاسم</th>
+          <th>الغرفة</th>
+          <th>إجراء</th>
+        </tr>
+      </thead>
+      <tbody id="players-table-body"></tbody>
+    </table>
+
+    <hr style="border-color:#333;margin:18px 0;">
+
+    <!-- قائمة المحظورين -->
+    <h3 style="color:#ff1744;text-align:right;">🚫 قائمة المحظورين:</h3>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>الرقم الفريد المحظور</th>
+          <th>إجراء</th>
+        </tr>
+      </thead>
+      <tbody id="banned-table-body"></tbody>
+    </table>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -68,25 +137,73 @@
     const newPassInput = document.getElementById('new-pass-input');
     const btnSavePass = document.getElementById('btn-save-pass');
     const btnCopyVipLink = document.getElementById('btn-copy-vip-link');
+    const btnRefresh = document.getElementById('btn-refresh');
+
+    const playersTableBody = document.getElementById('players-table-body');
+    const bannedTableBody = document.getElementById('banned-table-body');
 
     let currentMasterKey = '';
     let activePasscode = '';
 
     btnAdminLogin.onclick = () => {
       const key = masterKeyInput.value.trim();
-      if (!key) return alert('اكتب الكود!');
+      if (!key) return alert('أدخل الكود!');
       socket.emit('adminLogin', key);
     };
 
-    socket.on('adminLoginSuccess', (passcode) => {
+    socket.on('adminLoginSuccess', (data) => {
       currentMasterKey = masterKeyInput.value.trim();
-      activePasscode = passcode;
-      txtCurrentPass.innerText = passcode;
       adminLoginDiv.classList.add('hidden');
       adminPanelDiv.classList.remove('hidden');
+      renderDashboard(data);
     });
 
     socket.on('adminLoginFail', () => alert('كود الماستر غير صحيح!'));
+    socket.on('adminDataUpdated', (data) => renderDashboard(data));
+
+    function renderDashboard(data) {
+      activePasscode = data.passcode;
+      txtCurrentPass.innerText = data.passcode;
+
+      // جدول اللاعبين
+      playersTableBody.innerHTML = '';
+      if (data.players.length === 0) {
+        playersTableBody.innerHTML = '<tr><td colspan="4" style="color:#777;">لا يوجد لاعبين مسجلين بعد</td></tr>';
+      } else {
+        data.players.forEach(p => {
+          const isBanned = data.banned.includes(p.playerId);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><b style="color:#ffcc00;">${p.playerId}</b></td>
+            <td>${p.name}</td>
+            <td>${p.currentRoom ? `<span style="color:#00e676;">${p.currentRoom}</span>` : 'في اللوبي'}</td>
+            <td>
+              ${isBanned 
+                ? '<span style="color:#ff1744;font-weight:bold;">محظور</span>'
+                : `<button class="btn-ban" onclick="banPlayer('${p.playerId}')">حظر 🚫</button>`}
+            </td>
+          `;
+          playersTableBody.appendChild(tr);
+        });
+      }
+
+      // جدول المحظورين
+      bannedTableBody.innerHTML = '';
+      if (data.banned.length === 0) {
+        bannedTableBody.innerHTML = '<tr><td colspan="2" style="color:#777;">القائمة نظيفة (لا يوجد محظورين)</td></tr>';
+      } else {
+        data.banned.forEach(bId => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><b style="color:#ff1744;">${bId}</b></td>
+            <td><button class="btn-unban" onclick="unbanPlayer('${bId}')">فك الحظر 🟢</button></td>
+          `;
+          bannedTableBody.appendChild(tr);
+        });
+      }
+    }
+
+    btnRefresh.onclick = () => socket.emit('adminRefreshData', currentMasterKey);
 
     btnSavePass.onclick = () => {
       const newPass = newPassInput.value.trim();
@@ -98,14 +215,26 @@
       activePasscode = newPass;
       txtCurrentPass.innerText = newPass;
       newPassInput.value = '';
-      alert('تم تحديث الرقم السري بنجاح! أي شخص معه القديم تم منعه فوراً.');
+      alert('تم تحديث الرقم السري بنجاح!');
     });
 
     btnCopyVipLink.onclick = () => {
       const fullUrl = window.location.origin + '/?pass=' + encodeURIComponent(activePasscode);
       navigator.clipboard.writeText(fullUrl).then(() => {
-        alert('تم نسخ الرابط المباشر! ابعته لأصحابك وهيفتح معاهم علطول.');
+        alert('تم نسخ الرابط المباشر بنجاح!');
       });
+    };
+
+    window.banPlayer = (playerId) => {
+      if (confirm(`هل أنت متأكد من حظر اللاعب صاحب الرقم الفريد (${playerId}) وطرده فوراً؟`)) {
+        socket.emit('adminBanPlayer', { masterKey: currentMasterKey, targetPlayerId: playerId });
+      }
+    };
+
+    window.unbanPlayer = (playerId) => {
+      if (confirm(`إلغاء حظر اللاعب (${playerId})؟`)) {
+        socket.emit('adminUnbanPlayer', { masterKey: currentMasterKey, targetPlayerId: playerId });
+      }
     };
   </script>
 </body>

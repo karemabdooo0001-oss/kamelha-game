@@ -1,32 +1,65 @@
 const socket = io();
 
-// ================= نظام فحص بوابة الدخول السرية =================
+// توليد رقم فريد دائم ومميز للمستخدم (مثل: WL-4821)
+let myPlayerId = localStorage.getItem('kamelha_uid');
+if (!myPlayerId) {
+  const randomNum = Math.floor(1000 + Math.random() * 9000);
+  myPlayerId = 'WL-' + randomNum;
+  localStorage.setItem('kamelha_uid', myPlayerId);
+}
+
+// عرض الرقم الفريد للمستخدم في الشاشة
+window.addEventListener('DOMContentLoaded', () => {
+  const uidEl = document.getElementById('display-my-uid');
+  if (uidEl) uidEl.innerText = myPlayerId;
+});
+
+// إشعار فوري بالحظر والطرد
+socket.on('bannedKickNotification', () => {
+  document.body.innerHTML = `
+    <div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#0d0914;color:#fff;text-align:center;font-family:'Cairo',sans-serif;padding:20px;">
+      <div style="background:#1a162b;border:2px solid #ff1744;padding:30px;border-radius:20px;max-width:400px;box-shadow:0 0 30px rgba(255,23,68,0.5);">
+        <h1 style="color:#ff1744;font-size:3rem;margin-bottom:10px;">🚫</h1>
+        <h2 style="color:#ff1744;margin-bottom:10px;">تم حظرك من اللعبة!</h2>
+        <p style="color:#ccc;font-size:0.95rem;line-height:1.6;">تم حظر جهازك ورقمك التعريفي (<b style="color:#ffcc00;">${myPlayerId}</b>) من دخول اللعبة بواسطة المطور <b>Wello_0</b>.</p>
+        <p style="color:#777;font-size:0.8rem;margin-top:15px;">للاستفسار تواصل مع المطور: 01121040020</p>
+      </div>
+    </div>
+  `;
+});
+
+// تسجيل الهوية لدى السيرفر فور الاتصال
+const savedName = localStorage.getItem('kamelha_name') || 'لاعب';
+socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name: savedName });
+
+// ================= فحص بوابة الدخول =================
 const gateScreen = document.getElementById('gate-screen');
 const gatePassInput = document.getElementById('gate-pass-input');
 const btnSubmitGate = document.getElementById('btn-submit-gate');
 
-// فحص إذا كان الرابط مدمج فيه الباسوورد تلقائياً (?pass=XXXX)
 const urlParams = new URLSearchParams(window.location.search);
 const passInUrl = urlParams.get('pass');
 
 if (passInUrl) {
-  socket.emit('verifyGatePasscode', passInUrl);
+  socket.emit('verifyGatePasscode', { passcode: passInUrl, playerId: myPlayerId });
 } else {
   const savedPass = sessionStorage.getItem('kamelha_gate_unlocked');
   if (savedPass) {
-    socket.emit('verifyGatePasscode', savedPass);
+    socket.emit('verifyGatePasscode', { passcode: savedPass, playerId: myPlayerId });
   }
 }
 
-btnSubmitGate.onclick = () => {
-  const entered = gatePassInput.value.trim();
-  if (!entered) return alert('أدخل الرقم السري أولاً!');
-  socket.emit('verifyGatePasscode', entered);
-};
+if (btnSubmitGate) {
+  btnSubmitGate.onclick = () => {
+    const entered = gatePassInput.value.trim();
+    if (!entered) return alert('أدخل الرقم السري أولاً!');
+    socket.emit('verifyGatePasscode', { passcode: entered, playerId: myPlayerId });
+  };
+}
 
 socket.on('gateAccessGranted', () => {
-  sessionStorage.setItem('kamelha_gate_unlocked', 'true');
-  gateScreen.classList.add('hidden');
+  sessionStorage.setItem('kamelha_gate_unlocked', '1234');
+  if (gateScreen) gateScreen.classList.add('hidden');
 });
 
 socket.on('gateAccessDenied', () => {
@@ -34,7 +67,7 @@ socket.on('gateAccessDenied', () => {
   alert('الرقم السري غير صحيح! تواصل مع صاحب اللعبة Wello_0 للحصول على الكود.');
 });
 
-// ================= نظام المؤثرات الصوتية (Web Audio API) =================
+// ================= نظام الصوت =================
 const SoundManager = {
   ctx: null,
   muted: localStorage.getItem('kamelha_muted') === 'true',
@@ -68,58 +101,28 @@ const SoundManager = {
     } catch (e) {}
   },
 
-  playDraw() {
-    this.init();
-    this.playTone(320, 'sine', 0.15, 0.2);
-  },
-
-  playPlace() {
-    this.init();
-    this.playTone(180, 'triangle', 0.1, 0.25);
-  },
-
+  playDraw() { this.init(); this.playTone(320, 'sine', 0.15, 0.2); },
+  playPlace() { this.init(); this.playTone(180, 'triangle', 0.1, 0.25); },
   playCommand() {
     this.init();
     if (this.muted || !this.ctx) return;
-    const notes = [440, 554, 659];
-    notes.forEach((n, i) => {
-      setTimeout(() => this.playTone(n, 'sine', 0.2, 0.18), i * 70);
-    });
+    [440, 554, 659].forEach((n, i) => setTimeout(() => this.playTone(n, 'sine', 0.2, 0.18), i * 70));
   },
-
-  playTick() {
-    this.init();
-    this.playTone(800, 'square', 0.05, 0.05);
-  },
-
+  playTick() { this.init(); this.playTone(800, 'square', 0.05, 0.05); },
   playKamelha() {
     this.init();
     if (this.muted || !this.ctx) return;
-    const fanfare = [523, 659, 783, 1046];
-    fanfare.forEach((f, i) => {
-      setTimeout(() => this.playTone(f, 'triangle', 0.35, 0.3), i * 110);
-    });
+    [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => this.playTone(f, 'triangle', 0.35, 0.3), i * 110));
   },
-
   playWin() {
     this.init();
     if (this.muted || !this.ctx) return;
-    const melody = [523, 659, 783, 1046, 1318];
-    melody.forEach((f, i) => {
-      setTimeout(() => this.playTone(f, 'sine', 0.5, 0.25), i * 120);
-    });
+    [523, 659, 783, 1046, 1318].forEach((f, i) => setTimeout(() => this.playTone(f, 'sine', 0.5, 0.25), i * 120));
   }
 };
 
 window.addEventListener('click', () => SoundManager.init(), { once: true });
 window.addEventListener('touchstart', () => SoundManager.init(), { once: true });
-
-// معرف اللاعب الدائم
-let myPlayerId = localStorage.getItem('kamelha_pid');
-if (!myPlayerId) {
-  myPlayerId = 'p_' + Math.random().toString(36).substring(2, 10);
-  localStorage.setItem('kamelha_pid', myPlayerId);
-}
 
 // DOM
 const lobbyScreen = document.getElementById('lobby-screen');
@@ -180,71 +183,64 @@ updateSoundIcons();
 if (btnSoundLobby) btnSoundLobby.addEventListener('click', () => SoundManager.toggleMute());
 if (btnSoundGame) btnSoundGame.addEventListener('click', () => SoundManager.toggleMute());
 
-// ================= زر شرح وقواعد اللعبة =================
-btnRules.addEventListener('click', () => {
-  openModal(`
-    <h2 style="color:#ffcc00;margin-bottom:10px;">📖 قواعد لعبة كمّلها</h2>
-    <div class="rules-scroll-content">
-      <div class="rule-section">
-        <h3>🎯 الهدف من اللعبة:</h3>
-        <p>تجميع <b>4 كروت من نفس الرقم</b> (مثلاً: أربع خمسات) لتكسب الجولة. أول لاعب يصل لـ <b>5 نقاط</b> يفوز بالمباراة كاملة!</p>
+// شرح القواعد والطلب
+if (btnRules) {
+  btnRules.addEventListener('click', () => {
+    openModal(`
+      <h2 style="color:#ffcc00;margin-bottom:10px;">📖 قواعد لعبة كمّلها</h2>
+      <div class="rules-scroll-content">
+        <div class="rule-section">
+          <h3>🎯 الهدف:</h3>
+          <p>تجميع <b>4 كروت من نفس الرقم</b>. أول من يصل لـ <b>5 نقاط</b> يفوز بالمباراة!</p>
+        </div>
+        <div class="rule-section">
+          <h3>🃏 النقاط:</h3>
+          <p>• 4 كروت مطابقة بدون جوكر = <b>نقطتان</b>.</p>
+          <p>• مع جوكر = <b>نقطة واحدة</b>.</p>
+          <p>• 4 جواكر = <b>فوز فوري بالمباراة (5 نقاط)</b>!</p>
+        </div>
+        <div class="rule-section">
+          <h3>🔒 قفل الحصانة:</h3>
+          <p>من يقول <b>"كمّلتها"</b> يحمى بقفل 🔒 ولا يمكن لأحد استهدافه بأي كوماند!</p>
+        </div>
+        <div class="rule-section">
+          <h3>⚡ الكوماندز:</h3>
+          <p>• <b>الجوكر:</b> بديل لأي رقم ويدخل اليد.</p>
+          <p>• <b>اصطاد كارتك:</b> تطلب كارت أو جوكر وتبدله.</p>
+          <p>• <b>لم كمالتك:</b> تختار أي كارت من الأرض المكشوفة.</p>
+          <p>• <b>اعكس لفتك:</b> تعكس الدور (وفي 2 لاعبين تفوت دور الخصم).</p>
+          <p>• <b>هو كدة:</b> تجبر لاعباً على تغيير كل كروته.</p>
+          <p>• <b>رخم عليهم:</b> تتجسس على كارت الخصم وتبدله أو تبدل بين لاعبين.</p>
+          <p>• <b>براحتك:</b> تتحول لأي كوماند تختاره.</p>
+        </div>
       </div>
+      <button class="btn primary-btn" onclick="closeModal()" style="margin-top:12px;">فهمت القواعد 👍</button>
+    `);
+  });
+}
 
-      <div class="rule-section">
-        <h3>🃏 نظام احتساب النقاط:</h3>
-        <p>• تجميع 4 كروت مطابقة <b>بدون جوكر</b> = <b>نقطتان (2)</b>.</p>
-        <p>• تجميع 4 كروت مع وجود <b>جوكر واحد على الأقل</b> = <b>نقطة واحدة (1)</b>.</p>
-        <p>• 👑 <b>تجميع 4 كروت جوكر:</b> فوز فوري بالمباراة كاملة (5 نقاط)!</p>
+if (btnBuy) {
+  btnBuy.addEventListener('click', () => {
+    openModal(`
+      <h2 style="color:#ffcc00;margin-bottom:6px;">📦 النسخة الورقية الحقيقية</h2>
+      <div class="buy-card-info">
+        <div class="brand-badge">Wello_0</div>
+        <p class="phone-number-display">📞 01121040020</p>
+        <p style="font-size:0.85rem;color:#aaa;margin-top:5px;">علبة فاخرة + 62 كارت أصلي بجودة خرافية</p>
       </div>
-
-      <div class="rule-section">
-        <h3>🔒 قفل الحصانة:</h3>
-        <p>اللاعب الذي يقول <b>"كمّلها"</b> يُقفل عليه بحصانة 🔒 ولا يستطيع أي لاعب بعده استخدام أي كوماند ضده حتى نهاية الدورة!</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+        <a href="https://wa.me/201121040020?text=أهلاً%20Wello_0،%20عايز%20أطلب%20نسخة%20من%20لعبة%20كملها%20الحقيقية" target="_blank" class="btn whatsapp-btn">💬 اطلب عبر واتساب</a>
+        <a href="tel:01121040020" class="btn call-btn">📞 اتصال هاتفي مباشر</a>
+        <button class="btn secondary-btn" onclick="closeModal()">إغلاق</button>
       </div>
+    `);
+  });
+}
 
-      <div class="rule-section">
-        <h3>⚡ وظائف كروت الكوماندز:</h3>
-        <p>• <b>الجوكر:</b> يحل محل أي رقم في تجميعتك ويدخل اليد.</p>
-        <p>• <b>اصطاد كارتك:</b> تطلب من لاعب كارت رقم أو جوكر، لو معه تاخده وتبدله بكارت من يدك.</p>
-        <p>• <b>لم كمالتك:</b> تختار أي كارت من الأرض المكشوفة وتبدله بكارت من يدك.</p>
-        <p>• <b>اعكس لفتك:</b> تعكس دور اللعب (وفي لاعبين تفوت دور الخصم وتلعب مرتين).</p>
-        <p>• <b>هو كدة:</b> تجبر لاعباً على رمي كروته وسحب 4 جديدة من المقلوب.</p>
-        <p>• <b>رخم عليهم:</b> في لاعبين تتجسس على كارت الخصم وتبدله أو تتركه، وفي 3-4 تبدل كارتين سراً بين لاعبين.</p>
-        <p>• <b>براحتك:</b> تتحول لأي كوماند تختاره ما عدا الجوكر.</p>
-      </div>
-    </div>
-    <button class="btn primary-btn" onclick="closeModal()" style="margin-top:12px;">فهمت القواعد، يلا نلعب! 👍</button>
-  `);
-});
-
-// ================= زر طلب وشراء النسخة الأصلية =================
-btnBuy.addEventListener('click', () => {
-  openModal(`
-    <h2 style="color:#ffcc00;margin-bottom:6px;">📦 النسخة الورقية الحقيقية</h2>
-    <p style="font-size:0.9rem;color:#ccc;">عايز تلعب "كمّلها" مع أصحابك وعيلتك كروت حقيقية على القهوة أو في البيت؟</p>
-    
-    <div class="buy-card-info">
-      <div class="brand-badge">Wello_0</div>
-      <p class="phone-number-display">📞 01121040020</p>
-      <p style="font-size:0.85rem;color:#aaa;margin-top:5px;">اللعبة تشمل علبة فاخرة + 62 كارت بجودة ممتازة + كتيب التعليمات</p>
-    </div>
-
-    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
-      <a href="https://wa.me/201121040020?text=أهلاً%20Wello_0،%20عايز%20أطلب%20نسخة%20من%20لعبة%20كملها%20الحقيقية" target="_blank" class="btn whatsapp-btn">
-        💬 اطلب عبر واتساب (WhatsApp)
-      </a>
-      <a href="tel:01121040020" class="btn call-btn">
-        📞 اتصال هاتفي مباشر
-      </a>
-      <button class="btn secondary-btn" onclick="closeModal()">إغلاق</button>
-    </div>
-  `);
-});
-
-// محاولة إعادة الاتصال التلقائي
+// استعادة الجلسة
 window.addEventListener('load', () => {
   const savedName = localStorage.getItem('kamelha_name');
-  if (savedName) playerNameInput.value = savedName;
+  if (savedName && playerNameInput) playerNameInput.value = savedName;
 
   if (currentRoomId) {
     socket.emit('reconnectPlayer', { roomId: currentRoomId, playerId: myPlayerId });
@@ -271,39 +267,43 @@ function copyRoomCode() {
   if (!currentRoomId) return;
   navigator.clipboard.writeText(currentRoomId).then(() => {
     showToast(`تم نسخ كود الغرفة: ${currentRoomId} 📋`);
-  }).catch(() => {
-    prompt('انسخ كود الغرفة من هنا:', currentRoomId);
-  });
+  }).catch(() => prompt('انسخ كود الغرفة:', currentRoomId));
 }
 if (btnCopyCodeWait) btnCopyCodeWait.addEventListener('click', copyRoomCode);
 if (btnCopyCodeGame) btnCopyCodeGame.addEventListener('click', copyRoomCode);
 
-btnCreate.addEventListener('click', () => {
-  const name = playerNameInput.value.trim();
-  if (!name) return alert('اكتب اسمك الأول!');
-  localStorage.setItem('kamelha_name', name);
-  socket.emit('createRoom', { playerName: name, playerId: myPlayerId });
-});
+if (btnCreate) {
+  btnCreate.addEventListener('click', () => {
+    const name = playerNameInput.value.trim();
+    if (!name) return alert('اكتب اسمك الأول!');
+    localStorage.setItem('kamelha_name', name);
+    socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
+    socket.emit('createRoom', { playerName: name, playerId: myPlayerId });
+  });
+}
 
-btnJoin.addEventListener('click', () => {
-  const name = playerNameInput.value.trim();
-  const code = roomCodeInput.value.trim();
-  if (!name || !code) return alert('اكتب اسمك وكود الغرفة!');
-  localStorage.setItem('kamelha_name', name);
-  socket.emit('joinRoom', { playerName: name, roomId: code, playerId: myPlayerId });
-});
+if (btnJoin) {
+  btnJoin.addEventListener('click', () => {
+    const name = playerNameInput.value.trim();
+    const code = roomCodeInput.value.trim();
+    if (!name || !code) return alert('اكتب اسمك وكود الغرفة!');
+    localStorage.setItem('kamelha_name', name);
+    socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
+    socket.emit('joinRoom', { playerName: name, roomId: code, playerId: myPlayerId });
+  });
+}
 
 socket.on('roomJoined', ({ roomId, players, isHost }) => {
   currentRoomId = roomId;
   localStorage.setItem('kamelha_room', roomId);
 
-  lobbyScreen.classList.add('hidden');
-  waitingScreen.classList.remove('hidden');
-  displayRoomCode.innerText = roomId;
+  if (lobbyScreen) lobbyScreen.classList.add('hidden');
+  if (waitingScreen) waitingScreen.classList.remove('hidden');
+  if (displayRoomCode) displayRoomCode.innerText = roomId;
   if (gameRoomCodeTxt) gameRoomCodeTxt.innerText = roomId;
 
   renderWaitingPlayers(players);
-  if (isHost) {
+  if (isHost && btnStart) {
     btnStart.classList.remove('hidden');
     waitMsg.classList.add('hidden');
   }
@@ -312,8 +312,9 @@ socket.on('roomJoined', ({ roomId, players, isHost }) => {
 socket.on('updatePlayers', players => renderWaitingPlayers(players));
 
 function renderWaitingPlayers(players) {
+  if (!playersList) return;
   playersList.innerHTML = '';
-  playerCount.innerText = players.length;
+  if (playerCount) playerCount.innerText = players.length;
   players.forEach(p => {
     const li = document.createElement('li');
     li.innerText = `${p.isHost ? '👑 ' : ''}${p.name}`;
@@ -321,7 +322,7 @@ function renderWaitingPlayers(players) {
   });
 }
 
-btnStart.addEventListener('click', () => socket.emit('startGame', currentRoomId));
+if (btnStart) btnStart.addEventListener('click', () => socket.emit('startGame', currentRoomId));
 
 function leaveCurrentRoom() {
   if (confirm('هل أنت متأكد من الخروج من الغرفة؟')) {
@@ -333,27 +334,33 @@ function leaveCurrentRoom() {
 if (btnLeave) btnLeave.addEventListener('click', leaveCurrentRoom);
 if (btnLeaveWaiting) btnLeaveWaiting.addEventListener('click', leaveCurrentRoom);
 
-drawDeckBtn.addEventListener('click', () => {
-  if (!isMyTurn) return alert('مش دورك دلوقتي!');
-  if (currentDrawnCard) return alert('أنت سحبت كارت بالفعل!');
-  SoundManager.playDraw();
-  socket.emit('drawCard', currentRoomId);
-});
-
-discardDeckBtn.addEventListener('click', () => {
-  if (!isMyTurn) return alert('مش دورك دلوقتي!');
-  if (currentDrawnCard) return alert('أنت سحبت كارت مقلوب بالفعل!');
-  showToast('اضغط على كارت من إيدك لتبديله مع كارت الأرض!');
-  pickCardFromHand(index => {
-    SoundManager.playPlace();
-    socket.emit('takeDiscardCard', { roomId: currentRoomId, handCardIndex: index });
+if (drawDeckBtn) {
+  drawDeckBtn.addEventListener('click', () => {
+    if (!isMyTurn) return alert('مش دورك دلوقتي!');
+    if (currentDrawnCard) return alert('أنت سحبت كارت بالفعل!');
+    SoundManager.playDraw();
+    socket.emit('drawCard', currentRoomId);
   });
-});
+}
 
-btnKamelha.addEventListener('click', () => {
-  SoundManager.playKamelha();
-  socket.emit('callKamelha', currentRoomId);
-});
+if (discardDeckBtn) {
+  discardDeckBtn.addEventListener('click', () => {
+    if (!isMyTurn) return alert('مش دورك دلوقتي!');
+    if (currentDrawnCard) return alert('أنت سحبت كارت مقلوب بالفعل!');
+    showToast('اضغط على كارت من إيدك لتبديله مع كارت الأرض!');
+    pickCardFromHand(index => {
+      SoundManager.playPlace();
+      socket.emit('takeDiscardCard', { roomId: currentRoomId, handCardIndex: index });
+    });
+  });
+}
+
+if (btnKamelha) {
+  btnKamelha.addEventListener('click', () => {
+    SoundManager.playKamelha();
+    socket.emit('callKamelha', currentRoomId);
+  });
+}
 
 socket.on('cardDrawn', card => {
   currentDrawnCard = card;
@@ -644,32 +651,36 @@ function pickCardFromHand(callback) {
 }
 
 function openModal(html) {
-  modalContainer.innerHTML = html;
-  modalOverlay.classList.remove('hidden');
+  if (modalContainer && modalOverlay) {
+    modalContainer.innerHTML = html;
+    modalOverlay.classList.remove('hidden');
+  }
 }
 function closeModal() {
-  modalOverlay.classList.add('hidden');
+  if (modalOverlay) modalOverlay.classList.add('hidden');
 }
 
 function updateTurnTimer(deadline, totalSeconds) {
   clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
-    timerSec.innerText = remaining;
+    if (timerSec) timerSec.innerText = remaining;
 
     if (remaining <= 3 && remaining > 0) {
       SoundManager.playTick();
     }
 
-    const percentage = Math.max(0, (remaining / totalSeconds) * 100);
-    timerBar.style.width = percentage + '%';
+    if (timerBar) {
+      const percentage = Math.max(0, (remaining / totalSeconds) * 100);
+      timerBar.style.width = percentage + '%';
 
-    if (percentage > 50) {
-      timerBar.style.background = '#00e676';
-    } else if (percentage > 25) {
-      timerBar.style.background = '#ffcc00';
-    } else {
-      timerBar.style.background = '#ff3d00';
+      if (percentage > 50) {
+        timerBar.style.background = '#00e676';
+      } else if (percentage > 25) {
+        timerBar.style.background = '#ffcc00';
+      } else {
+        timerBar.style.background = '#ff3d00';
+      }
     }
 
     if (remaining <= 0) {
@@ -682,8 +693,8 @@ socket.on('gameState', data => {
   latestGameState = data;
   if (!data.hasDrawn) currentDrawnCard = null;
 
-  waitingScreen.classList.add('hidden');
-  gameScreen.classList.remove('hidden');
+  if (waitingScreen) waitingScreen.classList.add('hidden');
+  if (gameScreen) gameScreen.classList.remove('hidden');
 
   if (data.roomId && gameRoomCodeTxt) {
     gameRoomCodeTxt.innerText = data.roomId;
@@ -691,45 +702,51 @@ socket.on('gameState', data => {
   }
 
   isMyTurn = data.currentTurn === socket.id;
-  currentPlayerName.innerText = isMyTurn ? 'أنت (دورك)!' : data.currentTurnName;
-  currentPlayerName.parentElement.style.background = isMyTurn ? '#00e676' : '#ffcc00';
+  if (currentPlayerName) {
+    currentPlayerName.innerText = isMyTurn ? 'أنت (دورك)!' : data.currentTurnName;
+    currentPlayerName.parentElement.style.background = isMyTurn ? '#00e676' : '#ffcc00';
+  }
 
   if (data.turnDeadline) {
     updateTurnTimer(data.turnDeadline, data.turnDuration || 15);
   }
 
-  deckCounter.innerText = data.deckCount;
+  if (deckCounter) deckCounter.innerText = data.deckCount;
 
-  if (data.topDiscard) {
+  if (data.topDiscard && topDiscardCardDiv) {
     topDiscardCardDiv.innerHTML = createCardHTML(data.topDiscard);
   }
 
-  myHandDiv.innerHTML = '';
-  data.hand.forEach(c => {
-    const el = document.createElement('div');
-    el.innerHTML = createCardHTML(c);
-    myHandDiv.appendChild(el.firstElementChild);
-  });
+  if (myHandDiv) {
+    myHandDiv.innerHTML = '';
+    data.hand.forEach(c => {
+      const el = document.createElement('div');
+      el.innerHTML = createCardHTML(c);
+      myHandDiv.appendChild(el.firstElementChild);
+    });
+  }
 
   const maxScore = Math.max(...data.players.map(p => p.points));
 
-  otherPlayersDiv.innerHTML = '';
-  data.players.forEach(p => {
-    const badge = document.createElement('div');
-    badge.className = `player-score-chip ${p.id === data.currentTurn ? 'active-turn' : ''} ${p.isImmune ? 'immune-player' : ''}`;
-    
-    const hasTrophy = p.points > 0 && p.points === maxScore;
-    const trophyIcon = hasTrophy ? '🏆 ' : '';
+  if (otherPlayersDiv) {
+    otherPlayersDiv.innerHTML = '';
+    data.players.forEach(p => {
+      const badge = document.createElement('div');
+      badge.className = `player-score-chip ${p.id === data.currentTurn ? 'active-turn' : ''} ${p.isImmune ? 'immune-player' : ''}`;
+      
+      const hasTrophy = p.points > 0 && p.points === maxScore;
+      const trophyIcon = hasTrophy ? '🏆 ' : '';
 
-    badge.innerHTML = `
-      <span class="chip-name">
-        ${p.isHost ? '👑 ' : ''}${p.name} ${p.id === socket.id ? '(أنت)' : ''}
-        ${p.isImmune ? '<b class="lock-tag">🔒 محمي</b>' : ''}
-      </span>
-      <span class="chip-score ${hasTrophy ? 'leader-score' : ''}">${trophyIcon}${p.points}ن</span>
-    `;
-    otherPlayersDiv.appendChild(badge);
-  });
+      badge.innerHTML = `
+        <span class="chip-name">
+          ${p.isHost ? '👑 ' : ''}${p.name} ${p.id === socket.id ? '(أنت)' : ''}
+          ${p.isImmune ? '<b class="lock-tag">🔒 محمي</b>' : ''}
+        </span>
+        <span class="chip-score ${hasTrophy ? 'leader-score' : ''}">${trophyIcon}${p.points}ن</span>
+      `;
+      otherPlayersDiv.appendChild(badge);
+    });
+  }
 });
 
 socket.on('roundEnded', ({ msg, revealedHands }) => {

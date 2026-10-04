@@ -8,9 +8,13 @@ const io = new Server(server);
 
 app.use(express.static('public'));
 
-// ================= نظام التحكم وحماية اللعبة =================
-const MASTER_KEY = "8050"; // كود الماستر الخاص بـ Wello للدخول على /admin.html
-let GAME_PASSCODE = "2026"; // الرقم السري الافتراضي للعبة (تقدر تغيره في أي ثانية من صفحة الأدمن)
+// ================= الإعدادات والأمان =================
+const MASTER_KEY = "8050"; // كود الماستر لدخول الأدمن
+let GAME_PASSCODE = "2026"; // الرقم السري لدخول اللعبة
+
+// سجل اللاعبين الدائم وقائمة المحظورين
+const registeredPlayers = new Map(); // playerId => { id, name, lastSeen, isOnline, currentRoom }
+const bannedPlayerIds = new Set(); // قائمة الـ IDs المحظورة
 
 const rooms = {};
 const DEFAULT_TURN_TIME = 15;
@@ -86,21 +90,53 @@ function checkLastManStanding(room) {
 
 io.on('connection', (socket) => {
 
-  // التحقق من باسوورد اللعبة العام للزوار
-  socket.on('verifyGatePasscode', (clientPasscode) => {
-    if (clientPasscode === GAME_PASSCODE) {
+  // تسجيل وحفظ اللاعب في السجل العام عند دخوله
+  socket.on('registerPlayerIdentity', ({ playerId, name }) => {
+    if (bannedPlayerIds.has(playerId)) {
+      return socket.emit('bannedKickNotification');
+    }
+    registeredPlayers.set(playerId, {
+      playerId,
+      name: name || 'زائر',
+      lastSeen: new Date().toLocaleTimeString('ar-EG'),
+      isOnline: true,
+      currentRoom: null,
+      socketId: socket.id
+    });
+  });
+
+  // فحص باسوورد بوابة الدخول
+  socket.on('verifyGatePasscode', ({ passcode, playerId }) => {
+    if (bannedPlayerIds.has(playerId)) {
+      return socket.emit('bannedKickNotification');
+    }
+    if (passcode === GAME_PASSCODE) {
       socket.emit('gateAccessGranted');
     } else {
       socket.emit('gateAccessDenied');
     }
   });
 
-  // إدارة الأدمن
+  // ================= أوامر لوحة الأدمن =================
   socket.on('adminLogin', (key) => {
     if (key === MASTER_KEY) {
-      socket.emit('adminLoginSuccess', GAME_PASSCODE);
+      socket.emit('adminLoginSuccess', {
+        passcode: GAME_PASSCODE,
+        players: Array.from(registeredPlayers.values()),
+        banned: Array.from(bannedPlayerIds)
+      });
     } else {
       socket.emit('adminLoginFail');
+    }
+  });
+
+  socket.on('adminRefreshData', (key) => {
+    if (key === MASTER_KEY) {
+      socket.emit('adminDataUpdated', {
+        passcode: GAME_PASSCODE,
+        players: Array.from(registeredPlayers.values()),
+        banned: Array.from(bannedPlayerIds)
+      });
     }
   });
 
@@ -112,7 +148,57 @@ io.on('connection', (socket) => {
     }
   });
 
+  // حظر لاعب بالـ ID الفريد بتاعه
+  socket.on('adminBanPlayer', ({ masterKey, targetPlayerId }) => {
+    if (masterKey !== MASTER_KEY) return;
+    bannedPlayerIds.add(targetPlayerId);
+
+    // طرده فوراً من أي غرفة ومن اللعبة بالكامل
+    const playerRecord = registeredPlayers.get(targetPlayerId);
+    if (playerRecord && playerRecord.socketId) {
+      io.to(playerRecord.socketId).emit('bannedKickNotification');
+    }
+
+    // إزالته من أي غرفة كان يلعب فيها
+    for (const rId in rooms) {
+      const room = rooms[rId];
+      const found = room.players.find(p => p.playerId === targetPlayerId);
+      if (found) {
+        room.players = room.players.filter(p => p.playerId !== targetPlayerId);
+        if (room.players.length === 0) {
+          clearTimeout(room.turnTimer);
+          delete rooms[rId];
+        } else {
+          io.to(rId).emit('notify', `تم حظر وطرد اللاعب (${found.name}) من اللعبة! 🚫`);
+          io.to(rId).emit('updatePlayers', room.players);
+          checkLastManStanding(room);
+          sendGameState(rId);
+        }
+      }
+    }
+
+    socket.emit('adminDataUpdated', {
+      passcode: GAME_PASSCODE,
+      players: Array.from(registeredPlayers.values()),
+      banned: Array.from(bannedPlayerIds)
+    });
+  });
+
+  // إلغاء حظر لاعب
+  socket.on('adminUnbanPlayer', ({ masterKey, targetPlayerId }) => {
+    if (masterKey !== MASTER_KEY) return;
+    bannedPlayerIds.delete(targetPlayerId);
+    socket.emit('adminDataUpdated', {
+      passcode: GAME_PASSCODE,
+      players: Array.from(registeredPlayers.values()),
+      banned: Array.from(bannedPlayerIds)
+    });
+  });
+
+  // ================= منطق اللعبة والغرف =================
   socket.on('reconnectPlayer', ({ roomId, playerId }) => {
+    if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
+
     const room = rooms[roomId];
     if (!room) return socket.emit('reconnectFailed');
 
@@ -123,6 +209,13 @@ io.on('connection', (socket) => {
     player.disconnected = false;
     socket.join(roomId);
 
+    if (registeredPlayers.has(playerId)) {
+      const r = registeredPlayers.get(playerId);
+      r.socketId = socket.id;
+      r.isOnline = true;
+      r.currentRoom = roomId;
+    }
+
     socket.emit('roomJoined', { roomId, players: room.players, isHost: player.isHost });
     if (room.gameStarted) {
       sendGameState(roomId);
@@ -131,6 +224,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('createRoom', ({ playerName, playerId }) => {
+    if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
+
     const roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
     rooms[roomId] = {
       id: roomId,
@@ -151,10 +246,19 @@ io.on('connection', (socket) => {
       currentDuration: DEFAULT_TURN_TIME
     };
     socket.join(roomId);
+
+    if (registeredPlayers.has(playerId)) {
+      const r = registeredPlayers.get(playerId);
+      r.currentRoom = roomId;
+      r.name = playerName.trim();
+    }
+
     socket.emit('roomJoined', { roomId, players: rooms[roomId].players, isHost: true });
   });
 
   socket.on('joinRoom', ({ playerName, roomId, playerId }) => {
+    if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
+
     roomId = roomId.toUpperCase();
     const room = rooms[roomId];
     if (!room) return socket.emit('errorMsg', 'الغرفة غير موجودة!');
@@ -181,6 +285,12 @@ io.on('connection', (socket) => {
 
     room.players.push(newPlayer);
     socket.join(roomId);
+
+    if (registeredPlayers.has(playerId)) {
+      const r = registeredPlayers.get(playerId);
+      r.currentRoom = roomId;
+      r.name = trimmedName;
+    }
 
     io.to(roomId).emit('updatePlayers', room.players);
     socket.emit('roomJoined', { roomId, players: room.players, isHost: false });
