@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const { Pool } = require('pg');
 
 const app = express();
 const server = http.createServer(app);
@@ -9,12 +10,137 @@ const io = new Server(server);
 app.use(express.static('public'));
 
 // ================= الإعدادات والأمان =================
-const MASTER_KEY = "8050"; // كود الماستر لدخول الأدمن
-let GAME_PASSCODE = "2026"; // باسوورد الطوارئ العام
+const MASTER_KEY = "7788"; 
+let GAME_PASSCODE = "1234"; 
 
-const registeredPlayers = new Map(); // playerId => info
-const bannedPlayerIds = new Set(); // قائمة المحظورين
-const vouchers = new Map(); // code => voucher data
+// كاش الذاكرة اللحظي للسرعة الفائقة
+const registeredPlayers = new Map();
+const bannedPlayerIds = new Set();
+const vouchers = new Map();
+
+// ================= الاتصال بقاعدة بيانات PostgreSQL =================
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+});
+
+// إنشاء الجداول تلقائياً في قاعدة البيانات إذا لم تكن موجودة
+async function initDatabase() {
+  if (!process.env.DATABASE_URL) {
+    console.log('⚠️ جاري التشغيل بدون قاعدة بيانات سحابية (وضع الكاش المحلي)');
+    return;
+  }
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS players (
+        player_id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100),
+        last_seen VARCHAR(50),
+        current_room VARCHAR(50),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS vouchers (
+        code VARCHAR(50) PRIMARY KEY,
+        type VARCHAR(20),
+        max_devices INT,
+        duration VARCHAR(20),
+        price VARCHAR(20),
+        created_at VARCHAR(50),
+        expires_at BIGINT,
+        used_match BOOLEAN DEFAULT FALSE,
+        devices TEXT,
+        status VARCHAR(50)
+      );
+      CREATE TABLE IF NOT EXISTS banned_players (
+        player_id VARCHAR(50) PRIMARY KEY,
+        banned_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    console.log('✅ تم الاتصال بقاعدة بيانات PostgreSQL وإنشاء الجداول بنجاح!');
+
+    // استرجاع البيانات المحفوظة إلى الذاكرة عند بدء السيرفر
+    const savedBanned = await pool.query('SELECT player_id FROM banned_players');
+    savedBanned.rows.forEach(r => bannedPlayerIds.add(r.player_id));
+
+    const savedPlayers = await pool.query('SELECT * FROM players');
+    savedPlayers.rows.forEach(r => {
+      registeredPlayers.set(r.player_id, {
+        playerId: r.player_id,
+        name: r.name,
+        lastSeen: r.last_seen,
+        isOnline: false,
+        currentRoom: r.current_room,
+        socketId: null
+      });
+    });
+
+    const savedVouchers = await pool.query('SELECT * FROM vouchers');
+    savedVouchers.rows.forEach(r => {
+      vouchers.set(r.code, {
+        code: r.code,
+        type: r.type,
+        maxDevices: r.max_devices,
+        duration: r.duration,
+        price: r.price,
+        createdAt: r.created_at,
+        expiresAt: r.expires_at ? Number(r.expires_at) : null,
+        usedMatch: r.used_match,
+        devices: r.devices ? JSON.parse(r.devices) : [],
+        status: r.status
+      });
+    });
+    console.log(`📦 تم تحميل ${savedPlayers.rows.length} لاعب و ${savedVouchers.rows.length} تذكرة من قاعدة البيانات.`);
+  } catch (err) {
+    console.error('❌ خطأ في تهيئة قاعدة البيانات:', err.message);
+  }
+}
+initDatabase();
+
+// دوال المزامنة مع قاعدة البيانات
+async function dbSavePlayer(p) {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    await pool.query(`
+      INSERT INTO players (player_id, name, last_seen, current_room)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (player_id) DO UPDATE 
+      SET name = $2, last_seen = $3, current_room = $4;
+    `, [p.playerId, p.name, p.lastSeen, p.currentRoom || 'اللوبي']);
+  } catch (e) {}
+}
+
+async function dbSaveVoucher(v) {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    await pool.query(`
+      INSERT INTO vouchers (code, type, max_devices, duration, price, created_at, expires_at, used_match, devices, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ON CONFLICT (code) DO UPDATE 
+      SET used_match = $8, devices = $9, status = $10;
+    `, [v.code, v.type, v.maxDevices, v.duration, v.price, v.createdAt, v.expiresAt, v.usedMatch, JSON.stringify(v.devices), v.status]);
+  } catch (e) {}
+}
+
+async function dbDeleteVoucher(code) {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    await pool.query('DELETE FROM vouchers WHERE code = $1', [code]);
+  } catch (e) {}
+}
+
+async function dbBanPlayer(playerId) {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    await pool.query('INSERT INTO banned_players (player_id) VALUES ($1) ON CONFLICT DO NOTHING;', [playerId]);
+  } catch (e) {}
+}
+
+async function dbUnbanPlayer(playerId) {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    await pool.query('DELETE FROM banned_players WHERE player_id = $1;', [playerId]);
+  } catch (e) {}
+}
 
 const rooms = {};
 const DEFAULT_TURN_TIME = 15;
@@ -89,19 +215,18 @@ function checkLastManStanding(room) {
   return false;
 }
 
-// إنهاء تذاكر "الجيم الواحد" بعد انتهاء المباراة
 function expireRoomOneMatchVouchers(room) {
   room.players.forEach(p => {
     for (const [code, v] of vouchers.entries()) {
       if (v.duration === '1match' && v.devices.includes(p.playerId)) {
         v.usedMatch = true;
         v.status = 'منتهية (تم لعب الجيم)';
+        dbSaveVoucher(v);
       }
     }
   });
 }
 
-// دالة التحقق من التذكرة الذكية
 function validateVoucher(code, playerId) {
   if (code === GAME_PASSCODE) return { valid: true, msg: 'دخول بكود المطور العام' };
 
@@ -109,18 +234,16 @@ function validateVoucher(code, playerId) {
   if (!v) return { valid: false, msg: 'كود التذكرة غير موجود أو غير صحيح!' };
   if (v.status === 'ملغاة') return { valid: false, msg: 'تم إلغاء هذه التذكرة بواسطة المطور!' };
 
-  // فحص الوقت
   if (v.expiresAt && Date.now() > v.expiresAt) {
     v.status = 'منتهية الصلاحية';
+    dbSaveVoucher(v);
     return { valid: false, msg: 'هذه التذكرة انتهت صلاحيتها الزمنية!' };
   }
 
-  // فحص جيم واحد
   if (v.duration === '1match' && v.usedMatch) {
     return { valid: false, msg: 'تم استخدام هذه التذكرة في جيم سابق وانتهت!' };
   }
 
-  // فحص الأجهزة
   if (v.devices.includes(playerId)) {
     return { valid: true, voucher: v };
   }
@@ -130,6 +253,7 @@ function validateVoucher(code, playerId) {
   }
 
   v.devices.push(playerId);
+  dbSaveVoucher(v);
   return { valid: true, voucher: v };
 }
 
@@ -137,17 +261,18 @@ io.on('connection', (socket) => {
 
   socket.on('registerPlayerIdentity', ({ playerId, name }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
-    registeredPlayers.set(playerId, {
+    const pData = {
       playerId,
       name: name || 'لاعب',
       lastSeen: new Date().toLocaleTimeString('ar-EG'),
       isOnline: true,
       currentRoom: null,
       socketId: socket.id
-    });
+    };
+    registeredPlayers.set(playerId, pData);
+    dbSavePlayer(pData);
   });
 
-  // فحص التذكرة أو الباسوورد عند بوابة الدخول
   socket.on('verifyGatePasscode', ({ passcode, playerId }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
 
@@ -159,7 +284,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ================= أوامر لوحة الأدمن والتذاكر =================
+  // أوامر لوحة الأدمن
   socket.on('adminLogin', (key) => {
     if (key === MASTER_KEY) {
       socket.emit('adminLoginSuccess', getAdminDashboardData());
@@ -183,7 +308,6 @@ io.on('connection', (socket) => {
     };
   }
 
-  // توليد تذكرة جديدة
   socket.on('adminCreateVoucher', ({ masterKey, type, duration, price }) => {
     if (masterKey !== MASTER_KEY) return;
 
@@ -211,12 +335,14 @@ io.on('connection', (socket) => {
     };
 
     vouchers.set(code, newVoucher);
+    dbSaveVoucher(newVoucher);
     socket.emit('adminDataUpdated', getAdminDashboardData());
   });
 
   socket.on('adminDeleteVoucher', ({ masterKey, code }) => {
     if (masterKey !== MASTER_KEY) return;
     vouchers.delete(code);
+    dbDeleteVoucher(code);
     socket.emit('adminDataUpdated', getAdminDashboardData());
   });
 
@@ -231,6 +357,7 @@ io.on('connection', (socket) => {
   socket.on('adminBanPlayer', ({ masterKey, targetPlayerId }) => {
     if (masterKey !== MASTER_KEY) return;
     bannedPlayerIds.add(targetPlayerId);
+    dbBanPlayer(targetPlayerId);
 
     const playerRecord = registeredPlayers.get(targetPlayerId);
     if (playerRecord && playerRecord.socketId) {
@@ -259,10 +386,11 @@ io.on('connection', (socket) => {
   socket.on('adminUnbanPlayer', ({ masterKey, targetPlayerId }) => {
     if (masterKey !== MASTER_KEY) return;
     bannedPlayerIds.delete(targetPlayerId);
+    dbUnbanPlayer(targetPlayerId);
     socket.emit('adminDataUpdated', getAdminDashboardData());
   });
 
-  // ================= منطق اللعبة والغرف =================
+  // ================= منطق اللعبة =================
   socket.on('reconnectPlayer', ({ roomId, playerId }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
 
@@ -281,6 +409,7 @@ io.on('connection', (socket) => {
       r.socketId = socket.id;
       r.isOnline = true;
       r.currentRoom = roomId;
+      dbSavePlayer(r);
     }
 
     socket.emit('roomJoined', { roomId, players: room.players, isHost: player.isHost });
@@ -318,6 +447,7 @@ io.on('connection', (socket) => {
       const r = registeredPlayers.get(playerId);
       r.currentRoom = roomId;
       r.name = playerName.trim();
+      dbSavePlayer(r);
     }
 
     socket.emit('roomJoined', { roomId, players: rooms[roomId].players, isHost: true });
@@ -357,6 +487,7 @@ io.on('connection', (socket) => {
       const r = registeredPlayers.get(playerId);
       r.currentRoom = roomId;
       r.name = trimmedName;
+      dbSavePlayer(r);
     }
 
     io.to(roomId).emit('updatePlayers', room.players);
@@ -716,7 +847,7 @@ io.on('connection', (socket) => {
     if (matchWinner) {
       io.to(room.id).emit('gameOver', { winnerName: matchWinner.name, scores: room.players, revealedHands });
       room.gameStarted = false;
-      expireRoomOneMatchVouchers(room); // إنهاء تذاكر الجيم الواحد
+      expireRoomOneMatchVouchers(room);
     } else {
       io.to(room.id).emit('roundEnded', { msg: winMessage, revealedHands });
       setTimeout(() => {
