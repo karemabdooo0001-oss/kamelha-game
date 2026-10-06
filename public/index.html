@@ -12,15 +12,15 @@
   <!-- شريط الإشعارات العلوي -->
   <div id="toast-banner" class="toast hidden"></div>
 
-  <!-- 1. شاشة بوابة الدخول والتذاكر (الوحيدة التي تظهر في البداية) -->
+  <!-- 1. شاشة بوابة الدخول والتذاكر (الظاهرة في البداية فقط) -->
   <div id="gate-screen" class="screen">
     <div class="lobby-box">
       <h1 class="game-logo">كمّلها</h1>
       <div style="font-size:3.5rem;margin:10px 0;">🔒</div>
       <h2 style="color:#ffcc00;margin-bottom:6px;">بوابة الدخول</h2>
-      <p style="color:#ccc;font-size:0.9rem;margin-bottom:15px;">أدخل كود التذكرة المصرح لك بها للعب مع أصحابك:</p>
+      <p style="color:#ccc;font-size:0.9rem;margin-bottom:15px;">أدخل كود التذكرة أو رقم الدخول للعب مع أصحابك:</p>
 
-      <input type="text" id="gate-pass-input" placeholder="اكتب كود التذكرة هنا (مثلاً: KM-84912)">
+      <input type="text" id="gate-pass-input" placeholder="اكتب كود التذكرة (مثلاً: KM-84912)">
       <button id="btn-submit-gate" class="btn primary-btn">تأكيد التذكرة والدخول 🎮</button>
 
       <div class="lobby-extra-buttons" style="margin-top:15px;">
@@ -34,7 +34,7 @@
     </div>
   </div>
 
-  <!-- 2. شاشة اللوبي (مخفية تماماً ولن تفتح إلا بالتذكرة الصحيحة) -->
+  <!-- 2. شاشة اللوبي (مخفية ولن تفتح إلا بالتذكرة الصحيحة) -->
   <div id="lobby-screen" class="screen hidden">
     <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">🔊</button>
 

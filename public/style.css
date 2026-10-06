@@ -168,7 +168,19 @@ input {
 }
 .footer-brand b { color: #ffcc00; }
 
-/* شاشة اللعبة */
+.my-uid-badge {
+  background: rgba(255, 204, 0, 0.1);
+  border: 1px dashed rgba(255, 204, 0, 0.4);
+  color: #aaa;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+.my-uid-badge b { color: #ffcc00; letter-spacing: 1px; }
+
+/* شاشة اللعبة المتجاوبة */
 #game-screen {
   flex-direction: column;
   justify-content: space-between;
@@ -194,11 +206,7 @@ input {
   gap: 5px;
 }
 
-.game-controls {
-  display: flex;
-  gap: 5px;
-  align-items: center;
-}
+.game-controls { display: flex; gap: 5px; align-items: center; }
 
 .game-room-tag {
   background: rgba(255, 255, 255, 0.08);
@@ -287,11 +295,7 @@ input {
   transition: width 0.2s linear, background-color 0.3s;
 }
 
-.players-row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
+.players-row { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .player-score-chip {
   background: rgba(255, 255, 255, 0.08);
@@ -334,7 +338,7 @@ input {
   box-shadow: 0 0 8px rgba(255, 204, 0, 0.6);
 }
 
-/* الطاولة */
+/* وسط الطاولة */
 .table-area {
   display: flex;
   justify-content: center;
@@ -450,7 +454,7 @@ input {
 
 .selectable { box-shadow: 0 0 15px 4px #00e676 !important; transform: translateY(-6px); }
 
-/* المودال وقوائم القواعد والشراء */
+/* المودال */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -490,11 +494,7 @@ input {
   border-radius: 8px;
   border-right: 3px solid #ffcc00;
 }
-.rule-section h3 {
-  color: #ffcc00;
-  font-size: 0.95rem;
-  margin-bottom: 4px;
-}
+.rule-section h3 { color: #ffcc00; font-size: 0.95rem; margin-bottom: 4px; }
 
 .buy-card-info {
   background: rgba(0,0,0,0.4);
@@ -504,20 +504,8 @@ input {
   border: 1px solid rgba(255, 204, 0, 0.3);
 }
 
-.brand-badge {
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #ffcc00;
-  letter-spacing: 1px;
-}
-
-.phone-number-display {
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: #fff;
-  margin: 6px 0;
-  direction: ltr;
-}
+.brand-badge { font-size: 1.5rem; font-weight: 900; color: #ffcc00; }
+.phone-number-display { font-size: 1.3rem; font-weight: 800; color: #fff; margin: 6px 0; direction: ltr; }
 
 .hunt-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 8px; }
 .hunt-num-btn { font-size: 1rem; padding: 7px; }
@@ -531,19 +519,3 @@ input {
 .rev-cards .card { width: 48px !important; height: 70px !important; box-shadow: none; }
 .rev-cards .circle-badge { width: 28px !important; height: 28px !important; font-size: 1rem !important; }
 .rev-cards .card-cmd { font-size: 0.6rem !important; }
-
-/* بادج الرقم الفريد للاعب في شاشة الدخول */
-.my-uid-badge {
-  background: rgba(255, 204, 0, 0.1);
-  border: 1px dashed rgba(255, 204, 0, 0.4);
-  color: #aaa;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  margin-bottom: 12px;
-  display: inline-block;
-}
-.my-uid-badge b {
-  color: #ffcc00;
-  letter-spacing: 1px;
-}

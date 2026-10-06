@@ -108,7 +108,7 @@
       <button id="btn-generate-ticket" class="btn primary-btn" style="margin-top:8px;">توليد التذكرة فوراً وحفظها 🎫</button>
     </div>
 
-    <!-- جدول التذاكر النشطة -->
+    <!-- جدول التذاكر الصادرة -->
     <h3 style="color:#ffcc00;text-align:right;margin-top:15px;">📊 سجل التذاكر الصادرة:</h3>
     <table class="admin-table">
       <thead>
@@ -128,9 +128,7 @@
     <hr style="border-color:#333;margin:18px 0;">
 
     <!-- سجل اللاعبين والمحظورين -->
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <h3 style="color:#00e676;">📋 اللاعبين المتصلين:</h3>
-    </div>
+    <h3 style="color:#00e676;text-align:right;">📋 اللاعبين المتصلين:</h3>
     <table class="admin-table">
       <thead>
         <tr>
@@ -193,7 +191,6 @@
     socket.on('adminLoginFail', () => alert('كود الماستر غير صحيح!'));
     socket.on('adminDataUpdated', (data) => renderDashboard(data));
 
-    // توليد تذكرة جديدة
     btnGenerateTicket.onclick = () => {
       socket.emit('adminCreateVoucher', {
         masterKey: currentMasterKey,
@@ -204,7 +201,6 @@
     };
 
     function renderDashboard(data) {
-      // جدول التذاكر
       vouchersTableBody.innerHTML = '';
       if (!data.vouchers || data.vouchers.length === 0) {
         vouchersTableBody.innerHTML = '<tr><td colspan="7" style="color:#777;">لم يتم إنشاء تذاكر بعد</td></tr>';
@@ -231,7 +227,6 @@
         });
       }
 
-      // جدول اللاعبين
       playersTableBody.innerHTML = '';
       if (!data.players || data.players.length === 0) {
         playersTableBody.innerHTML = '<tr><td colspan="4" style="color:#777;">لا يوجد لاعبين</td></tr>';
@@ -246,14 +241,13 @@
             <td>
               ${isBanned 
                 ? '<span style="color:#ff1744;">محظور</span>'
-                : `<button class="btn-ban" style="background:#ff1744;color:#fff;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;" onclick="banPlayer('${p.playerId}')">حظر 🚫</button>`}
+                : `<button style="background:#ff1744;color:#fff;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;" onclick="banPlayer('${p.playerId}')">حظر 🚫</button>`}
             </td>
           `;
           playersTableBody.appendChild(tr);
         });
       }
 
-      // جدول المحظورين
       bannedTableBody.innerHTML = '';
       if (!data.banned || data.banned.length === 0) {
         bannedTableBody.innerHTML = '<tr><td colspan="2" style="color:#777;">لا يوجد محظورين</td></tr>';
@@ -262,7 +256,7 @@
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td><b style="color:#ff1744;">${bId}</b></td>
-            <td><button class="btn-unban" style="background:#00e676;color:#111;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;" onclick="unbanPlayer('${bId}')">فك الحظر 🟢</button></td>
+            <td><button style="background:#00e676;color:#111;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;" onclick="unbanPlayer('${bId}')">فك الحظر 🟢</button></td>
           `;
           bannedTableBody.appendChild(tr);
         });
@@ -279,7 +273,7 @@
     };
 
     window.deleteTicket = (code) => {
-      if (confirm(`حذف وإلغاء التذكرة (${code})؟ لن يتمكن أحد من الدخول بها مجدداً.`)) {
+      if (confirm(`حذف وإلغاء التذكرة (${code})؟`)) {
         socket.emit('adminDeleteVoucher', { masterKey: currentMasterKey, code });
       }
     };

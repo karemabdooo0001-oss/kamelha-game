@@ -10,26 +10,27 @@ const io = new Server(server);
 app.use(express.static('public'));
 
 // ================= الإعدادات والأمان =================
-const MASTER_KEY = "7788"; 
-let GAME_PASSCODE = "1234"; 
+const MASTER_KEY = "7788"; // كود الماستر لدخول الأدمن (تقدر تعدله)
+let GAME_PASSCODE = "1234"; // باسوورد الطوارئ
 
-// كاش الذاكرة اللحظي للسرعة الفائقة
+// كاش الذاكرة اللحظي للسرعة
 const registeredPlayers = new Map();
 const bannedPlayerIds = new Set();
 const vouchers = new Map();
 
-// ================= الاتصال بقاعدة بيانات PostgreSQL =================
-const isInternal = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway.internal');
+// ================= الاتصال بقاعدة بيانات Railway =================
+// في شبكة Railway الداخلية لا نحتاج لـ SSL
+const isInternalNetwork = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway.internal');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: isInternal ? false : (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost') ? { rejectUnauthorized: false } : false)
+  ssl: isInternalNetwork ? false : (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost') ? { rejectUnauthorized: false } : false)
 });
 
-// إنشاء الجداول تلقائياً في قاعدة البيانات إذا لم تكن موجودة
+// إنشاء الجداول في قاعدة بيانات Railway تلقائياً
 async function initDatabase() {
   if (!process.env.DATABASE_URL) {
-    console.log('⚠️ جاري التشغيل بدون قاعدة بيانات سحابية (وضع الكاش المحلي)');
+    console.log('⚠️ جاري التشغيل في الوضع المحلي بدون قاعدة بيانات');
     return;
   }
   try {
@@ -58,14 +59,24 @@ async function initDatabase() {
         banned_at TIMESTAMP DEFAULT NOW()
       );
     `);
-    console.log('✅ تم الاتصال بقاعدة بيانات PostgreSQL وإنشاء الجداول بنجاح!');
+    console.log('✅ تم الاتصال بقاعدة بيانات Railway بنجاح وإنشاء الجداول!');
+    await syncMemoryFromDatabase();
+  } catch (err) {
+    console.error('❌ خطأ في الاتصال بقاعدة البيانات:', err.message);
+  }
+}
 
-    // استرجاع البيانات المحفوظة إلى الذاكرة عند بدء السيرفر
-    const savedBanned = await pool.query('SELECT player_id FROM banned_players');
-    savedBanned.rows.forEach(r => bannedPlayerIds.add(r.player_id));
+// مزامنة الذاكرة مع ما هو موجود في قاعدة بيانات Railway
+async function syncMemoryFromDatabase() {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    const bannedRes = await pool.query('SELECT player_id FROM banned_players');
+    bannedPlayerIds.clear();
+    bannedRes.rows.forEach(r => bannedPlayerIds.add(r.player_id));
 
-    const savedPlayers = await pool.query('SELECT * FROM players');
-    savedPlayers.rows.forEach(r => {
+    const playersRes = await pool.query('SELECT * FROM players');
+    registeredPlayers.clear();
+    playersRes.rows.forEach(r => {
       registeredPlayers.set(r.player_id, {
         playerId: r.player_id,
         name: r.name,
@@ -76,8 +87,9 @@ async function initDatabase() {
       });
     });
 
-    const savedVouchers = await pool.query('SELECT * FROM vouchers');
-    savedVouchers.rows.forEach(r => {
+    const vouchersRes = await pool.query('SELECT * FROM vouchers');
+    vouchers.clear();
+    vouchersRes.rows.forEach(r => {
       vouchers.set(r.code, {
         code: r.code,
         type: r.type,
@@ -91,14 +103,15 @@ async function initDatabase() {
         status: r.status
       });
     });
-    console.log(`📦 تم تحميل ${savedPlayers.rows.length} لاعب و ${savedVouchers.rows.length} تذكرة من قاعدة البيانات.`);
-  } catch (err) {
-    console.error('❌ خطأ في تهيئة قاعدة البيانات:', err.message);
+    console.log(`📦 تم تحميل البيانات من Railway: ${registeredPlayers.size} لاعب | ${vouchers.size} تذكرة | ${bannedPlayerIds.size} محظور`);
+  } catch (e) {
+    console.error('❌ خطأ في مزامنة البيانات:', e.message);
   }
 }
+
 initDatabase();
 
-// دوال المزامنة مع قاعدة البيانات
+// دوال حفظ البيانات مباشرة في Railway
 async function dbSavePlayer(p) {
   if (!process.env.DATABASE_URL) return;
   try {
@@ -108,10 +121,8 @@ async function dbSavePlayer(p) {
       ON CONFLICT (player_id) DO UPDATE 
       SET name = $2, last_seen = $3, current_room = $4;
     `, [p.playerId, p.name, p.lastSeen, p.currentRoom || 'اللوبي']);
-    console.log(`💾 تم حفظ اللاعب [${p.name}] في قاعدة البيانات بنجاح!`);
-  } catch (e) {
-    console.error('❌ خطأ في حفظ اللاعب:', e.message);
-  }
+    console.log(`💾 تم تسجيل اللاعب [${p.name}] في قاعدة بيانات Railway`);
+  } catch (e) { console.error('خطأ حفظ لاعب:', e.message); }
 }
 
 async function dbSaveVoucher(v) {
@@ -123,10 +134,8 @@ async function dbSaveVoucher(v) {
       ON CONFLICT (code) DO UPDATE 
       SET used_match = $8, devices = $9, status = $10;
     `, [v.code, v.type, v.maxDevices, v.duration, v.price, v.createdAt, v.expiresAt, v.usedMatch, JSON.stringify(v.devices), v.status]);
-    console.log(`🎟️ تم حفظ التذكرة [${v.code}] في قاعدة البيانات بنجاح!`);
-  } catch (e) {
-    console.error('❌ خطأ في حفظ التذكرة:', e.message);
-  }
+    console.log(`🎟️ تم تسجيل التذكرة [${v.code}] في قاعدة بيانات Railway`);
+  } catch (e) { console.error('خطأ حفظ تذكرة:', e.message); }
 }
 
 async function dbDeleteVoucher(code) {
@@ -150,16 +159,19 @@ async function dbUnbanPlayer(playerId) {
   } catch (e) {}
 }
 
+// ================= محرك وقواعد لعبة كمّلها (62 كارت) =================
 const rooms = {};
 const DEFAULT_TURN_TIME = 15;
 
 function createDeck() {
   const deck = [];
+  // 40 كارت أرقام من 1 إلى 10 (كل رقم 4 نسخ)
   for (let num = 1; num <= 10; num++) {
     for (let i = 0; i < 4; i++) {
       deck.push({ id: `num_${num}_${i}_${Math.random()}`, type: 'number', value: num });
     }
   }
+  // 22 كارت كوماندز
   const commands = [
     { type: 'joker', name: 'جوكر', count: 4 },
     { type: 'hunt', name: 'اصطاد كارتك', count: 4 },
@@ -188,6 +200,7 @@ function checkDrawDeckRefill(room) {
   }
 }
 
+// احتساب نقاط المكسب وقاعدة الـ 4 جواكر
 function verifyKamelhaHand(hand) {
   if (!hand || hand.length !== 4) return { valid: false };
   let jokers = 0;
@@ -197,6 +210,7 @@ function verifyKamelhaHand(hand) {
     else if (c.type === 'number') numCounts[c.value] = (numCounts[c.value] || 0) + 1;
   });
 
+  // 4 جواكر = فوز فوري بالمباراة كاملة (5 نقاط)
   if (jokers === 4) return { valid: true, points: 5, isInstantWin: true };
 
   for (const val in numCounts) {
@@ -235,6 +249,7 @@ function expireRoomOneMatchVouchers(room) {
   });
 }
 
+// فحص التذكرة
 function validateVoucher(code, playerId) {
   if (code === GAME_PASSCODE) return { valid: true, msg: 'دخول بكود المطور العام' };
 
@@ -267,6 +282,7 @@ function validateVoucher(code, playerId) {
 
 io.on('connection', (socket) => {
 
+  // تسجيل وحفظ اللاعب في قاعدة بيانات Railway
   socket.on('registerPlayerIdentity', ({ playerId, name }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
     const pData = {
@@ -281,6 +297,7 @@ io.on('connection', (socket) => {
     dbSavePlayer(pData);
   });
 
+  // فحص التذكرة عند البوابة
   socket.on('verifyGatePasscode', ({ passcode, playerId }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
 
@@ -292,7 +309,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // أوامر لوحة الأدمن
+  // ================= أوامر لوحة الأدمن =================
   socket.on('adminLogin', (key) => {
     if (key === MASTER_KEY) {
       socket.emit('adminLoginSuccess', getAdminDashboardData());
@@ -301,8 +318,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('adminRefreshData', (key) => {
+  socket.on('adminRefreshData', async (key) => {
     if (key === MASTER_KEY) {
+      await syncMemoryFromDatabase();
       socket.emit('adminDataUpdated', getAdminDashboardData());
     }
   });
@@ -316,6 +334,7 @@ io.on('connection', (socket) => {
     };
   }
 
+  // توليد تذكرة جديدة
   socket.on('adminCreateVoucher', ({ masterKey, type, duration, price }) => {
     if (masterKey !== MASTER_KEY) return;
 
@@ -362,6 +381,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  // حظر لاعب
   socket.on('adminBanPlayer', ({ masterKey, targetPlayerId }) => {
     if (masterKey !== MASTER_KEY) return;
     bannedPlayerIds.add(targetPlayerId);
@@ -398,7 +418,7 @@ io.on('connection', (socket) => {
     socket.emit('adminDataUpdated', getAdminDashboardData());
   });
 
-  // ================= منطق اللعبة =================
+  // ================= إدارة الغرف واللعب =================
   socket.on('reconnectPlayer', ({ roomId, playerId }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
 

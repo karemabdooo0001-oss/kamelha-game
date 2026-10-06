@@ -8,7 +8,6 @@ if (!myPlayerId) {
   localStorage.setItem('kamelha_uid', myPlayerId);
 }
 
-// عناصر DOM الخاصة بالبوابة والشاشات
 const gateScreen = document.getElementById('gate-screen');
 const gatePassInput = document.getElementById('gate-pass-input');
 const btnSubmitGate = document.getElementById('btn-submit-gate');
@@ -26,17 +25,14 @@ const urlParams = new URLSearchParams(window.location.search);
 const ticketInUrl = urlParams.get('pass') || urlParams.get('ticket');
 
 if (ticketInUrl) {
-  // دخول تلقائي عبر رابط التذكرة المباشر
   socket.emit('verifyGatePasscode', { passcode: ticketInUrl, playerId: myPlayerId });
 } else {
-  // فحص إذا كان المستخدم مسجل دخول بتذكرة صالحة مسبقاً
   const savedTicket = sessionStorage.getItem('kamelha_gate_ticket');
   if (savedTicket) {
     socket.emit('verifyGatePasscode', { passcode: savedTicket, playerId: myPlayerId });
   }
 }
 
-// الضغط على زر إدخال التذكرة
 if (btnSubmitGate) {
   btnSubmitGate.onclick = () => {
     const code = gatePassInput.value.trim();
@@ -45,22 +41,19 @@ if (btnSubmitGate) {
   };
 }
 
-// التذكرة مقبولة: إخفاء شاشة القفل وإظهار اللعبة فوراً
 socket.on('gateAccessGranted', (data) => {
   const code = (data && data.voucherCode) ? data.voucherCode : 'active';
   sessionStorage.setItem('kamelha_gate_ticket', code);
 
   gateScreen.classList.add('hidden');
-  lobbyScreen.classList.remove('hidden'); // إظهار اللوبي الآن فقط!
+  lobbyScreen.classList.remove('hidden');
 });
 
-// التذكرة مرفوضة أو منتهية
 socket.on('gateAccessDenied', (errMsg) => {
   sessionStorage.removeItem('kamelha_gate_ticket');
   alert(errMsg || 'كود التذكرة غير صحيح أو منتهي الصلاحية! تواصل مع المطور Wello_0: 01121040020');
 });
 
-// طرد فوري إذا كان محظوراً
 socket.on('bannedKickNotification', () => {
   document.body.innerHTML = `
     <div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#0d0914;color:#fff;text-align:center;font-family:'Cairo',sans-serif;padding:20px;">
@@ -74,7 +67,6 @@ socket.on('bannedKickNotification', () => {
   `;
 });
 
-// تسجيل هوية اللاعب في السيرفر
 const savedName = localStorage.getItem('kamelha_name') || 'لاعب';
 socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name: savedName });
 
@@ -135,7 +127,7 @@ const SoundManager = {
 window.addEventListener('click', () => SoundManager.init(), { once: true });
 window.addEventListener('touchstart', () => SoundManager.init(), { once: true });
 
-// DOM اللعبة
+// DOM
 const btnSoundLobby = document.getElementById('btn-sound-lobby');
 const btnSoundGame = document.getElementById('btn-sound-game');
 const btnRules = document.getElementById('btn-rules');
@@ -189,7 +181,6 @@ updateSoundIcons();
 if (btnSoundLobby) btnSoundLobby.addEventListener('click', () => SoundManager.toggleMute());
 if (btnSoundGame) btnSoundGame.addEventListener('click', () => SoundManager.toggleMute());
 
-// شرح القواعد والشراء
 if (btnRules) {
   btnRules.addEventListener('click', () => {
     openModal(`
@@ -243,7 +234,6 @@ if (btnBuy) {
   });
 }
 
-// إعادة الاتصال التلقائي
 window.addEventListener('load', () => {
   const savedName = localStorage.getItem('kamelha_name');
   if (savedName && playerNameInput) playerNameInput.value = savedName;
