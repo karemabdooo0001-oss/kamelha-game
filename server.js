@@ -19,9 +19,11 @@ const bannedPlayerIds = new Set();
 const vouchers = new Map();
 
 // ================= الاتصال بقاعدة بيانات PostgreSQL =================
+const isInternal = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway.internal');
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+  ssl: isInternal ? false : (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost') ? { rejectUnauthorized: false } : false)
 });
 
 // إنشاء الجداول تلقائياً في قاعدة البيانات إذا لم تكن موجودة
@@ -106,7 +108,10 @@ async function dbSavePlayer(p) {
       ON CONFLICT (player_id) DO UPDATE 
       SET name = $2, last_seen = $3, current_room = $4;
     `, [p.playerId, p.name, p.lastSeen, p.currentRoom || 'اللوبي']);
-  } catch (e) {}
+    console.log(`💾 تم حفظ اللاعب [${p.name}] في قاعدة البيانات بنجاح!`);
+  } catch (e) {
+    console.error('❌ خطأ في حفظ اللاعب:', e.message);
+  }
 }
 
 async function dbSaveVoucher(v) {
@@ -118,7 +123,10 @@ async function dbSaveVoucher(v) {
       ON CONFLICT (code) DO UPDATE 
       SET used_match = $8, devices = $9, status = $10;
     `, [v.code, v.type, v.maxDevices, v.duration, v.price, v.createdAt, v.expiresAt, v.usedMatch, JSON.stringify(v.devices), v.status]);
-  } catch (e) {}
+    console.log(`🎟️ تم حفظ التذكرة [${v.code}] في قاعدة البيانات بنجاح!`);
+  } catch (e) {
+    console.error('❌ خطأ في حفظ التذكرة:', e.message);
+  }
 }
 
 async function dbDeleteVoucher(code) {
