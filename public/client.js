@@ -794,44 +794,17 @@ socket.on('gameOver', ({ winnerName, scores, revealedHands, reason }) => {
 });
 
 function createCardHTML(card) {
+  let imgFile = '';
   if (card.type === 'number') {
-    const isUnderline = (card.value === 6 || card.value === 9) ? 'underline' : '';
-    return `
-      <div class="card card-num num-${card.value}">
-        <div class="card-corner corner-tl"><span class="${isUnderline}">${card.value}</span></div>
-        <div class="card-center-circle">
-          <span class="${isUnderline}">${card.value}</span>
-        </div>
-        <div class="card-corner corner-br"><span class="${isUnderline}">${card.value}</span></div>
-      </div>
-    `;
+    imgFile = `${card.value}.png`;
   } else if (card.type === 'command') {
-    const icons = {
-      joker: '🃏',
-      hunt: '🎯',
-      bank: '🏛️',
-      reverse: '🔄',
-      keda: '😎',
-      annoy: '😈',
-      wild: '⭐'
-    };
-    const icon = icons[card.cmdType] || '⚡';
+    imgFile = `${card.cmdType}.png`;
+  }
+
+  if (imgFile) {
     return `
-      <div class="card card-cmd cmd-${card.cmdType}">
-        <!-- النصف العلوي -->
-        <div class="cmd-half top-half">
-          <span class="cmd-icon">${icon}</span>
-          <span class="cmd-title">${card.name}</span>
-        </div>
-        
-        <!-- الخط الفاصل بالمنتصف -->
-        <div class="cmd-divider-line"></div>
-        
-        <!-- النصف السفلي المعكوس بالكامل -->
-        <div class="cmd-half bottom-half">
-          <span class="cmd-icon">${icon}</span>
-          <span class="cmd-title">${card.name}</span>
-        </div>
+      <div class="card card-real-img">
+        <img src="/cards/${imgFile}" alt="${card.name || card.value}">
       </div>
     `;
   }
