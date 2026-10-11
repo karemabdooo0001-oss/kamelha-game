@@ -353,76 +353,178 @@ input {
 .deck-spot { text-align: center; cursor: pointer; }
 .deck-spot p { margin-top: 4px; font-size: 0.75rem; color: #aaa; font-weight: 600; }
 
-/* الكروت */
+/* ================= تصميم الكروت المطابق للنسخة الحقيقية ================= */
 .card {
-  width: clamp(65px, 18vw, 95px);
-  height: clamp(95px, 26vw, 140px);
+  width: clamp(68px, 19vw, 98px);
+  height: clamp(102px, 28vw, 146px);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   font-weight: 900;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-  border: 2px solid rgba(255,255,255,0.25);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.7);
   position: relative;
-  transition: transform 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
   flex-shrink: 0;
+  overflow: hidden;
+  border-width: 2.5px;
+  border-style: solid;
 }
+
 .card:active { transform: scale(0.95); }
 
+/* ظهر الكارت الملكي */
 .card-back {
-  background: linear-gradient(135deg, #1c0e35, #441c7a);
-  border: 2px solid #ffcc00;
+  background: radial-gradient(circle, #2d124d 0%, #0d0417 100%);
+  border-color: #ffcc00;
   color: #ffcc00;
+  border-width: 3px;
 }
-.logo-txt { font-size: 1rem; }
+.card-back .logo-txt {
+  font-size: 1.2rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-shadow: 0 0 10px rgba(255, 204, 0, 0.6);
+}
 .deck-count-num {
   position: absolute;
   bottom: 6px;
   background: #ffcc00;
   color: #000;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 900;
 }
 
-.card-num { background: #1c1a24; }
-.card-num .circle-badge {
-  width: clamp(40px, 11vw, 58px);
-  height: clamp(40px, 11vw, 58px);
+/* ألوان وخلفيات كروت الأرقام المطابقة لصورك بالملّي */
+.card-num {
+  position: relative;
+}
+
+/* الأركان (الأرقام الصغيرة) */
+.card-corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: clamp(1.4rem, 4vw, 2.1rem);
+  font-size: 0.75rem;
+  font-weight: 900;
   color: #111;
 }
+.corner-tl { top: 4px; left: 4px; }
+.corner-br { bottom: 4px; right: 4px; transform: rotate(180deg); }
 
-.num-1 .circle-badge { background: #ff5252; }
-.num-2 .circle-badge { background: #ff9800; }
-.num-3 .circle-badge { background: #cddc39; }
-.num-4 .circle-badge { background: #4caf50; }
-.num-5 .circle-badge { background: #00e676; }
-.num-6 .circle-badge { background: #00b0ff; text-decoration: underline; }
-.num-7 .circle-badge { background: #29b6f6; }
-.num-8 .circle-badge { background: #3f51b5; color: #fff; }
-.num-9 .circle-badge { background: #7e57c2; color: #fff; text-decoration: underline; }
-.num-10 .circle-badge { background: #e040fb; color: #fff; font-size: 1.3rem; }
+/* الدائرة الكبيرة في المنتصف */
+.card-center-circle {
+  width: clamp(44px, 12vw, 62px);
+  height: clamp(44px, 12vw, 62px);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: clamp(1.6rem, 4.5vw, 2.3rem);
+  font-weight: 900;
+  color: #111;
+  box-shadow: inset 0 2px 5px rgba(255,255,255,0.3), 0 3px 8px rgba(0,0,0,0.8);
+}
 
-.card-cmd { font-size: clamp(0.7rem, 2vw, 0.9rem); text-align: center; padding: 5px; }
-.cmd-joker { background: #006064; border-color: #00e5ff; }
-.cmd-hunt { background: #1b5e20; border-color: #00e676; }
-.cmd-bank { background: #e65100; border-color: #ffeb3b; }
-.cmd-reverse { background: #b71c1c; border-color: #ff5252; }
-.cmd-keda { background: #3e2723; border-color: #ffab40; }
-.cmd-annoy { background: #311b92; border-color: #ea80fc; }
-.cmd-wild { background: #bf360c; border-color: #ffd180; }
+.underline { text-decoration: underline 3px solid #111; }
+
+/* ألوان الأرقام الـ 10 الدقيقة */
+.num-1 { background: #261114; border-color: #ff5252; }
+.num-1 .card-center-circle, .num-1 .card-corner { background: #ff5252; }
+
+.num-2 { background: #2b1c10; border-color: #ff9800; }
+.num-2 .card-center-circle, .num-2 .card-corner { background: #ff9800; }
+
+.num-3 { background: #24290e; border-color: #cddc39; }
+.num-3 .card-center-circle, .num-3 .card-corner { background: #cddc39; }
+
+.num-4 { background: #102613; border-color: #4caf50; }
+.num-4 .card-center-circle, .num-4 .card-corner { background: #4caf50; }
+
+.num-5 { background: #0c2b1d; border-color: #00e676; }
+.num-5 .card-center-circle, .num-5 .card-corner { background: #00e676; }
+
+.num-6 { background: #08242a; border-color: #00b0ff; }
+.num-6 .card-center-circle, .num-6 .card-corner { background: #00b0ff; }
+
+.num-7 { background: #092336; border-color: #29b6f6; }
+.num-7 .card-center-circle, .num-7 .card-corner { background: #29b6f6; }
+
+.num-8 { background: #0f142e; border-color: #3f51b5; }
+.num-8 .card-center-circle, .num-8 .card-corner { background: #3f51b5; color: #fff; }
+
+.num-9 { background: #19102b; border-color: #7e57c2; }
+.num-9 .card-center-circle, .num-9 .card-corner { background: #7e57c2; color: #fff; }
+
+.num-10 { background: #2b0d2e; border-color: #e040fb; }
+.num-10 .card-center-circle, .num-10 .card-corner { background: #e040fb; color: #fff; font-size: clamp(1.2rem, 3.5vw, 1.7rem); }
+
+/* ================= كروت الكوماندز المتطابقة المعكوسة ================= */
+.card-cmd {
+  padding: 6px 4px;
+  justify-content: space-between;
+  text-align: center;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+
+.cmd-icon-corner {
+  font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+  line-height: 1;
+}
+.bottom-icon { transform: rotate(180deg); }
+
+.cmd-text-top, .cmd-text-bottom {
+  font-size: clamp(0.72rem, 2vw, 0.92rem);
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+}
+.cmd-text-bottom {
+  transform: rotate(180deg);
+}
+
+.cmd-center-line {
+  width: 80%;
+  height: 2px;
+  background: rgba(255,255,255,0.25);
+  margin: 2px auto;
+  border-radius: 2px;
+}
+
+/* ألوان كروت الكوماندز الـ 7 الدقيقة */
+.cmd-bank { background-color: #24290d; border-color: #cddc39; color: #d4e157; }
+.cmd-bank .cmd-center-line { background: #cddc39; }
+
+.cmd-annoy { background-color: #1f0d2e; border-color: #ab47bc; color: #e1bee7; }
+.cmd-annoy .cmd-center-line { background: #ab47bc; }
+
+.cmd-reverse { background-color: #2b0e11; border-color: #e53935; color: #ff8a80; }
+.cmd-reverse .cmd-center-line { background: #e53935; }
+
+.cmd-joker { background-color: #07232e; border-color: #00bcd4; color: #80deea; }
+.cmd-joker .cmd-center-line { background: #00bcd4; }
+
+.cmd-wild { background-color: #2b1708; border-color: #fb8c00; color: #ffe0b2; }
+.cmd-wild .cmd-center-line { background: #fb8c00; }
+
+.cmd-hunt { background-color: #0d2610; border-color: #43a047; color: #a5d6a7; }
+.cmd-hunt .cmd-center-line { background: #43a047; }
+
+.cmd-keda { background-color: #241c0b; border-color: #fdd835; color: #fff59d; }
+.cmd-keda .cmd-center-line { background: #fdd835; }
 
 .player-zone {
   width: 100%;

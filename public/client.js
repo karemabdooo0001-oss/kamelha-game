@@ -795,9 +795,36 @@ socket.on('gameOver', ({ winnerName, scores, revealedHands, reason }) => {
 
 function createCardHTML(card) {
   if (card.type === 'number') {
-    return `<div class="card card-num num-${card.value}"><div class="circle-badge">${card.value}</div></div>`;
+    const isUnderline = (card.value === 6 || card.value === 9) ? 'underline' : '';
+    return `
+      <div class="card card-num num-${card.value}">
+        <div class="card-corner corner-tl"><span class="${isUnderline}">${card.value}</span></div>
+        <div class="card-center-circle">
+          <span class="${isUnderline}">${card.value}</span>
+        </div>
+        <div class="card-corner corner-br"><span class="${isUnderline}">${card.value}</span></div>
+      </div>
+    `;
   } else if (card.type === 'command') {
-    return `<div class="card card-cmd cmd-${card.cmdType}"><span>${card.name}</span></div>`;
+    const icons = {
+      joker: '🃏',
+      hunt: '🎯',
+      bank: '🏛️',
+      reverse: '🔄',
+      keda: '😎',
+      annoy: '😈',
+      wild: '⭐'
+    };
+    const icon = icons[card.cmdType] || '⚡';
+    return `
+      <div class="card card-cmd cmd-${card.cmdType}">
+        <div class="cmd-icon-corner top-icon">${icon}</div>
+        <div class="cmd-text-top">${card.name}</div>
+        <div class="cmd-center-line"></div>
+        <div class="cmd-text-bottom">${card.name}</div>
+        <div class="cmd-icon-corner bottom-icon">${icon}</div>
+      </div>
+    `;
   }
   return '';
 }
