@@ -471,60 +471,84 @@ input {
 .num-10 { background: #2b0d2e; border-color: #e040fb; }
 .num-10 .card-center-circle, .num-10 .card-corner { background: #e040fb; color: #fff; font-size: clamp(1.2rem, 3.5vw, 1.7rem); }
 
-/* ================= كروت الكوماندز المتطابقة المعكوسة ================= */
+/* ================= كروت الكوماندز المنظمة بالنصفين ================= */
 .card-cmd {
-  padding: 6px 4px;
+  padding: 4px 2px;
+  display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  text-align: center;
+  align-items: center;
   background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
   background-size: 8px 8px;
+  box-sizing: border-box;
 }
 
-.cmd-icon-corner {
-  font-size: clamp(0.9rem, 2.5vw, 1.2rem);
-  line-height: 1;
+/* النصف العلوي والسفلي */
+.cmd-half {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+  gap: 2px;
 }
-.bottom-icon { transform: rotate(180deg); }
 
-.cmd-text-top, .cmd-text-bottom {
-  font-size: clamp(0.72rem, 2vw, 0.92rem);
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
-}
-.cmd-text-bottom {
+/* عكس النصف السفلي بالكامل ككتلة واحدة */
+.bottom-half {
   transform: rotate(180deg);
 }
 
-.cmd-center-line {
-  width: 80%;
-  height: 2px;
+.cmd-icon {
+  font-size: clamp(0.75rem, 2.2vw, 1rem);
+  line-height: 1;
+}
+
+.cmd-title {
+  font-size: clamp(0.64rem, 1.8vw, 0.82rem);
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+}
+
+/* الخط الفاصل بالمنتصف */
+.cmd-divider-line {
+  width: 82%;
+  height: 1.5px;
   background: rgba(255,255,255,0.25);
-  margin: 2px auto;
+  margin: 1px 0;
+  flex-shrink: 0;
   border-radius: 2px;
 }
 
-/* ألوان كروت الكوماندز الـ 7 الدقيقة */
+/* ألوان الكوماندز السبعة */
 .cmd-bank { background-color: #24290d; border-color: #cddc39; color: #d4e157; }
-.cmd-bank .cmd-center-line { background: #cddc39; }
+.cmd-bank .cmd-divider-line { background: #cddc39; }
 
 .cmd-annoy { background-color: #1f0d2e; border-color: #ab47bc; color: #e1bee7; }
-.cmd-annoy .cmd-center-line { background: #ab47bc; }
+.cmd-annoy .cmd-divider-line { background: #ab47bc; }
 
 .cmd-reverse { background-color: #2b0e11; border-color: #e53935; color: #ff8a80; }
-.cmd-reverse .cmd-center-line { background: #e53935; }
+.cmd-reverse .cmd-divider-line { background: #e53935; }
 
 .cmd-joker { background-color: #07232e; border-color: #00bcd4; color: #80deea; }
-.cmd-joker .cmd-center-line { background: #00bcd4; }
+.cmd-joker .cmd-divider-line { background: #00bcd4; }
 
 .cmd-wild { background-color: #2b1708; border-color: #fb8c00; color: #ffe0b2; }
-.cmd-wild .cmd-center-line { background: #fb8c00; }
+.cmd-wild .cmd-divider-line { background: #fb8c00; }
 
 .cmd-hunt { background-color: #0d2610; border-color: #43a047; color: #a5d6a7; }
-.cmd-hunt .cmd-center-line { background: #43a047; }
+.cmd-hunt .cmd-divider-line { background: #43a047; }
 
 .cmd-keda { background-color: #241c0b; border-color: #fdd835; color: #fff59d; }
-.cmd-keda .cmd-center-line { background: #fdd835; }
+.cmd-keda .cmd-divider-line { background: #fdd835; }
+
+/* ضبط كروت النهاية المصغرة لمنع التداخل */
+.rev-cards .cmd-title { font-size: 0.48rem !important; }
+.rev-cards .cmd-icon { font-size: 0.55rem !important; }
 
 .player-zone {
   width: 100%;

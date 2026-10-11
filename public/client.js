@@ -818,11 +818,20 @@ function createCardHTML(card) {
     const icon = icons[card.cmdType] || '⚡';
     return `
       <div class="card card-cmd cmd-${card.cmdType}">
-        <div class="cmd-icon-corner top-icon">${icon}</div>
-        <div class="cmd-text-top">${card.name}</div>
-        <div class="cmd-center-line"></div>
-        <div class="cmd-text-bottom">${card.name}</div>
-        <div class="cmd-icon-corner bottom-icon">${icon}</div>
+        <!-- النصف العلوي -->
+        <div class="cmd-half top-half">
+          <span class="cmd-icon">${icon}</span>
+          <span class="cmd-title">${card.name}</span>
+        </div>
+        
+        <!-- الخط الفاصل بالمنتصف -->
+        <div class="cmd-divider-line"></div>
+        
+        <!-- النصف السفلي المعكوس بالكامل -->
+        <div class="cmd-half bottom-half">
+          <span class="cmd-icon">${icon}</span>
+          <span class="cmd-title">${card.name}</span>
+        </div>
       </div>
     `;
   }
