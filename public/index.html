@@ -18,7 +18,7 @@
       <h1 class="game-logo">كمّلها</h1>
       <div style="font-size:3.5rem;margin:10px 0;">🔒</div>
       <h2 style="color:#ffcc00;margin-bottom:6px;">بوابة الدخول</h2>
-      <p style="color:#ccc;font-size:0.9rem;margin-bottom:15px;">أدخل كود التذكرة أو رقم الدخول للعب:</p>
+      <p style="color:#ccc;font-size:0.9rem;margin-bottom:15px;">أدخل كود التذكرة أو رقم الدخول للعب مع أصحابك:</p>
 
       <input type="text" id="gate-pass-input" placeholder="اكتب كود التذكرة (مثلاً: KM-84912)">
       <button id="btn-submit-gate" class="btn primary-btn">تأكيد التذكرة والدخول 🎮</button>
@@ -34,7 +34,7 @@
     </div>
   </div>
 
-  <!-- 2. شاشة اللوبي (مع اختيار نمط اللعب أونلاين أو ضد البوتات) -->
+  <!-- 2. شاشة اللوبي الأصلية (لعب جماعي أونلاين فقط) -->
   <div id="lobby-screen" class="screen hidden">
     <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">🔊</button>
 
@@ -44,116 +44,56 @@
 
       <div class="my-uid-badge">رقمك التعريفي الفريد: <b id="display-my-uid">--</b></div>
 
-      <!-- أزرار التبديل بين اللعب الجماعي والفردي -->
-      <div class="mode-select-tabs">
-        <button id="tab-online" class="mode-tab-btn active">👥 لعب جماعي أونلاين</button>
-        <button id="tab-solo" class="mode-tab-btn">🤖 فردي ضد البوتات</button>
-      </div>
-
       <div class="input-group">
         <label>اسمك في اللعبة:</label>
         <input type="text" id="player-name" placeholder="اكتب اسمك...">
       </div>
 
-      <!-- قسم اللعب الجماعي أونلاين -->
-      <div id="online-mode-section">
-        <div class="room-match-settings">
-          <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">⚙️ شروط إنهاء المباراة (أيهما يكتمل أولاً):</h4>
-          
-          <div class="match-setting-row">
-            <label>🎯 نقاط الفوز:</label>
-            <select id="target-points-input">
-              <option value="0">بدون تحديد (مفتوح) ♾️</option>
-              <option value="1">نقطة واحدة</option>
-              <option value="2">نقطتان</option>
-              <option value="3">3 نقاط</option>
-              <option value="4">4 نقاط</option>
-              <option value="5" selected>5 نقاط (الافتراضي)</option>
-              <option value="6">6 نقاط</option>
-              <option value="7">7 نقاط</option>
-              <option value="8">8 نقاط</option>
-              <option value="9">9 نقاط</option>
-              <option value="10">10 نقاط</option>
-            </select>
-          </div>
-
-          <div class="match-setting-row" style="margin-top:6px;">
-            <label>🏁 أقصى جولات:</label>
-            <select id="max-rounds-input">
-              <option value="0" selected>بدون تحديد (مفتوح) ♾️</option>
-              <option value="1">جولة واحدة</option>
-              <option value="2">جولتان</option>
-              <option value="3">3 جولات</option>
-              <option value="4">4 جولات</option>
-              <option value="5">5 جولات</option>
-              <option value="7">7 جولات</option>
-              <option value="10">10 جولات</option>
-              <option value="12">12 جولة</option>
-              <option value="15">15 جولة</option>
-              <option value="20">20 جولة</option>
-            </select>
-          </div>
+      <!-- إعدادات شروط المباراة (نقاط وجولات مع إمكانية بدون تحديد) -->
+      <div class="room-match-settings">
+        <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">⚙️ شروط إنهاء المباراة:</h4>
+        
+        <div class="match-setting-row">
+          <label>🎯 نقاط الفوز:</label>
+          <select id="target-points-input">
+            <option value="0">بدون تحديد (مفتوح) ♾️</option>
+            <option value="1">نقطة واحدة</option>
+            <option value="2">نقطتان</option>
+            <option value="3">3 نقاط</option>
+            <option value="4">4 نقاط</option>
+            <option value="5" selected>5 نقاط (الافتراضي)</option>
+            <option value="6">6 نقاط</option>
+            <option value="7">7 نقاط</option>
+            <option value="8">8 نقاط</option>
+            <option value="9">9 نقاط</option>
+            <option value="10">10 نقاط</option>
+          </select>
         </div>
 
-        <button id="btn-create" class="btn primary-btn" style="margin-top:10px;">إنشاء غرفة جديدة 🎲</button>
-        <div class="separator">أو</div>
-        <div class="join-group">
-          <input type="text" id="room-code-input" placeholder="كود الغرفة">
-          <button id="btn-join" class="btn secondary-btn">دخول</button>
+        <div class="match-setting-row" style="margin-top:6px;">
+          <label>🏁 أقصى جولات:</label>
+          <select id="max-rounds-input">
+            <option value="0" selected>بدون تحديد (مفتوح) ♾️</option>
+            <option value="1">جولة واحدة</option>
+            <option value="2">جولتان</option>
+            <option value="3">3 جولات</option>
+            <option value="4">4 جولات</option>
+            <option value="5">5 جولات</option>
+            <option value="7">7 جولات</option>
+            <option value="10">10 جولات</option>
+            <option value="12">12 جولة</option>
+            <option value="15">15 جولة</option>
+            <option value="20">20 جولة</option>
+          </select>
         </div>
+        <p style="font-size:0.7rem;color:#888;margin-top:5px;">* الفائز أول من يصل للنقاط، أو صاحب أعلى سكور بنهاية الجولات.</p>
       </div>
 
-      <!-- قسم اللعب الفردي ضد البوتات -->
-      <div id="solo-mode-section" class="hidden">
-        <div class="room-match-settings">
-          <h4 style="color:#00e676;margin-bottom:8px;font-size:0.85rem;">🤖 إعدادات تحدي الكمبيوتر:</h4>
-          
-          <div class="match-setting-row">
-            <label>عدد البوتات:</label>
-            <select id="solo-bot-count">
-              <option value="1" selected>1 بوت (ماتش 1 ضد 1)</option>
-              <option value="2">2 بوتات (ماتش 3 لاعبين)</option>
-              <option value="3">3 بوتات (طاولة كاملة 4)</option>
-            </select>
-          </div>
-
-          <div class="match-setting-row" style="margin-top:6px;">
-            <label>مستوى الصعوبة:</label>
-            <select id="solo-difficulty">
-              <option value="easy">🟢 سهل (مبتدئ)</option>
-              <option value="medium" selected>🟡 متوسط (عادي)</option>
-              <option value="hard">🔴 صعب (محترف)</option>
-              <option value="legendary">🟣 أسطوري (ذكاء خارق)</option>
-            </select>
-          </div>
-
-          <div class="match-setting-row" style="margin-top:6px;">
-            <label>🎯 نقاط الفوز:</label>
-            <select id="solo-target-points">
-              <option value="0">بدون تحديد (مفتوح) ♾️</option>
-              <option value="1">نقطة واحدة</option>
-              <option value="2">نقطتان</option>
-              <option value="3">3 نقاط</option>
-              <option value="5" selected>5 نقاط (الافتراضي)</option>
-              <option value="7">7 نقاط</option>
-              <option value="10">10 نقاط</option>
-            </select>
-          </div>
-
-          <div class="match-setting-row" style="margin-top:6px;">
-            <label>🏁 أقصى جولات:</label>
-            <select id="solo-max-rounds">
-              <option value="0" selected>بدون تحديد (مفتوح) ♾️</option>
-              <option value="1">جولة واحدة</option>
-              <option value="3">3 جولات</option>
-              <option value="5">5 جولات</option>
-              <option value="10">10 جولات</option>
-              <option value="20">20 جولة</option>
-            </select>
-          </div>
-        </div>
-
-        <button id="btn-start-solo" class="btn primary-btn" style="background:#00e676;color:#111;margin-top:10px;">ابدأ التحدي ضد البوتات فوراً 🎮</button>
+      <button id="btn-create" class="btn primary-btn" style="margin-top:10px;">إنشاء غرفة جديدة 🎲</button>
+      <div class="separator">أو</div>
+      <div class="join-group">
+        <input type="text" id="room-code-input" placeholder="كود الغرفة">
+        <button id="btn-join" class="btn secondary-btn">دخول</button>
       </div>
 
       <div class="footer-brand" style="margin-top:15px;">
@@ -184,7 +124,7 @@
     </div>
   </div>
 
-  <!-- 4. شاشة اللعب الكلاسيكية المحيطية -->
+  <!-- 4. شاشة اللعب الكلاسيكية المحيطية (Casino/Uno 4-Way Table) -->
   <div id="game-screen" class="screen hidden">
     <header class="game-header">
       <div class="top-row">
