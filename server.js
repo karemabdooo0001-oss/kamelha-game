@@ -76,7 +76,7 @@ async function syncMemoryFromDatabase() {
 
     const vouchersRes = await pool.query('SELECT * FROM vouchers');
     vouchers.clear();
-    vouchersRes.rows.forEach(r => {
+    vouchersRes.forEach(r => {
       vouchers.set(r.code, {
         code: r.code,
         type: r.type,
@@ -139,11 +139,13 @@ const DEFAULT_TURN_TIME = 15;
 
 function createDeck() {
   const deck = [];
+  // 40 كارت أرقام من 1 إلى 10
   for (let num = 1; num <= 10; num++) {
     for (let i = 0; i < 4; i++) {
       deck.push({ id: `num_${num}_${i}_${Math.random()}`, type: 'number', value: num });
     }
   }
+  // 24 كارت كوماندز (بما فيهم نسختين كارت الحرامي 🦹‍♂️)
   const commands = [
     { type: 'joker', name: 'جوكر', count: 4 },
     { type: 'hunt', name: 'اصطاد كارتك', count: 4 },
@@ -246,78 +248,6 @@ function validateVoucher(code, playerId) {
   v.devices.push(playerId);
   dbSaveVoucher(v);
   return { valid: true, voucher: v };
-}
-
-// ================= محرك ذكاء البوتات الحتمي والمباشر 100% =================
-function handleBotTurn(room) {
-  const bot = room.players[room.currentTurnIndex];
-  if (!bot || !bot.isBot || !room.gameStarted) return;
-
-  io.to(room.id).emit('notify', `🤖 (${bot.name}) يفكر في دوره...`);
-
-  setTimeout(() => {
-    try {
-      if (!room.gameStarted) return;
-
-      // 1. هل يد البوت مؤهلة لإعلان "كمّلتها"؟
-      const check = verifyKamelhaHand(bot.hand);
-      if (check.valid && !room.kamelhaCallers.includes(bot.id)) {
-        room.kamelhaCallers.push(bot.id);
-        bot.earnedPointsThisRound = check.points;
-        io.to(room.id).emit('notify', `🎉 صاح (${bot.name}): "كمّلتهااا!" 🔒 وتم تفعيل قفل الحصانة له!`);
-        io.to(room.id).emit('soundTrigger', 'kamelha');
-        sendGameState(room.id);
-        if (room.turnsLeftInOrbit === null) room.turnsLeftInOrbit = room.players.length - 1;
-      }
-
-      // 2. سحب كارت مضمون من كروت السحب
-      checkDrawDeckRefill(room);
-      if (room.deck.length === 0) {
-        advanceTurn(room);
-        return;
-      }
-
-      const drawn = room.deck.pop();
-      io.to(room.id).emit('playerDrewCardAnim', { playerId: bot.id, from: 'deck' });
-
-      // 3. تحليل يد البوت ببساطة لتحديد الرقم الهدف
-      const counts = {};
-      bot.hand.forEach(c => {
-        if (c.type === 'number') counts[c.value] = (counts[c.value] || 0) + 1;
-      });
-
-      let targetNum = 1;
-      let maxCount = 0;
-      for (const num in counts) {
-        if (counts[num] > maxCount) {
-          maxCount = counts[num];
-          targetNum = parseInt(num);
-        }
-      }
-
-      // 4. هل الكارت المسحوب يفيد البوت؟
-      const isUseful = (drawn.type === 'number' && drawn.value === targetNum) ||
-                       (drawn.type === 'command' && drawn.cmdType === 'joker');
-
-      if (isUseful) {
-        let swapIdx = bot.hand.findIndex(c => c.type === 'number' && c.value !== targetNum);
-        if (swapIdx === -1) swapIdx = 0;
-        const discarded = bot.hand.splice(swapIdx, 1, drawn)[0];
-        room.discardPile.push(discarded);
-        io.to(room.id).emit('notify', `🤖 (${bot.name}) احتفظ بالكارت وبدل كارت مكانه!`);
-      } else {
-        room.discardPile.push(drawn);
-        io.to(room.id).emit('notify', `🤖 (${bot.name}) سحب كارت ورماه على الأرض!`);
-      }
-
-      // 5. نقل الدور ليك فوراً وبشكل حتمي بدون أدنى تأخير
-      advanceTurn(room);
-
-    } catch (e) {
-      console.error('Bot safe fallback:', e);
-      advanceTurn(room);
-    }
-  }, 1000);
 }
 
 io.on('connection', (socket) => {
@@ -477,6 +407,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  // إنشاء الغرفة أونلاين بشروط الفوز المزدوجة (نقاط وجولات وبدون تحديد)
   socket.on('createRoom', ({ playerName, playerId, targetPoints, maxRounds }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
 
@@ -513,60 +444,6 @@ io.on('connection', (socket) => {
     }
 
     socket.emit('roomJoined', { roomId, players: rooms[roomId].players, isHost: true });
-  });
-
-  socket.on('startSoloGame', ({ playerName, playerId, botCount, botDifficulty, targetPoints, maxRounds }) => {
-    if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
-
-    const roomId = 'SOLO-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-    const count = parseInt(botCount) || 1;
-
-    const botNames = ['رعد 🤖', 'صخر 🤖', 'فلاش 🤖'];
-    const players = [
-      { id: socket.id, playerId, name: playerName.trim(), hand: [], points: 0, isHost: true, isBot: false }
-    ];
-
-    for (let i = 0; i < count; i++) {
-      players.push({
-        id: 'bot_' + i + '_' + Math.random(),
-        playerId: 'BOT-' + (i + 1),
-        name: botNames[i],
-        hand: [],
-        points: 0,
-        isHost: false,
-        isBot: true,
-        difficulty: botDifficulty || 'medium'
-      });
-    }
-
-    const room = {
-      id: roomId,
-      players,
-      deck: [],
-      discardPile: [],
-      currentTurnIndex: 0,
-      roundStarterIndex: 0,
-      roundCount: 0,
-      direction: 1,
-      drawnCard: null,
-      tempAnnoyCardIndex: null,
-      pendingHunter: null,
-      pendingThief: null,
-      gameStarted: false,
-      kamelhaCallers: [],
-      turnsLeftInOrbit: null,
-      turnTimer: null,
-      turnDeadline: null,
-      currentDuration: DEFAULT_TURN_TIME,
-      targetPoints: parseInt(targetPoints) >= 0 ? parseInt(targetPoints) : 5,
-      maxRounds: parseInt(maxRounds) >= 0 ? parseInt(maxRounds) : 0
-    };
-
-    rooms[roomId] = room;
-    socket.join(roomId);
-    socket.emit('roomJoined', { roomId, players: room.players, isHost: true });
-
-    startNewRound(room);
   });
 
   socket.on('joinRoom', ({ playerName, roomId, playerId }) => {
@@ -654,10 +531,6 @@ io.on('connection', (socket) => {
 
     startTurnTimer(room, DEFAULT_TURN_TIME);
     sendGameState(room.id);
-
-    if (room.players[room.currentTurnIndex]?.isBot) {
-      handleBotTurn(room);
-    }
   }
 
   function startTurnTimer(room, seconds = DEFAULT_TURN_TIME) {
@@ -1072,10 +945,6 @@ io.on('connection', (socket) => {
     room.currentTurnIndex = (room.currentTurnIndex + room.direction + count) % count;
     startTurnTimer(room, DEFAULT_TURN_TIME);
     sendGameState(room.id);
-
-    if (room.players[room.currentTurnIndex]?.isBot) {
-      handleBotTurn(room);
-    }
   }
 
   function endRound(room, instantEnd = false) {
@@ -1094,6 +963,7 @@ io.on('connection', (socket) => {
       });
     }
 
+    // 1. فحص نقاط الفوز أولاً
     if (room.targetPoints > 0) {
       const pointsWinner = room.players.find(p => p.points >= room.targetPoints);
       if (pointsWinner) {
@@ -1102,6 +972,7 @@ io.on('connection', (socket) => {
       }
     }
 
+    // 2. فحص انتهاء الجولات إذا لم يصل أحد للنقاط
     if (!matchWinner && room.maxRounds > 0 && room.roundCount >= room.maxRounds) {
       const maxScore = Math.max(...room.players.map(p => p.points));
       matchWinner = room.players.find(p => p.points === maxScore);
@@ -1172,7 +1043,6 @@ io.on('connection', (socket) => {
           cardCount: pl.hand.length,
           points: pl.points,
           isHost: pl.isHost,
-          isBot: pl.isBot || false,
           isImmune: room.kamelhaCallers.includes(pl.id)
         }))
       });
