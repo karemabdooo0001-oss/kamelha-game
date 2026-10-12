@@ -34,7 +34,7 @@
     </div>
   </div>
 
-  <!-- 2. شاشة اللوبي -->
+  <!-- 2. شاشة اللوبي (مع تحديد شروط الفوز المزدوجة) -->
   <div id="lobby-screen" class="screen hidden">
     <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">🔊</button>
 
@@ -49,7 +49,45 @@
         <input type="text" id="player-name" placeholder="اكتب اسمك...">
       </div>
 
-      <button id="btn-create" class="btn primary-btn">إنشاء غرفة جديدة 🎲</button>
+      <!-- إعدادات شروط الفوز للمباراة (نقاط وجولات معاً) -->
+      <div class="room-match-settings">
+        <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">⚙️ شروط إنهاء المباراة (أيهما يكتمل أولاً):</h4>
+        
+        <div class="match-setting-row">
+          <label>🎯 نقاط الفوز (1 - 10):</label>
+          <select id="target-points-input">
+            <option value="1">1 نقطة (خاطف)</option>
+            <option value="2">2 نقطة</option>
+            <option value="3">3 نقاط</option>
+            <option value="4">4 نقاط</option>
+            <option value="5" selected>5 نقاط (الافتراضي)</option>
+            <option value="6">6 نقاط</option>
+            <option value="7">7 نقاط</option>
+            <option value="8">8 نقاط</option>
+            <option value="9">9 نقاط</option>
+            <option value="10">10 نقاط (ملحمي)</option>
+          </select>
+        </div>
+
+        <div class="match-setting-row" style="margin-top:6px;">
+          <label>🏁 أقصى عدد جولات (1 - 20):</label>
+          <select id="max-rounds-input">
+            <option value="1">جولة واحدة</option>
+            <option value="2">جولتان</option>
+            <option value="3">3 جولات</option>
+            <option value="4">4 جولات</option>
+            <option value="5">5 جولات</option>
+            <option value="7">7 جولات</option>
+            <option value="10" selected>10 جولات (الافتراضي)</option>
+            <option value="12">12 جولة</option>
+            <option value="15">15 جولة</option>
+            <option value="20">20 جولة (بطولة)</option>
+          </select>
+        </div>
+        <p style="font-size:0.7rem;color:#888;margin-top:5px;">* الفائز هو أول من يصل للنقاط، أو صاحب أعلى نقاط عند نهاية الجولات.</p>
+      </div>
+
+      <button id="btn-create" class="btn primary-btn" style="margin-top:10px;">إنشاء غرفة جديدة 🎲</button>
       <div class="separator">أو</div>
       <div class="join-group">
         <input type="text" id="room-code-input" placeholder="كود الغرفة">
@@ -84,25 +122,29 @@
     </div>
   </div>
 
-  <!-- 4. شاشة اللعب الكلاسيكية المحيطية -->
+  <!-- 4. شاشة اللعب الكلاسيكية المحيطية (Casino/Uno 4-Way Table) -->
   <div id="game-screen" class="screen hidden">
-    <!-- الشريط العلوي -->
     <header class="game-header">
       <div class="top-row">
         <div class="game-room-tag">
           غرفة: <b id="game-room-code-txt">--</b>
           <button id="btn-copy-code-game" class="btn-copy-tiny">نسخ 📋</button>
         </div>
+
         <div id="turn-badge" class="badge">دور: <span id="current-player-name">--</span></div>
         <div id="timer-box" class="timer-badge">⏳ <span id="timer-sec">15</span>ث</div>
+
         <div class="game-controls">
           <button id="btn-sound-game" class="sound-toggle-mini">🔊</button>
           <button id="btn-leave" class="leave-btn">خروج 🚪</button>
         </div>
       </div>
+
+      <!-- لافتة هدف الماتش المزدوج -->
       <div class="timer-bar-container">
         <div id="timer-bar" class="timer-bar"></div>
       </div>
+      <div id="match-rules-tag" class="match-rules-tag">🎯 هدف الفوز: جاري التحميل...</div>
     </header>
 
     <!-- مسرح طاولة اللعب المحيطية الكاملة (مالية الشاشة) -->
@@ -121,7 +163,6 @@
 
       <!-- وسط الطاولة: السحب وكومة الأرض -->
       <div class="table-center">
-        <!-- كارت السحب -->
         <div class="deck-spot" id="draw-deck">
           <div class="card card-real-img card-back-img">
             <img src="/cards/back.png" alt="كمّلها">
@@ -130,7 +171,6 @@
           <p>اسحب</p>
         </div>
 
-        <!-- كومة الأرض المكشوفة -->
         <div class="deck-spot" id="discard-deck">
           <div id="messy-discard-pile" class="messy-pile">
             <div id="top-discard-card" class="card-placeholder">لا يوجد</div>
@@ -145,8 +185,8 @@
         <div class="seat-cards"></div>
       </div>
 
-      <!-- كروتك أنت (الآن بالكامل جوه الطاولة على اللباد الأخضر) -->
-      <div class="player-seat seat-bottom">
+      <!-- كروتك أنت (بالكامل جوه الطاولة على اللباد الأخضر) -->
+      <div id="spot-bottom" class="player-seat seat-bottom">
         <div class="my-table-bar">
           <div class="my-seat-tag">👤 <b id="my-name-display">أنت</b> (<span id="my-score-display">0ن</span>)</div>
           <button id="btn-kamelha" class="btn kamelha-btn">كمّلتهااا! 👑</button>
