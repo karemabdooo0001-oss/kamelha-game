@@ -891,7 +891,7 @@ io.on('connection', (socket) => {
 
     broadcastCommandSplash(room, 'wild', 'براحتك', player.name);
     room.drawnCard.cmdType = chosenCmdType;
-    const map = { hunt: 'اصطاد كارتك', bank: 'لم كمالتك', reverse: 'اعكس لفتك', keda: 'هو كدة', annoy: 'رخم عليهم', thief: 'الحرامي' };
+    const map = { hunt: 'اصطاد كارتك', bank: 'لم كمالتك', reverse: 'اعكس لفتك', keda: 'هو كدة', annoy: 'رخم عليهم' };
     room.drawnCard.name = map[chosenCmdType] || chosenCmdType;
     socket.emit('wildTransformed', room.drawnCard);
   });
