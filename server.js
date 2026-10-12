@@ -248,41 +248,18 @@ function validateVoucher(code, playerId) {
   return { valid: true, voucher: v };
 }
 
-// ================= محرك ذكاء البوتات =================
-function evaluateBotHand(hand) {
-  const counts = {};
-  let jokers = 0;
-  hand.forEach(c => {
-    if (c.type === 'command' && c.cmdType === 'joker') {
-      jokers++;
-    } else if (c.type === 'number') {
-      counts[c.value] = (counts[c.value] || 0) + 1;
-    }
-  });
-
-  let bestNum = null;
-  let maxCount = 0;
-  for (const n in counts) {
-    if (counts[n] > maxCount) {
-      maxCount = counts[n];
-      bestNum = parseInt(n);
-    }
-  }
-  return { targetNum: bestNum || Math.floor(1 + Math.random() * 10), count: maxCount, jokers };
-}
-
-// دالة دور البوت الحتمية والمباشرة 100%
+// ================= محرك ذكاء البوتات الحتمي والمباشر 100% =================
 function handleBotTurn(room) {
   const bot = room.players[room.currentTurnIndex];
   if (!bot || !bot.isBot || !room.gameStarted) return;
 
-  io.to(room.id).emit('notify', `🤖 دور البوت (${bot.name}) - جاري التفكير...`);
+  io.to(room.id).emit('notify', `🤖 (${bot.name}) يفكر في دوره...`);
 
   setTimeout(() => {
     try {
       if (!room.gameStarted) return;
 
-      // 1. فحص كملها أولاً
+      // 1. هل يد البوت مؤهلة لإعلان "كمّلتها"؟
       const check = verifyKamelhaHand(bot.hand);
       if (check.valid && !room.kamelhaCallers.includes(bot.id)) {
         room.kamelhaCallers.push(bot.id);
@@ -293,87 +270,54 @@ function handleBotTurn(room) {
         if (room.turnsLeftInOrbit === null) room.turnsLeftInOrbit = room.players.length - 1;
       }
 
-      // 2. تحليل الكروت
-      const { targetNum } = evaluateBotHand(bot.hand);
-      const topGround = room.discardPile[room.discardPile.length - 1];
-
-      const wantGround = topGround && (
-        (topGround.type === 'number' && topGround.value === targetNum) ||
-        (topGround.type === 'command' && topGround.cmdType === 'joker')
-      );
-
-      // 3. اتخاذ القرار والسحب
-      if (wantGround && room.discardPile.length > 0) {
-        const taken = room.discardPile.pop();
-        let discardIdx = bot.hand.findIndex(c => c.type === 'number' && c.value !== targetNum);
-        if (discardIdx === -1) discardIdx = 0;
-
-        const discarded = bot.hand.splice(discardIdx, 1, taken)[0];
-        room.discardPile.push(discarded);
-        io.to(room.id).emit('playerDrewCardAnim', { playerId: bot.id, from: 'discard' });
-        io.to(room.id).emit('notify', `🤖 (${bot.name}) أخذ كارت الأرض وبدل كارت مكانه!`);
+      // 2. سحب كارت مضمون من كروت السحب
+      checkDrawDeckRefill(room);
+      if (room.deck.length === 0) {
         advanceTurn(room);
-      } else {
-        checkDrawDeckRefill(room);
-        if (room.deck.length === 0) {
-          advanceTurn(room);
-          return;
-        }
+        return;
+      }
 
-        const drawn = room.deck.pop();
-        io.to(room.id).emit('playerDrewCardAnim', { playerId: bot.id, from: 'deck' });
+      const drawn = room.deck.pop();
+      io.to(room.id).emit('playerDrewCardAnim', { playerId: bot.id, from: 'deck' });
 
-        if (drawn.type === 'number') {
-          if (drawn.value === targetNum) {
-            let discardIdx = bot.hand.findIndex(c => c.type === 'number' && c.value !== targetNum);
-            if (discardIdx === -1) discardIdx = 0;
-            const old = bot.hand.splice(discardIdx, 1, drawn)[0];
-            room.discardPile.push(old);
-            io.to(room.id).emit('notify', `🤖 (${bot.name}) احتفظ بالكارت المسحوب وبدل كارت مكانه!`);
-          } else {
-            room.discardPile.push(drawn);
-            io.to(room.id).emit('notify', `🤖 (${bot.name}) سحب كارت ورماه على الأرض!`);
-          }
-          advanceTurn(room);
-        } else if (drawn.type === 'command') {
-          if (drawn.cmdType === 'joker') {
-            let discardIdx = bot.hand.findIndex(c => c.type === 'number' && c.value !== targetNum);
-            if (discardIdx === -1) discardIdx = 0;
-            const old = bot.hand.splice(discardIdx, 1, drawn)[0];
-            room.discardPile.push(old);
-            io.to(room.id).emit('notify', `🤖 (${bot.name}) احتفظ بجوكر في يده!`);
-            advanceTurn(room);
-          } else {
-            room.discardPile.push(drawn);
-            broadcastCommandSplash(room, drawn.cmdType, drawn.name, bot.name);
+      // 3. تحليل يد البوت ببساطة لتحديد الرقم الهدف
+      const counts = {};
+      bot.hand.forEach(c => {
+        if (c.type === 'number') counts[c.value] = (counts[c.value] || 0) + 1;
+      });
 
-            if (drawn.cmdType === 'reverse') {
-              room.direction *= -1;
-              io.to(room.id).emit('notify', `🔄 تم عكس اتجاه اللعب بواسطة (${bot.name})!`);
-            } else if (drawn.cmdType === 'keda') {
-              const victim = room.players.find(p => p.id !== bot.id && !room.kamelhaCallers.includes(p.id));
-              if (victim) {
-                room.discardPile.push(...victim.hand);
-                checkDrawDeckRefill(room);
-                victim.hand = room.deck.splice(0, 4);
-                io.to(room.id).emit('kedaAnimation', { targetId: victim.id, targetName: victim.name });
-                io.to(room.id).emit('notify', `😎 كارت هو كدة! تم تغيير كروت (${victim.name}) بواسطة (${bot.name})!`);
-              }
-            } else {
-              io.to(room.id).emit('notify', `⚡ قام (${bot.name}) بتفعيل كارت ${drawn.name}!`);
-            }
-            advanceTurn(room);
-          }
-        } else {
-          room.discardPile.push(drawn);
-          advanceTurn(room);
+      let targetNum = 1;
+      let maxCount = 0;
+      for (const num in counts) {
+        if (counts[num] > maxCount) {
+          maxCount = counts[num];
+          targetNum = parseInt(num);
         }
       }
-    } catch (err) {
-      console.error('Bot Error Resolved:', err);
-      advanceTurn(room); // ضمان حتمي لنقل الدور حتى لو حدث أي طارئ
+
+      // 4. هل الكارت المسحوب يفيد البوت؟
+      const isUseful = (drawn.type === 'number' && drawn.value === targetNum) ||
+                       (drawn.type === 'command' && drawn.cmdType === 'joker');
+
+      if (isUseful) {
+        let swapIdx = bot.hand.findIndex(c => c.type === 'number' && c.value !== targetNum);
+        if (swapIdx === -1) swapIdx = 0;
+        const discarded = bot.hand.splice(swapIdx, 1, drawn)[0];
+        room.discardPile.push(discarded);
+        io.to(room.id).emit('notify', `🤖 (${bot.name}) احتفظ بالكارت وبدل كارت مكانه!`);
+      } else {
+        room.discardPile.push(drawn);
+        io.to(room.id).emit('notify', `🤖 (${bot.name}) سحب كارت ورماه على الأرض!`);
+      }
+
+      // 5. نقل الدور ليك فوراً وبشكل حتمي بدون أدنى تأخير
+      advanceTurn(room);
+
+    } catch (e) {
+      console.error('Bot safe fallback:', e);
+      advanceTurn(room);
     }
-  }, 1200);
+  }, 1000);
 }
 
 io.on('connection', (socket) => {
@@ -533,7 +477,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // إنشاء غرفة جماعية أونلاين
   socket.on('createRoom', ({ playerName, playerId, targetPoints, maxRounds }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
 
@@ -572,7 +515,6 @@ io.on('connection', (socket) => {
     socket.emit('roomJoined', { roomId, players: rooms[roomId].players, isHost: true });
   });
 
-  // بدء اللعب الفردي ضد البوتات 🤖
   socket.on('startSoloGame', ({ playerName, playerId, botCount, botDifficulty, targetPoints, maxRounds }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
 
@@ -1131,7 +1073,6 @@ io.on('connection', (socket) => {
     startTurnTimer(room, DEFAULT_TURN_TIME);
     sendGameState(room.id);
 
-    // تشغيل دور البوت فوراً وبشكل حتمي
     if (room.players[room.currentTurnIndex]?.isBot) {
       handleBotTurn(room);
     }
