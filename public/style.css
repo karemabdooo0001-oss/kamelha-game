@@ -28,7 +28,7 @@ html, body {
 
 .hidden { display: none !important; }
 
-/* أزرار كتم الصوت */
+/* أزرار الصوت والإشعار */
 .sound-toggle-btn {
   position: absolute;
   top: 15px;
@@ -40,10 +40,7 @@ html, body {
   border-radius: 50%;
   cursor: pointer;
   z-index: 10;
-  transition: transform 0.2s;
 }
-.sound-toggle-btn:active { transform: scale(0.9); }
-
 .sound-toggle-mini {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid #555;
@@ -54,7 +51,6 @@ html, body {
   font-size: 0.8rem;
 }
 
-/* شريط الإشعارات */
 .toast {
   position: fixed;
   top: 12px;
@@ -72,13 +68,9 @@ html, body {
   max-width: 90vw;
   animation: slideDown 0.3s ease-out;
 }
+@keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 12px; opacity: 1; } }
 
-@keyframes slideDown {
-  from { top: -50px; opacity: 0; }
-  to { top: 12px; opacity: 1; }
-}
-
-/* صندوق اللوبي */
+/* اللوبي والدخول */
 .lobby-box {
   background: rgba(26, 20, 41, 0.95);
   padding: 22px;
@@ -89,13 +81,11 @@ html, body {
   width: 90%;
   max-width: 390px;
 }
-
 .game-logo {
   font-size: 2.6rem;
   color: #ffcc00;
   text-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
 }
-
 .tagline { color: #aaa; margin-bottom: 16px; font-size: 0.85rem; }
 .input-group label { display: block; text-align: right; margin-bottom: 5px; font-size: 0.85rem; }
 
@@ -127,8 +117,7 @@ input {
 .primary-btn { background: #ffcc00; color: #111; }
 .secondary-btn { background: #5c6bc0; color: #fff; }
 .info-btn { background: rgba(0, 230, 118, 0.15); border: 1px solid #00e676; color: #00e676; }
-.order-btn { background: linear-gradient(45deg, #e65100, #ff9800); color: #fff; box-shadow: 0 0 10px rgba(230, 81, 0, 0.4); }
-
+.order-btn { background: linear-gradient(45deg, #e65100, #ff9800); color: #fff; }
 .whatsapp-btn { background: #25d366; color: #fff; font-size: 1rem; }
 .call-btn { background: #007bff; color: #fff; font-size: 1rem; }
 
@@ -141,11 +130,7 @@ input {
   box-shadow: 0 0 15px rgba(255,0,85,0.6);
   animation: bounce 1.5s infinite;
 }
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 
 .separator { margin: 8px 0; color: #666; font-size: 0.85rem; }
 .join-group { display: flex; gap: 8px; }
@@ -153,21 +138,9 @@ input {
 .player-list-box { background: rgba(0,0,0,0.4); padding: 10px; border-radius: 12px; margin: 12px 0; }
 #players-list { list-style: none; margin-top: 6px; }
 #players-list li { background: #251d38; padding: 5px; border-radius: 6px; margin-bottom: 4px; font-size: 0.85rem; }
-
-.lobby-extra-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 15px;
-}
-
-.footer-brand {
-  margin-top: 15px;
-  font-size: 0.75rem;
-  color: #777;
-}
+.lobby-extra-buttons { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
+.footer-brand { margin-top: 15px; font-size: 0.75rem; color: #777; }
 .footer-brand b { color: #ffcc00; }
-
 .my-uid-badge {
   background: rgba(255, 204, 0, 0.1);
   border: 1px dashed rgba(255, 204, 0, 0.4);
@@ -180,12 +153,12 @@ input {
 }
 .my-uid-badge b { color: #ffcc00; letter-spacing: 1px; }
 
-/* شاشة اللعبة المتجاوبة */
+/* ================= شاشة وطاولة اللعب المحيطية 4 اتجاهات ================= */
 #game-screen {
   flex-direction: column;
   justify-content: space-between;
-  padding: 8px 12px;
-  padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
+  padding: 6px 10px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
   box-sizing: border-box;
 }
 
@@ -193,19 +166,17 @@ input {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   flex-shrink: 0;
+  z-index: 5;
 }
-
 .top-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  flex-wrap: wrap;
   gap: 5px;
 }
-
 .game-controls { display: flex; gap: 5px; align-items: center; }
 
 .game-room-tag {
@@ -220,174 +191,185 @@ input {
   gap: 4px;
 }
 .game-room-tag b { color: #ffcc00; }
+.btn-copy-mini { background: #ffcc00; color: #111; border: none; padding: 4px 8px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+.btn-copy-tiny { background: rgba(255, 204, 0, 0.2); border: 1px solid #ffcc00; color: #ffcc00; padding: 2px 6px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
+.room-code-header { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; }
 
-.btn-copy-mini {
-  background: #ffcc00;
-  color: #111;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
+.badge { background: #ffcc00; color: #111; padding: 4px 10px; border-radius: 12px; font-weight: 800; font-size: 0.8rem; }
+.timer-badge { background: #251d38; border: 1px solid #ffcc00; color: #ffcc00; padding: 3px 8px; border-radius: 10px; font-weight: 800; font-size: 0.85rem; }
+.leave-btn { background: rgba(255,255,255,0.1); border: 1px solid #555; color: #ccc; padding: 3px 8px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
+.timer-bar-container { width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+.timer-bar { height: 100%; width: 100%; background: #00e676; transition: width 0.2s linear, background-color 0.3s; }
 
-.btn-copy-tiny {
-  background: rgba(255, 204, 0, 0.2);
-  border: 1px solid #ffcc00;
-  color: #ffcc00;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  margin-right: 4px;
-}
-
-.room-code-header {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 5px;
-}
-
-.badge {
-  background: #ffcc00;
-  color: #111;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-weight: 800;
-  font-size: 0.8rem;
-}
-
-.timer-badge {
-  background: #251d38;
-  border: 1px solid #ffcc00;
-  color: #ffcc00;
-  padding: 3px 8px;
-  border-radius: 10px;
-  font-weight: 800;
-  font-size: 0.85rem;
-}
-
-.leave-btn {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid #555;
-  color: #ccc;
-  padding: 3px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.75rem;
-}
-
-.timer-bar-container {
+/* حلبة طاولة الكازينو المحيطية */
+.table-arena {
+  position: relative;
   width: 100%;
-  height: 5px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.timer-bar {
-  height: 100%;
-  width: 100%;
-  background: #00e676;
-  transition: width 0.2s linear, background-color 0.3s;
-}
-
-.players-row { display: flex; gap: 6px; flex-wrap: wrap; }
-
-.player-score-chip {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 3px 8px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.75rem;
-}
-
-.player-score-chip.active-turn {
-  border-color: #00e676;
-  background: rgba(0, 230, 118, 0.15);
-}
-
-.chip-name { font-weight: 700; color: #fff; }
-.chip-score { color: #ffcc00; font-weight: 800; }
-
-.immune-player {
-  border-color: #ffd700 !important;
-  background: rgba(255, 215, 0, 0.2) !important;
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
-}
-
-.lock-tag {
-  color: #ffcc00;
-  font-size: 0.7rem;
-  background: rgba(0,0,0,0.4);
-  padding: 1px 5px;
-  border-radius: 6px;
-  margin-right: 4px;
-}
-
-.leader-score {
-  background: #ffcc00 !important;
-  color: #000 !important;
-  font-weight: 900;
-  box-shadow: 0 0 8px rgba(255, 204, 0, 0.6);
-}
-
-/* وسط الطاولة */
-.table-area {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: min(8vw, 25px);
-  width: 100%;
-  margin: auto 0;
+  max-width: 550px;
   flex: 1;
   min-height: 0;
-}
-
-.deck-spot { text-align: center; cursor: pointer; }
-.deck-spot p { margin-top: 4px; font-size: 0.75rem; color: #aaa; font-weight: 600; }
-
-/* ================= تصميم الكروت المطابق للنسخة الحقيقية ================= */
-.card {
-  width: clamp(68px, 19vw, 98px);
-  height: clamp(102px, 28vw, 146px);
-  border-radius: 10px;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  font-weight: 900;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.7);
+  margin: 4px auto;
+  border-radius: 40px;
+  background: radial-gradient(ellipse at center, #1b3826 0%, #0d1e14 70%, #08110b 100%);
+  border: 4px solid #3d2d14;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.9);
+}
+
+/* أماكن جلوس الخصوم المحيطية */
+.player-seat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 4;
+  transition: all 0.3s;
+}
+
+.seat-top { top: 6px; left: 50%; transform: translateX(-50%); }
+.seat-left { left: 6px; top: 50%; transform: translateY(-50%); }
+.seat-right { right: 6px; top: 50%; transform: translateY(-50%); }
+
+.seat-info {
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,204,0,0.4);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  color: #fff;
+  margin-bottom: 3px;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.seat-name { font-weight: 800; color: #ffcc00; }
+.seat-score { color: #00e676; font-weight: bold; }
+
+/* كروت الخصوم المقلوبة */
+.seat-cards {
+  display: flex;
+  gap: 3px;
+}
+.seat-left .seat-cards, .seat-right .seat-cards {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mini-card-back {
+  width: 26px;
+  height: 38px;
+  border-radius: 4px;
+  border: 1px solid #ffcc00;
+  background: #2a0845;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.mini-card-back img { width: 100%; height: 100%; object-fit: fill; }
+
+.seat-left .mini-card-back, .seat-right .mini-card-back {
+  width: 34px;
+  height: 24px;
+}
+
+/* ================= وسط الطاولة وكومة الأرض العشوائية ================= */
+.table-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: min(8vw, 30px);
+  z-index: 3;
+}
+.deck-spot { text-align: center; cursor: pointer; }
+.deck-spot p { margin-top: 4px; font-size: 0.75rem; color: #ccc; font-weight: bold; }
+
+/* كومة الكروت العشوائية المرمية فوق بعض */
+.messy-pile {
+  position: relative;
+  width: clamp(65px, 18vw, 95px);
+  height: clamp(95px, 26vw, 140px);
+}
+
+.messy-under-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+.messy-under-card img { width: 100%; height: 100%; object-fit: fill; border-radius: 10px; }
+
+/* يد اللاعب الأساسي بالأسفل */
+.player-zone {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  z-index: 5;
+}
+.zone-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 440px;
+  font-size: 0.8rem;
+  color: #ffcc00;
+  font-weight: 800;
+}
+.my-seat-tag {
+  background: rgba(0,0,0,0.5);
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid #ffcc00;
+}
+.my-seat-tag b { color: #00e676; }
+
+.cards-hand {
+  display: flex;
+  gap: clamp(5px, 2vw, 12px);
+  justify-content: center;
+  width: 100%;
+}
+
+/* الكروت الأصلية */
+.card {
+  width: clamp(65px, 18vw, 95px);
+  height: clamp(95px, 26vw, 140px);
+  border-radius: 10px;
   position: relative;
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
   flex-shrink: 0;
-  overflow: hidden;
-  border-width: 2.5px;
-  border-style: solid;
 }
-
 .card:active { transform: scale(0.95); }
 
-/* ظهر الكارت الملكي */
-.card-back {
-  background: radial-gradient(circle, #2d124d 0%, #0d0417 100%);
-  border-color: #ffcc00;
-  color: #ffcc00;
-  border-width: 3px;
+.card-real-img {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
 }
-.card-back .logo-txt {
-  font-size: 1.2rem;
-  font-weight: 900;
-  letter-spacing: 1px;
-  text-shadow: 0 0 10px rgba(255, 204, 0, 0.6);
+.card-real-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  border-radius: 10px;
+  display: block;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
 }
+
+.card-real-img.selectable img {
+  box-shadow: 0 0 18px 5px #00e676 !important;
+  transform: translateY(-8px);
+}
+
+.card-back-img { position: relative; }
 .deck-count-num {
   position: absolute;
   bottom: 6px;
@@ -403,182 +385,71 @@ input {
   font-weight: 900;
 }
 
-/* ألوان وخلفيات كروت الأرقام المطابقة لصورك بالملّي */
-.card-num {
-  position: relative;
-}
-
-/* الأركان (الأرقام الصغيرة) */
-.card-corner {
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+/* ================= الشاشة السينمائية للكوماندز (Command Splash FX) ================= */
+.command-splash-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle, rgba(20,0,40,0.92) 0%, rgba(0,0,0,0.96) 100%);
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 0.75rem;
-  font-weight: 900;
-  color: #111;
-}
-.corner-tl { top: 4px; left: 4px; }
-.corner-br { bottom: 4px; right: 4px; transform: rotate(180deg); }
-
-/* الدائرة الكبيرة في المنتصف */
-.card-center-circle {
-  width: clamp(44px, 12vw, 62px);
-  height: clamp(44px, 12vw, 62px);
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: clamp(1.6rem, 4.5vw, 2.3rem);
-  font-weight: 900;
-  color: #111;
-  box-shadow: inset 0 2px 5px rgba(255,255,255,0.3), 0 3px 8px rgba(0,0,0,0.8);
+  z-index: 2000;
+  animation: fadeIn 0.2s ease-out;
 }
 
-.underline { text-decoration: underline 3px solid #111; }
-
-/* ألوان الأرقام الـ 10 الدقيقة */
-.num-1 { background: #261114; border-color: #ff5252; }
-.num-1 .card-center-circle, .num-1 .card-corner { background: #ff5252; }
-
-.num-2 { background: #2b1c10; border-color: #ff9800; }
-.num-2 .card-center-circle, .num-2 .card-corner { background: #ff9800; }
-
-.num-3 { background: #24290e; border-color: #cddc39; }
-.num-3 .card-center-circle, .num-3 .card-corner { background: #cddc39; }
-
-.num-4 { background: #102613; border-color: #4caf50; }
-.num-4 .card-center-circle, .num-4 .card-corner { background: #4caf50; }
-
-.num-5 { background: #0c2b1d; border-color: #00e676; }
-.num-5 .card-center-circle, .num-5 .card-corner { background: #00e676; }
-
-.num-6 { background: #08242a; border-color: #00b0ff; }
-.num-6 .card-center-circle, .num-6 .card-corner { background: #00b0ff; }
-
-.num-7 { background: #092336; border-color: #29b6f6; }
-.num-7 .card-center-circle, .num-7 .card-corner { background: #29b6f6; }
-
-.num-8 { background: #0f142e; border-color: #3f51b5; }
-.num-8 .card-center-circle, .num-8 .card-corner { background: #3f51b5; color: #fff; }
-
-.num-9 { background: #19102b; border-color: #7e57c2; }
-.num-9 .card-center-circle, .num-9 .card-corner { background: #7e57c2; color: #fff; }
-
-.num-10 { background: #2b0d2e; border-color: #e040fb; }
-.num-10 .card-center-circle, .num-10 .card-corner { background: #e040fb; color: #fff; font-size: clamp(1.2rem, 3.5vw, 1.7rem); }
-
-/* ================= كروت الكوماندز المنظمة بالنصفين ================= */
-.card-cmd {
-  padding: 4px 2px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
-  background-size: 8px 8px;
-  box-sizing: border-box;
-}
-
-/* النصف العلوي والسفلي */
-.cmd-half {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  width: 100%;
-  gap: 2px;
-}
-
-/* عكس النصف السفلي بالكامل ككتلة واحدة */
-.bottom-half {
-  transform: rotate(180deg);
-}
-
-.cmd-icon {
-  font-size: clamp(0.75rem, 2.2vw, 1rem);
-  line-height: 1;
-}
-
-.cmd-title {
-  font-size: clamp(0.64rem, 1.8vw, 0.82rem);
-  font-weight: 900;
-  line-height: 1.1;
+.splash-card-box {
   text-align: center;
-  white-space: nowrap;
-  letter-spacing: 0.3px;
-  text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+  animation: splashBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* الخط الفاصل بالمنتصف */
-.cmd-divider-line {
-  width: 82%;
-  height: 1.5px;
-  background: rgba(255,255,255,0.25);
-  margin: 1px 0;
-  flex-shrink: 0;
-  border-radius: 2px;
+.splash-big-icon {
+  font-size: 5rem;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 20px #ffcc00);
+  animation: iconPulse 1s infinite alternate;
 }
 
-/* ألوان الكوماندز السبعة */
-.cmd-bank { background-color: #24290d; border-color: #cddc39; color: #d4e157; }
-.cmd-bank .cmd-divider-line { background: #cddc39; }
-
-.cmd-annoy { background-color: #1f0d2e; border-color: #ab47bc; color: #e1bee7; }
-.cmd-annoy .cmd-divider-line { background: #ab47bc; }
-
-.cmd-reverse { background-color: #2b0e11; border-color: #e53935; color: #ff8a80; }
-.cmd-reverse .cmd-divider-line { background: #e53935; }
-
-.cmd-joker { background-color: #07232e; border-color: #00bcd4; color: #80deea; }
-.cmd-joker .cmd-divider-line { background: #00bcd4; }
-
-.cmd-wild { background-color: #2b1708; border-color: #fb8c00; color: #ffe0b2; }
-.cmd-wild .cmd-divider-line { background: #fb8c00; }
-
-.cmd-hunt { background-color: #0d2610; border-color: #43a047; color: #a5d6a7; }
-.cmd-hunt .cmd-divider-line { background: #43a047; }
-
-.cmd-keda { background-color: #241c0b; border-color: #fdd835; color: #fff59d; }
-.cmd-keda .cmd-divider-line { background: #fdd835; }
-
-/* ضبط كروت النهاية المصغرة لمنع التداخل */
-.rev-cards .cmd-title { font-size: 0.48rem !important; }
-.rev-cards .cmd-icon { font-size: 0.55rem !important; }
-
-.player-zone {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  margin-bottom: 2px;
-}
-
-.zone-header {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 440px;
-  font-size: 0.8rem;
+.splash-title {
+  font-size: 2.4rem;
   color: #ffcc00;
-  font-weight: 800;
+  text-shadow: 0 0 25px rgba(255,204,0,0.8), 2px 2px 0 #000;
+  margin-bottom: 8px;
 }
 
-.cards-hand {
-  display: flex;
-  gap: clamp(5px, 2vw, 12px);
-  justify-content: center;
-  width: 100%;
+.splash-player-name {
+  font-size: 1.2rem;
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+  padding: 6px 18px;
+  border-radius: 20px;
+  display: inline-block;
+  border: 1px solid #ffcc00;
 }
 
-.selectable { box-shadow: 0 0 15px 4px #00e676 !important; transform: translateY(-6px); }
+@keyframes splashBounce {
+  from { transform: scale(0.3); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes iconPulse {
+  from { transform: scale(1) rotate(0deg); }
+  to { transform: scale(1.15) rotate(5deg); }
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* أنيميشن الكروت الطائرة عند السحب */
+.flying-card-anim {
+  position: fixed;
+  z-index: 1500;
+  width: 60px;
+  height: 90px;
+  border-radius: 8px;
+  pointer-events: none;
+  transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+}
+.flying-card-anim img { width: 100%; height: 100%; object-fit: fill; border-radius: 8px; }
 
 /* المودال */
 .modal-overlay {
@@ -603,82 +474,18 @@ input {
   overflow-y: auto;
 }
 
-.rules-scroll-content {
-  text-align: right;
-  max-height: 250px;
-  overflow-y: auto;
-  font-size: 0.85rem;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-left: 5px;
-}
-
-.rule-section {
-  background: rgba(0,0,0,0.3);
-  padding: 8px 12px;
-  border-radius: 8px;
-  border-right: 3px solid #ffcc00;
-}
+.rules-scroll-content { text-align: right; max-height: 250px; overflow-y: auto; font-size: 0.85rem; display: flex; flex-direction: column; gap: 10px; }
+.rule-section { background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; border-right: 3px solid #ffcc00; }
 .rule-section h3 { color: #ffcc00; font-size: 0.95rem; margin-bottom: 4px; }
-
-.buy-card-info {
-  background: rgba(0,0,0,0.4);
-  padding: 15px;
-  border-radius: 12px;
-  margin: 12px 0;
-  border: 1px solid rgba(255, 204, 0, 0.3);
-}
-
+.buy-card-info { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 12px; margin: 12px 0; border: 1px solid rgba(255, 204, 0, 0.3); }
 .brand-badge { font-size: 1.5rem; font-weight: 900; color: #ffcc00; }
 .phone-number-display { font-size: 1.3rem; font-weight: 800; color: #fff; margin: 6px 0; direction: ltr; }
 
 .hunt-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 8px; }
 .hunt-num-btn { font-size: 1rem; padding: 7px; }
-
 .modal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; margin: 12px 0; max-height: 180px; overflow-y: auto; }
-
 .revealed-container { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; max-height: 240px; overflow-y: auto; text-align: right; }
 .revealed-player-row { background: rgba(0,0,0,0.3); padding: 7px; border-radius: 10px; }
 .rev-name { display: block; font-size: 0.8rem; font-weight: 800; margin-bottom: 5px; color: #ffcc00; }
 .rev-cards { display: flex; gap: 5px; justify-content: center; }
 .rev-cards .card { width: 48px !important; height: 70px !important; box-shadow: none; }
-.rev-cards .circle-badge { width: 28px !important; height: 28px !important; font-size: 1rem !important; }
-.rev-cards .card-cmd { font-size: 0.6rem !important; }
-
-/* ================= تنسيق عرض الصور الأصلية للكروت ================= */
-.card-real-img {
-  padding: 0 !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.card-real-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
-  border-radius: 10px;
-  display: block;
-  pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
-}
-
-/* التحديد الأخضر للكروت القابلة للتبديل */
-.card-real-img.selectable img {
-  box-shadow: 0 0 16px 5px #00e676 !important;
-  transform: translateY(-6px);
-  transition: transform 0.2s;
-}
-
-/* ظهر كارت السحب */
-.card-back-img {
-  position: relative;
-}
-.card-back-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
-}
