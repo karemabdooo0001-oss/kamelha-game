@@ -20,34 +20,6 @@ const toastBanner = document.getElementById('toast-banner');
 const displayMyUid = document.getElementById('display-my-uid');
 if (displayMyUid) displayMyUid.innerText = myPlayerId;
 
-// تبويبات نمط اللعب (أونلاين أو ضد البوتات)
-const tabOnline = document.getElementById('tab-online');
-const tabSolo = document.getElementById('tab-solo');
-const onlineModeSection = document.getElementById('online-mode-section');
-const soloModeSection = document.getElementById('solo-mode-section');
-
-const soloBotCount = document.getElementById('solo-bot-count');
-const soloDifficulty = document.getElementById('solo-difficulty');
-const soloTargetPoints = document.getElementById('solo-target-points');
-const soloMaxRounds = document.getElementById('solo-max-rounds');
-const btnStartSolo = document.getElementById('btn-start-solo');
-
-if (tabOnline && tabSolo) {
-  tabOnline.onclick = () => {
-    tabOnline.classList.add('active');
-    tabSolo.classList.remove('active');
-    onlineModeSection.classList.remove('hidden');
-    soloModeSection.classList.add('hidden');
-  };
-
-  tabSolo.onclick = () => {
-    tabSolo.classList.add('active');
-    tabOnline.classList.remove('active');
-    soloModeSection.classList.remove('hidden');
-    onlineModeSection.classList.add('hidden');
-  };
-}
-
 const targetPointsInput = document.getElementById('target-points-input');
 const maxRoundsInput = document.getElementById('max-rounds-input');
 const matchRulesTag = document.getElementById('match-rules-tag');
@@ -114,7 +86,7 @@ socket.on('bannedKickNotification', () => {
 const savedName = localStorage.getItem('kamelha_name') || 'لاعب';
 socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name: savedName });
 
-// نظام الصوت
+// الصوت
 const SoundManager = {
   ctx: null,
   muted: localStorage.getItem('kamelha_muted') === 'true',
@@ -307,7 +279,7 @@ function copyRoomCode() {
 if (btnCopyCodeWait) btnCopyCodeWait.addEventListener('click', copyRoomCode);
 if (btnCopyCodeGame) btnCopyCodeGame.addEventListener('click', copyRoomCode);
 
-// إنشاء غرفة جماعية أونلاين
+// إنشاء غرفة جماعية أونلاين بشروط النقاط والجولات
 if (btnCreate) {
   btnCreate.addEventListener('click', () => {
     const name = playerNameInput.value.trim();
@@ -321,30 +293,6 @@ if (btnCreate) {
     socket.emit('createRoom', { 
       playerName: name, 
       playerId: myPlayerId,
-      targetPoints: pts,
-      maxRounds: rnds
-    });
-  });
-}
-
-// بدء الماتش الفردي ضد البوتات
-if (btnStartSolo) {
-  btnStartSolo.addEventListener('click', () => {
-    const name = playerNameInput.value.trim();
-    if (!name) return alert('اكتب اسمك الأول!');
-    localStorage.setItem('kamelha_name', name);
-    socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
-
-    const bCount = soloBotCount ? soloBotCount.value : 1;
-    const bDiff = soloDifficulty ? soloDifficulty.value : 'medium';
-    const pts = soloTargetPoints ? soloTargetPoints.value : 5;
-    const rnds = soloMaxRounds ? soloMaxRounds.value : 0;
-
-    socket.emit('startSoloGame', {
-      playerName: name,
-      playerId: myPlayerId,
-      botCount: bCount,
-      botDifficulty: bDiff,
       targetPoints: pts,
       maxRounds: rnds
     });
@@ -974,7 +922,7 @@ socket.on('gameState', data => {
     currentPlayerName.parentElement.style.background = isMyTurn ? '#00e676' : '#ffcc00';
   }
 
-  // لافتة شروط الفوز المزدوجة بالاعلى
+  // لافتة شروط الفوز
   if (matchRulesTag) {
     const pts = data.targetPoints;
     const rnds = data.maxRounds;
