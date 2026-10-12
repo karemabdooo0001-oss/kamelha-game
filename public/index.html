@@ -34,7 +34,7 @@
     </div>
   </div>
 
-  <!-- 2. شاشة اللوبي (مع تحديد شروط الفوز المزدوجة) -->
+  <!-- 2. شاشة اللوبي (مع خيارات بدون تحديد) -->
   <div id="lobby-screen" class="screen hidden">
     <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">🔊</button>
 
@@ -49,16 +49,16 @@
         <input type="text" id="player-name" placeholder="اكتب اسمك...">
       </div>
 
-      <!-- إعدادات شروط الفوز للمباراة (نقاط وجولات معاً) -->
+      <!-- إعدادات شروط الفوز -->
       <div class="room-match-settings">
         <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">⚙️ شروط إنهاء المباراة (أيهما يكتمل أولاً):</h4>
         
         <div class="match-setting-row">
-          <label>🎯 نقاط الفوز (1 - 10):</label>
+          <label>🎯 نقاط الفوز:</label>
           <select id="target-points-input">
             <option value="0">بدون تحديد (مفتوح) ♾️</option>
-            <option value="1">1 نقطة (خاطف)</option>
-            <option value="2">2 نقطة</option>
+            <option value="1">نقطة واحدة</option>
+            <option value="2">نقطتان</option>
             <option value="3">3 نقاط</option>
             <option value="4">4 نقاط</option>
             <option value="5" selected>5 نقاط (الافتراضي)</option>
@@ -66,27 +66,27 @@
             <option value="7">7 نقاط</option>
             <option value="8">8 نقاط</option>
             <option value="9">9 نقاط</option>
-            <option value="10">10 نقاط (ملحمي)</option>
+            <option value="10">10 نقاط</option>
           </select>
         </div>
 
         <div class="match-setting-row" style="margin-top:6px;">
-          <label>🏁 أقصى عدد جولات (1 - 20):</label>
+          <label>🏁 أقصى جولات:</label>
           <select id="max-rounds-input">
-             <option value="0">بدون تحديد (مفتوح) ♾️</option>
+            <option value="0" selected>بدون تحديد (مفتوح) ♾️</option>
             <option value="1">جولة واحدة</option>
             <option value="2">جولتان</option>
             <option value="3">3 جولات</option>
             <option value="4">4 جولات</option>
             <option value="5">5 جولات</option>
             <option value="7">7 جولات</option>
-            <option value="10" selected>10 جولات (الافتراضي)</option>
+            <option value="10">10 جولات</option>
             <option value="12">12 جولة</option>
             <option value="15">15 جولة</option>
-            <option value="20">20 جولة (بطولة)</option>
+            <option value="20">20 جولة</option>
           </select>
         </div>
-        <p style="font-size:0.7rem;color:#888;margin-top:5px;">* الفائز هو أول من يصل للنقاط، أو صاحب أعلى نقاط عند نهاية الجولات.</p>
+        <p style="font-size:0.7rem;color:#888;margin-top:5px;">* لو اخترت بدون تحديد لأحدهما، سيعتمد الماتش على الآخر فقط.</p>
       </div>
 
       <button id="btn-create" class="btn primary-btn" style="margin-top:10px;">إنشاء غرفة جديدة 🎲</button>
@@ -124,7 +124,7 @@
     </div>
   </div>
 
-  <!-- 4. شاشة اللعب الكلاسيكية المحيطية (Casino/Uno 4-Way Table) -->
+  <!-- 4. شاشة اللعب الكلاسيكية المحيطية -->
   <div id="game-screen" class="screen hidden">
     <header class="game-header">
       <div class="top-row">
@@ -142,7 +142,6 @@
         </div>
       </div>
 
-      <!-- لافتة هدف الماتش المزدوج -->
       <div class="timer-bar-container">
         <div id="timer-bar" class="timer-bar"></div>
       </div>
