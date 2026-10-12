@@ -1,5 +1,6 @@
 const socket = io();
 
+// توليد رقم فريد دائم للجهاز (مثل: WL-4821)
 let myPlayerId = localStorage.getItem('kamelha_uid');
 if (!myPlayerId) {
   const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -18,6 +19,34 @@ const toastBanner = document.getElementById('toast-banner');
 
 const displayMyUid = document.getElementById('display-my-uid');
 if (displayMyUid) displayMyUid.innerText = myPlayerId;
+
+// تبويبات نمط اللعب (أونلاين أو ضد البوتات)
+const tabOnline = document.getElementById('tab-online');
+const tabSolo = document.getElementById('tab-solo');
+const onlineModeSection = document.getElementById('online-mode-section');
+const soloModeSection = document.getElementById('solo-mode-section');
+
+const soloBotCount = document.getElementById('solo-bot-count');
+const soloDifficulty = document.getElementById('solo-difficulty');
+const soloTargetPoints = document.getElementById('solo-target-points');
+const soloMaxRounds = document.getElementById('solo-max-rounds');
+const btnStartSolo = document.getElementById('btn-start-solo');
+
+if (tabOnline && tabSolo) {
+  tabOnline.onclick = () => {
+    tabOnline.classList.add('active');
+    tabSolo.classList.remove('active');
+    onlineModeSection.classList.remove('hidden');
+    soloModeSection.classList.add('hidden');
+  };
+
+  tabSolo.onclick = () => {
+    tabSolo.classList.add('active');
+    tabOnline.classList.remove('active');
+    soloModeSection.classList.remove('hidden');
+    onlineModeSection.classList.add('hidden');
+  };
+}
 
 const targetPointsInput = document.getElementById('target-points-input');
 const maxRoundsInput = document.getElementById('max-rounds-input');
@@ -85,7 +114,7 @@ socket.on('bannedKickNotification', () => {
 const savedName = localStorage.getItem('kamelha_name') || 'لاعب';
 socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name: savedName });
 
-// الصوت
+// نظام الصوت
 const SoundManager = {
   ctx: null,
   muted: localStorage.getItem('kamelha_muted') === 'true',
@@ -206,7 +235,7 @@ if (btnRules) {
       <div class="rules-scroll-content">
         <div class="rule-section">
           <h3>🎯 الهدف:</h3>
-          <p>تجميع <b>4 كروت من نفس الرقم</b>. والمباراة تحسم بالوصول للنقاط أو انتهاء الجولات!</p>
+          <p>تجميع <b>4 كروت من نفس الرقم</b>. والمباراة تحسم بالوصول للنقاط المحددة أو انتهاء الجولات!</p>
         </div>
         <div class="rule-section">
           <h3>🃏 النقاط:</h3>
@@ -217,6 +246,10 @@ if (btnRules) {
         <div class="rule-section">
           <h3>🦹‍♂️ كارت الحرامي:</h3>
           <p>يسرق الرقم المطلوب من أيدي الخصوم أولاً، أو من الأرض، أو من قلب كروت السحب المقلوبة مضمون 100%!</p>
+        </div>
+        <div class="rule-section">
+          <h3>🔒 قفل الحصانة:</h3>
+          <p>من يقول <b>"كمّلتها"</b> يُقفل عليه بحصانة 🔒 ولا يمكن لأحد استهدافه بأي كوماند!</p>
         </div>
       </div>
       <button class="btn primary-btn" onclick="closeModal()" style="margin-top:12px;">فهمت القواعد 👍</button>
@@ -274,6 +307,7 @@ function copyRoomCode() {
 if (btnCopyCodeWait) btnCopyCodeWait.addEventListener('click', copyRoomCode);
 if (btnCopyCodeGame) btnCopyCodeGame.addEventListener('click', copyRoomCode);
 
+// إنشاء غرفة جماعية أونلاين
 if (btnCreate) {
   btnCreate.addEventListener('click', () => {
     const name = playerNameInput.value.trim();
@@ -287,6 +321,30 @@ if (btnCreate) {
     socket.emit('createRoom', { 
       playerName: name, 
       playerId: myPlayerId,
+      targetPoints: pts,
+      maxRounds: rnds
+    });
+  });
+}
+
+// بدء الماتش الفردي ضد البوتات
+if (btnStartSolo) {
+  btnStartSolo.addEventListener('click', () => {
+    const name = playerNameInput.value.trim();
+    if (!name) return alert('اكتب اسمك الأول!');
+    localStorage.setItem('kamelha_name', name);
+    socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
+
+    const bCount = soloBotCount ? soloBotCount.value : 1;
+    const bDiff = soloDifficulty ? soloDifficulty.value : 'medium';
+    const pts = soloTargetPoints ? soloTargetPoints.value : 5;
+    const rnds = soloMaxRounds ? soloMaxRounds.value : 0;
+
+    socket.emit('startSoloGame', {
+      playerName: name,
+      playerId: myPlayerId,
+      botCount: bCount,
+      botDifficulty: bDiff,
       targetPoints: pts,
       maxRounds: rnds
     });
@@ -916,7 +974,7 @@ socket.on('gameState', data => {
     currentPlayerName.parentElement.style.background = isMyTurn ? '#00e676' : '#ffcc00';
   }
 
-  // لافتة شروط الفوز المزدوجة بالاعلى مع دعم خيار "بدون تحديد"
+  // لافتة شروط الفوز المزدوجة بالاعلى
   if (matchRulesTag) {
     const pts = data.targetPoints;
     const rnds = data.maxRounds;
