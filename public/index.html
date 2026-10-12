@@ -12,7 +12,7 @@
   <!-- شريط الإشعارات العلوي -->
   <div id="toast-banner" class="toast hidden"></div>
 
-  <!-- 1. شاشة بوابة الدخول والتذاكر (الظاهرة في البداية فقط) -->
+  <!-- 1. شاشة بوابة الدخول والتذاكر -->
   <div id="gate-screen" class="screen">
     <div class="lobby-box">
       <h1 class="game-logo">كمّلها</h1>
@@ -34,7 +34,7 @@
     </div>
   </div>
 
-  <!-- 2. شاشة اللوبي (مخفية ولن تفتح إلا بالتذكرة الصحيحة) -->
+  <!-- 2. شاشة اللوبي -->
   <div id="lobby-screen" class="screen hidden">
     <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">🔊</button>
 
@@ -42,7 +42,6 @@
       <h1 class="game-logo">كمّلها</h1>
       <p class="tagline">لعبة الذكاء والسرعة والتحدي</p>
 
-      <!-- الرقم الفريد الدائم للاعب -->
       <div class="my-uid-badge">رقمك التعريفي الفريد: <b id="display-my-uid">--</b></div>
 
       <div class="input-group">
@@ -63,7 +62,7 @@
     </div>
   </div>
 
-  <!-- 3. غرفة الانتظار (Lobby Room) -->
+  <!-- 3. غرفة الانتظار -->
   <div id="waiting-screen" class="screen hidden">
     <div class="lobby-box">
       <div class="room-code-header">
@@ -85,56 +84,88 @@
     </div>
   </div>
 
-  <!-- 4. شاشة اللعب الرئيسية (Game Board) -->
+  <!-- 4. شاشة اللعب الكلاسيكية المحيطية (Casino/Uno 4-Way Table) -->
   <div id="game-screen" class="screen hidden">
+    <!-- الشريط العلوي -->
     <header class="game-header">
       <div class="top-row">
         <div class="game-room-tag">
           غرفة: <b id="game-room-code-txt">--</b>
           <button id="btn-copy-code-game" class="btn-copy-tiny">نسخ 📋</button>
         </div>
-
         <div id="turn-badge" class="badge">دور: <span id="current-player-name">--</span></div>
         <div id="timer-box" class="timer-badge">⏳ <span id="timer-sec">15</span>ث</div>
-
         <div class="game-controls">
-          <button id="btn-sound-game" class="sound-toggle-mini" title="كتم/تشغيل الصوت">🔊</button>
+          <button id="btn-sound-game" class="sound-toggle-mini">🔊</button>
           <button id="btn-leave" class="leave-btn">خروج 🚪</button>
         </div>
       </div>
-
       <div class="timer-bar-container">
         <div id="timer-bar" class="timer-bar"></div>
       </div>
-      <div id="other-players" class="players-row"></div>
     </header>
 
-    <!-- كارت السحب بالصورة الأصلية لظهر الكارت -->
-      <div class="deck-spot" id="draw-deck">
-        <div class="card card-real-img card-back-img">
-          <img src="/cards/back.png" alt="كمّلها">
-          <span id="deck-counter" class="deck-count-num">50</span>
+    <!-- مسرح طاولة اللعب المحيطية 4 اتجاهات -->
+    <div class="table-arena">
+      <!-- اللاعب المقابل (فوق) -->
+      <div id="spot-top" class="player-seat seat-top hidden">
+        <div class="seat-info"><span class="seat-name">--</span> <span class="seat-score">0ن</span></div>
+        <div class="seat-cards"></div>
+      </div>
+
+      <!-- اللاعب على الشمال -->
+      <div id="spot-left" class="player-seat seat-left hidden">
+        <div class="seat-info"><span class="seat-name">--</span> <span class="seat-score">0ن</span></div>
+        <div class="seat-cards"></div>
+      </div>
+
+      <!-- وسط الطاولة: السحب وكومة الأرض العشوائية -->
+      <div class="table-center">
+        <!-- كارت السحب -->
+        <div class="deck-spot" id="draw-deck">
+          <div class="card card-real-img card-back-img">
+            <img src="/cards/back.png" alt="كمّلها">
+            <span id="deck-counter" class="deck-count-num">50</span>
+          </div>
+          <p>اسحب</p>
         </div>
-        <p>اسحب كارت</p>
+
+        <!-- كومة الأرض المكشوفة العشوائية الواقعية -->
+        <div class="deck-spot" id="discard-deck">
+          <div id="messy-discard-pile" class="messy-pile">
+            <div id="top-discard-card" class="card-placeholder">لا يوجد</div>
+          </div>
+          <p>الأرض</p>
+        </div>
       </div>
 
-      <div class="deck-spot" id="discard-deck">
-        <div id="top-discard-card" class="card-placeholder">لا يوجد</div>
-        <p>الأرض المكشوفة</p>
+      <!-- اللاعب على اليمين -->
+      <div id="spot-right" class="player-seat seat-right hidden">
+        <div class="seat-info"><span class="seat-name">--</span> <span class="seat-score">0ن</span></div>
+        <div class="seat-cards"></div>
       </div>
-    </main>
+    </div>
 
-    <!-- منطقة اللاعب ويده -->
+    <!-- يد اللاعب الأساسي (تحت) -->
     <footer class="player-zone">
       <div class="zone-header">
-        <span>كروتك الحالية:</span>
+        <div class="my-seat-tag">👤 <b id="my-name-display">أنت</b> (<span id="my-score-display">0ن</span>)</div>
         <button id="btn-kamelha" class="btn kamelha-btn">كمّلتهااا! 👑</button>
       </div>
       <div id="my-hand" class="cards-hand"></div>
     </footer>
   </div>
 
-  <!-- النوافذ المنبثقة -->
+  <!-- الشاشة السينمائية لأنيميشن الكوماندز (Command Splash FX) -->
+  <div id="command-splash" class="command-splash-overlay hidden">
+    <div class="splash-card-box">
+      <div id="splash-icon" class="splash-big-icon">⚡</div>
+      <h1 id="splash-title" class="splash-title">اسم الكوماند</h1>
+      <p id="splash-player" class="splash-player-name">فلان استخدم الكارت!</p>
+    </div>
+  </div>
+
+  <!-- حاوية النوافذ المنبثقة -->
   <div id="modal-overlay" class="modal-overlay hidden">
     <div id="modal-container" class="modal-card"></div>
   </div>
