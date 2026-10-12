@@ -206,7 +206,7 @@ if (btnRules) {
       <div class="rules-scroll-content">
         <div class="rule-section">
           <h3>🎯 الهدف:</h3>
-          <p>تجميع <b>4 كروت من نفس الرقم</b>. والمباراة تحسم بالوصول للنقاط المحددة أو انتهاء الجولات!</p>
+          <p>تجميع <b>4 كروت من نفس الرقم</b>. والمباراة تحسم بالوصول للنقاط أو انتهاء الجولات!</p>
         </div>
         <div class="rule-section">
           <h3>🃏 النقاط:</h3>
@@ -274,7 +274,6 @@ function copyRoomCode() {
 if (btnCopyCodeWait) btnCopyCodeWait.addEventListener('click', copyRoomCode);
 if (btnCopyCodeGame) btnCopyCodeGame.addEventListener('click', copyRoomCode);
 
-// إنشاء غرفة مع إرسال نقاط الفوز والحد الأقصى للجولات معاً
 if (btnCreate) {
   btnCreate.addEventListener('click', () => {
     const name = playerNameInput.value.trim();
@@ -283,7 +282,7 @@ if (btnCreate) {
     socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
     
     const pts = targetPointsInput ? targetPointsInput.value : 5;
-    const rnds = maxRoundsInput ? maxRoundsInput.value : 10;
+    const rnds = maxRoundsInput ? maxRoundsInput.value : 0;
 
     socket.emit('createRoom', { 
       playerName: name, 
@@ -426,6 +425,7 @@ function handleCommandCardModal(card) {
       socket.emit('extendTimerForCommand', currentRoomId);
       openPlayerPicker('اختار لاعباً لتبديل كل كروته:', targetId => {
         currentDrawnCard = null;
+        SoundManager.playCommand();
         socket.emit('execKeda', { roomId: currentRoomId, targetPlayerId: targetId });
       });
     },
@@ -814,14 +814,12 @@ function renderMessyDiscardPile(topCard, discardHistory) {
   messyDiscardPile.innerHTML = html;
 }
 
-// تحديث المقاعد وإبراز اللاعب صاحب الدور بالبرواز الفسفوري المضيء
 function updateTableSeats(players, myId, currentTurnId) {
   const me = players.find(p => p.id === myId);
   if (me) {
     myNameDisplay.innerText = `${me.isHost ? '👑 ' : ''}${me.name}`;
     myScoreDisplay.innerText = `${me.points}ن`;
     
-    // إبراز مقعد اللاعب السفلي إذا كان دوره
     if (me.id === currentTurnId) {
       spotBottom.classList.add('active-turn-seat');
     } else {
@@ -850,7 +848,6 @@ function updateTableSeats(players, myId, currentTurnId) {
 function renderSeat(seatEl, player, currentTurnId) {
   seatEl.classList.remove('hidden');
   
-  // تفعيل الإطار الفسفوري المنبثق لصاحب الدور
   if (player.id === currentTurnId) {
     seatEl.classList.add('active-turn-seat');
   } else {
@@ -919,7 +916,7 @@ socket.on('gameState', data => {
     currentPlayerName.parentElement.style.background = isMyTurn ? '#00e676' : '#ffcc00';
   }
 
-  // لافتة شروط الفوز الذكية بالاعلى
+  // لافتة شروط الفوز المزدوجة بالاعلى مع دعم خيار "بدون تحديد"
   if (matchRulesTag) {
     const pts = data.targetPoints;
     const rnds = data.maxRounds;
@@ -934,7 +931,7 @@ socket.on('gameState', data => {
       matchRulesTag.innerText = `🎯 الهدف: أول من يجمع 5 نقاط | 🏁 الجولة ${data.roundCount}`;
     }
   }
-  
+
   if (data.turnDeadline) {
     updateTurnTimer(data.turnDeadline, data.turnDuration || 15);
   }
@@ -949,7 +946,6 @@ socket.on('gameState', data => {
     myHandDiv.appendChild(el.firstElementChild);
   });
 
-  // تحديث المقاعد وتمييز صاحب الدور الفسفوري
   updateTableSeats(data.players, socket.id, data.currentTurn);
 });
 
