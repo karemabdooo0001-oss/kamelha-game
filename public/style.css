@@ -468,6 +468,24 @@ input {
   overflow-y: auto;
 }
 
+/* زر التبديل الأخضر الجذاب */
+.btn-swap-green {
+  background: #00e676 !important;
+  color: #111 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 15px rgba(0, 230, 118, 0.4) !important;
+  font-size: 1.05rem !important;
+}
+
+/* زر الرمي الأحمر الملفت */
+.btn-discard-red {
+  background: #ff1744 !important;
+  color: #fff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 15px rgba(255, 23, 68, 0.4) !important;
+  font-size: 1.05rem !important;
+}
+
 .rules-scroll-content { text-align: right; max-height: 250px; overflow-y: auto; font-size: 0.85rem; display: flex; flex-direction: column; gap: 10px; }
 .rule-section { background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; border-right: 3px solid #ffcc00; }
 .rule-section h3 { color: #ffcc00; font-size: 0.95rem; margin-bottom: 4px; }
