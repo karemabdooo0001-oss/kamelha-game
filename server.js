@@ -139,13 +139,11 @@ const DEFAULT_TURN_TIME = 15;
 
 function createDeck() {
   const deck = [];
-  // 40 كارت أرقام
   for (let num = 1; num <= 10; num++) {
     for (let i = 0; i < 4; i++) {
       deck.push({ id: `num_${num}_${i}_${Math.random()}`, type: 'number', value: num });
     }
   }
-  // 24 كارت كوماندز (مع إضافة نسختين للحرامي)
   const commands = [
     { type: 'joker', name: 'جوكر', count: 4 },
     { type: 'hunt', name: 'اصطاد كارتك', count: 4 },
@@ -154,7 +152,7 @@ function createDeck() {
     { type: 'keda', name: 'هو كدة', count: 2 },
     { type: 'annoy', name: 'رخم عليهم', count: 2 },
     { type: 'wild', name: 'براحتك', count: 2 },
-    { type: 'thief', name: 'الحرامي', count: 2 } // الكارت الجديد! 🦹‍♂️
+    { type: 'thief', name: 'الحرامي', count: 2 }
   ];
   commands.forEach(cmd => {
     for (let i = 0; i < cmd.count; i++) {
@@ -268,7 +266,6 @@ io.on('connection', (socket) => {
 
   socket.on('verifyGatePasscode', ({ passcode, playerId }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
-
     const result = validateVoucher(passcode.trim(), playerId);
     if (result.valid) {
       socket.emit('gateAccessGranted', { voucherCode: passcode.trim() });
@@ -278,11 +275,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('adminLogin', (key) => {
-    if (key === MASTER_KEY) {
-      socket.emit('adminLoginSuccess', getAdminDashboardData());
-    } else {
-      socket.emit('adminLoginFail');
-    }
+    if (key === MASTER_KEY) socket.emit('adminLoginSuccess', getAdminDashboardData());
+    else socket.emit('adminLoginFail');
   });
 
   socket.on('adminRefreshData', async (key) => {
@@ -303,7 +297,6 @@ io.on('connection', (socket) => {
 
   socket.on('adminCreateVoucher', ({ masterKey, type, duration, price }) => {
     if (masterKey !== MASTER_KEY) return;
-
     const code = 'KM-' + Math.floor(10000 + Math.random() * 90000);
     const maxDevices = type === 'single' ? 1 : 4;
 
@@ -411,7 +404,8 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('createRoom', ({ playerName, playerId }) => {
+  // إنشاء الغرفة مع شروط الفوز المزدوجة المخصصة
+  socket.on('createRoom', ({ playerName, playerId, targetPoints, maxRounds }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
 
     const roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -427,13 +421,16 @@ io.on('connection', (socket) => {
       drawnCard: null,
       tempAnnoyCardIndex: null,
       pendingHunter: null,
-      pendingThief: null, // لميكانيكا كارت الحرامي
+      pendingThief: null,
       gameStarted: false,
       kamelhaCallers: [],
       turnsLeftInOrbit: null,
       turnTimer: null,
       turnDeadline: null,
-      currentDuration: DEFAULT_TURN_TIME
+      currentDuration: DEFAULT_TURN_TIME,
+      // المنظومة المزدوجة
+      targetPoints: parseInt(targetPoints) || 5, // من 1 إلى 10
+      maxRounds: parseInt(maxRounds) || 10      // من 1 إلى 20
     };
     socket.join(roomId);
 
@@ -677,7 +674,6 @@ io.on('connection', (socket) => {
     advanceTurn(room);
   });
 
-  // صيد كارتك
   socket.on('checkHuntTarget', ({ roomId, targetPlayerId, requestedItem }) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -729,7 +725,6 @@ io.on('connection', (socket) => {
     advanceTurn(room);
   });
 
-  // ================= ميكانيكا كارت الحرامي الأسطوري (3 مراحل مضمونة) =================
   socket.on('executeThief', ({ roomId, requestedItem }) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -740,7 +735,6 @@ io.on('connection', (socket) => {
     const itemName = requestedItem === 'joker' ? 'جوكر' : `رقم ${requestedItem}`;
     const checkCard = (c) => requestedItem === 'joker' ? (c.type === 'command' && c.cmdType === 'joker') : (c.type === 'number' && c.value === parseInt(requestedItem));
 
-    // 1. المرحلة الأولى: فحص أيدي الخصوم غير المحميين
     let victim = null;
     let victimCardIndex = -1;
     for (const opp of room.players) {
@@ -759,7 +753,6 @@ io.on('connection', (socket) => {
       return socket.emit('thiefFoundInHand', { victimName: victim.name, itemName });
     }
 
-    // 2. المرحلة الثانية: فحص الأرض المكشوفة
     let groundIndex = -1;
     for (let i = room.discardPile.length - 1; i >= 0; i--) {
       if (checkCard(room.discardPile[i])) {
@@ -773,7 +766,6 @@ io.on('connection', (socket) => {
       return socket.emit('thiefFoundOnGround', { itemName });
     }
 
-    // 3. المرحلة الثالثة: سحب الكارت مباشرة من كروت السحب المقلوبة
     checkDrawDeckRefill(room);
     let deckIndex = room.deck.findIndex(checkCard);
 
@@ -782,14 +774,12 @@ io.on('connection', (socket) => {
       return socket.emit('thiefFoundInDeck', { itemName });
     }
 
-    // حالة نادرة جداً لو كل النسخ محبوسة في حصانات
     room.discardPile.push(room.drawnCard);
     room.drawnCard = null;
     io.to(roomId).emit('notify', `🦹‍♂️ لم يجد الحرامي أي كارت متاح لسرقته!`);
     advanceTurn(room);
   });
 
-  // إكمال سرقة الحرامي وتبديل الكارت من اليد
   socket.on('confirmThiefSwap', ({ roomId, handCardIndexToGive }) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard || !room.pendingThief) return;
@@ -955,10 +945,12 @@ io.on('connection', (socket) => {
     sendGameState(room.id);
   }
 
+  // دالة إنهاء الجولة بالمنظومة الهجينة (نقاط الفوز أو انتهاء الجولات - أيهما أسبق)
   function endRound(room, instantEnd = false) {
     clearTimeout(room.turnTimer);
     let winMessage = 'نهاية الجولة! نتائج "كمّلها":\n';
     let matchWinner = null;
+    let winReason = '';
 
     if (!instantEnd) {
       room.players.forEach(p => {
@@ -967,11 +959,27 @@ io.on('connection', (socket) => {
           p.points += check.points;
           winMessage += `• ${p.name} جمع كروته (+${check.points} نقطة) - المجموع: ${p.points}\n`;
         }
-        if (p.points >= 5) matchWinner = p;
       });
-    } else {
+    }
+
+    // 1. فحص أولاً: هل وصل أي لاعب لنقاط الفوز المطلوبة؟
+    const pointsWinner = room.players.find(p => p.points >= room.targetPoints);
+    if (pointsWinner) {
+      matchWinner = pointsWinner;
+      winReason = `أول من وصل إلى هدف ${room.targetPoints} نقاط وفاز بالمباراة! 🏆`;
+    } 
+    // 2. إذا لم يصل أحد، هل انتهى الحد الأقصى للجولات المحددة؟
+    else if (room.roundCount >= room.maxRounds) {
+      const maxScore = Math.max(...room.players.map(p => p.points));
+      matchWinner = room.players.find(p => p.points === maxScore);
+      winReason = `فاز بأعلى مجموع نقاط بعد انتهاء الحد الأقصى (${room.maxRounds} جولة)! 🏆`;
+      winMessage += `\n🏁 انتهت كل جولات المباراة (${room.maxRounds} جولة)!`;
+    }
+
+    if (instantEnd) {
       matchWinner = room.players.find(p => p.points >= 5);
-      winMessage = `فوز ساحق بـ 4 جواكر بواسطة ${matchWinner.name}!`;
+      winReason = 'فوز ساحق بـ 4 جواكر!';
+      winMessage = `فوز ساحق بـ 4 جواكر بواسطة ${matchWinner ? matchWinner.name : 'اللاعب'}!`;
     }
 
     const revealedHands = room.players.map(p => ({
@@ -982,7 +990,12 @@ io.on('connection', (socket) => {
     }));
 
     if (matchWinner) {
-      io.to(room.id).emit('gameOver', { winnerName: matchWinner.name, scores: room.players, revealedHands });
+      io.to(room.id).emit('gameOver', { 
+        winnerName: matchWinner.name, 
+        scores: room.players, 
+        revealedHands,
+        reason: winReason
+      });
       room.gameStarted = false;
       expireRoomOneMatchVouchers(room);
     } else {
@@ -1017,6 +1030,9 @@ io.on('connection', (socket) => {
         turnDeadline: room.turnDeadline,
         turnDuration: room.currentDuration || DEFAULT_TURN_TIME,
         roomId: room.id,
+        targetPoints: room.targetPoints,
+        maxRounds: room.maxRounds,
+        roundCount: room.roundCount,
         players: room.players.map(pl => ({
           id: pl.id,
           name: pl.name,
