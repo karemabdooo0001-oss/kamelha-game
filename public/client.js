@@ -1,6 +1,5 @@
 const socket = io();
 
-// معرف اللاعب الفريد
 let myPlayerId = localStorage.getItem('kamelha_uid');
 if (!myPlayerId) {
   const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -8,7 +7,6 @@ if (!myPlayerId) {
   localStorage.setItem('kamelha_uid', myPlayerId);
 }
 
-// عناصر DOM
 const gateScreen = document.getElementById('gate-screen');
 const gatePassInput = document.getElementById('gate-pass-input');
 const btnSubmitGate = document.getElementById('btn-submit-gate');
@@ -26,7 +24,6 @@ const splashIcon = document.getElementById('splash-icon');
 const splashTitle = document.getElementById('splash-title');
 const splashPlayer = document.getElementById('splash-player');
 
-// مقاعد الطاولة المحيطية 4 اتجاهات
 const spotTop = document.getElementById('spot-top');
 const spotLeft = document.getElementById('spot-left');
 const spotRight = document.getElementById('spot-right');
@@ -35,7 +32,7 @@ const myNameDisplay = document.getElementById('my-name-display');
 const myScoreDisplay = document.getElementById('my-score-display');
 const messyDiscardPile = document.getElementById('messy-discard-pile');
 
-// ================= نظام فحص التذاكر =================
+// تذاكر الدخول
 const urlParams = new URLSearchParams(window.location.search);
 const ticketInUrl = urlParams.get('pass') || urlParams.get('ticket');
 
@@ -83,7 +80,7 @@ socket.on('bannedKickNotification', () => {
 const savedName = localStorage.getItem('kamelha_name') || 'لاعب';
 socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name: savedName });
 
-// ================= نظام الصوت =================
+// نظام الصوت
 const SoundManager = {
   ctx: null,
   muted: localStorage.getItem('kamelha_muted') === 'true',
@@ -211,6 +208,10 @@ if (btnRules) {
           <p>• 4 كروت مطابقة بدون جوكر = <b>نقطتان</b>.</p>
           <p>• مع جوكر = <b>نقطة واحدة</b>.</p>
           <p>• 4 جواكر = <b>فوز فوري بالمباراة (5 نقاط)</b>!</p>
+        </div>
+        <div class="rule-section">
+          <h3>🦹‍♂️ كارت الحرامي الجديد:</h3>
+          <p>أقوى كارت في اللعبة! تطلب رقماً أو جوكر ويسرقه فوراً (من أيدي الخصوم أولاً، أو من الأرض، أو من قلب كروت السحب المقلوبة مضمون 100%) وتبدل مكانه كارت من يدك!</p>
         </div>
         <div class="rule-section">
           <h3>🔒 قفل الحصانة:</h3>
@@ -362,12 +363,11 @@ if (btnKamelha) {
   });
 }
 
-// معالجة الكارت المسحوب
+// الكارت المسحوب
 socket.on('cardDrawn', card => {
   currentDrawnCard = card;
   if (card.type === 'number' || card.cmdType === 'joker') {
     if (card.cmdType === 'joker') {
-      // تأثير سري وخاص بصاحب الجوكر فقط
       SoundManager.playWin();
       showToast('🤫 سحبت جوكر! الكارت سري ومحدش يعرف.');
     }
@@ -383,9 +383,7 @@ function handleNumberOrJokerModal(card) {
     <div style="display:flex;justify-content:center;margin:15px 0;">${createCardHTML(card)}</div>
     <p>ماذا تريد أن تفعل؟</p>
     <div style="display:flex;flex-direction:column;gap:10px;">
-      <!-- الخيار الأول بالأخضر الجذاب -->
       <button id="btn-swap" class="btn btn-swap-green">بدله بكارت من إيدك 🔄</button>
-      <!-- الخيار الثاني بالأحمر الملفت -->
       <button id="btn-discard" class="btn btn-discard-red">ارميه على الأرض 🗑️</button>
     </div>
   `);
@@ -428,6 +426,10 @@ function handleCommandCardModal(card) {
     hunt: () => {
       socket.emit('extendTimerForCommand', currentRoomId);
       openHuntFlow();
+    },
+    thief: () => {
+      socket.emit('extendTimerForCommand', currentRoomId);
+      openThiefFlow();
     },
     annoy: () => {
       socket.emit('extendTimerForCommand', currentRoomId);
@@ -490,7 +492,6 @@ function openBankPicker() {
   });
 }
 
-// ميكانيكا صيد كارتك المطورة: تطلب الكارت أولاً بدون إجبار على التبديل
 function openHuntFlow() {
   openPlayerPicker('اختر لاعباً لتصطاد منه:', targetId => {
     let html = `<h2>اختر الكارت الذي تبحث عنه:</h2><div class="hunt-grid">`;
@@ -508,7 +509,6 @@ function openHuntFlow() {
       b.onclick = () => {
         const item = b.getAttribute('data-val');
         closeModal();
-        // إرسال فحص للهدف مباشرة
         socket.emit('checkHuntTarget', {
           roomId: currentRoomId,
           targetPlayerId: targetId,
@@ -519,14 +519,12 @@ function openHuntFlow() {
   });
 }
 
-// الرد في حالة نجاح الصيد فقط
 socket.on('huntTargetHasCard', ({ targetName, itemName }) => {
   SoundManager.playWin();
   showToast(`🎯 نجح الصيد! (${targetName}) معه كارت ${itemName}!`);
   openModal(`
     <h2 style="color:#00e676;">🎯 الصيد نجح!</h2>
-    <p>اللاعب <b>${targetName}</b> معه بالفعل كارت <b>${itemName}</b>!</p>
-    <p>اضغط أدناه لاختيار كارت من يدك لتبديله معه:</p>
+    <p>اللاعب <b>${targetName}</b> معه كارت <b>${itemName}</b>!</p>
     <button id="btn-confirm-hunt-pick" class="btn primary-btn">اختر كارتك للمبادلة 🔄</button>
   `);
 
@@ -538,6 +536,61 @@ socket.on('huntTargetHasCard', ({ targetName, itemName }) => {
       socket.emit('confirmHuntSwap', { roomId: currentRoomId, handCardIndexToGive: handIdx });
     });
   };
+});
+
+// ================= نافذة كارت الحرامي =================
+function openThiefFlow() {
+  let html = `<h2>🦹‍♂️ كارت الحرامي!</h2>`;
+  html += `<p style="font-size:0.85rem;color:#ccc;">اختر الكارت المطلوب، وسيأتي إليك حتماً (من يد الخصم، أو من الأرض، أو من السحب المقلوب)!</p>`;
+  html += `<div class="hunt-grid">`;
+  for (let i = 1; i <= 10; i++) {
+    html += `<button class="btn secondary-btn thief-select-btn" data-val="${i}">${i}</button>`;
+  }
+  html += `</div>`;
+  html += `<button class="btn primary-btn thief-select-btn" style="margin-top:8px;background:#00bcd4;color:#fff;" data-val="joker">🃏 سرقة كارت الجوكر</button>`;
+  html += `<button id="btn-cancel-thief" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>`;
+  openModal(html);
+
+  document.getElementById('btn-cancel-thief').onclick = cancelCommandExecution;
+
+  document.querySelectorAll('.thief-select-btn').forEach(b => {
+    b.onclick = () => {
+      const item = b.getAttribute('data-val');
+      closeModal();
+      socket.emit('executeThief', { roomId: currentRoomId, requestedItem: item });
+    };
+  });
+}
+
+// مراحل استجابة الحرامي الثلاثة
+function handleThiefSuccessPrompt(title, text) {
+  SoundManager.playWin();
+  openModal(`
+    <h2 style="color:#00e676;">${title}</h2>
+    <p>${text}</p>
+    <button id="btn-thief-pick-mine" class="btn primary-btn">اختر كارتك الآن 🔄</button>
+  `);
+
+  document.getElementById('btn-thief-pick-mine').onclick = () => {
+    closeModal();
+    showToast('اضغط على كارت من يدك لإكمال التبديل:');
+    pickCardFromHand(handIdx => {
+      currentDrawnCard = null;
+      socket.emit('confirmThiefSwap', { roomId: currentRoomId, handCardIndexToGive: handIdx });
+    });
+  };
+}
+
+socket.on('thiefFoundInHand', ({ victimName, itemName }) => {
+  handleThiefSuccessPrompt('🦹‍♂️ تم اصطياد الكارت من يد الخصم!', `الحرامي سرق كارت <b>${itemName}</b> من يد <b>${victimName}</b>! اضغط أدناه لاختيار كارت من يدك لتعطيه له في المقابل:`);
+});
+
+socket.on('thiefFoundOnGround', ({ itemName }) => {
+  handleThiefSuccessPrompt('🦹‍♂️ تم التقاط الكارت من الأرض!', `التقط الحرامي كارت <b>${itemName}</b> من الأرض المكشوفة! اضغط أدناه لاختيار كارت من يدك لترميه مكانه على الأرض:`);
+});
+
+socket.on('thiefFoundInDeck', ({ itemName }) => {
+  handleThiefSuccessPrompt('🦹‍♂️ تم سحب الكارت من قلب الديك!', `أخرج الحرامي كارت <b>${itemName}</b> من كروت السحب المقلوبة! اضغط أدناه لاختيار كارت من يدك لترميه في الأرض بدلاً منه:`);
 });
 
 function openAnnoyFlow() {
@@ -610,6 +663,7 @@ function openWildFlow() {
     <p>اختر أي كوماند تريد تحويله إليه:</p>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <button class="btn primary-btn wild-opt" data-type="hunt">اصطاد كارتك 🎯</button>
+      <button class="btn primary-btn wild-opt" data-type="thief">الحرامي 🦹‍♂️</button>
       <button class="btn primary-btn wild-opt" data-type="bank">لم كمالتك 🏛️</button>
       <button class="btn primary-btn wild-opt" data-type="reverse">اعكس لفتك 🔄</button>
       <button class="btn primary-btn wild-opt" data-type="keda">هو كدة 😎</button>
@@ -680,11 +734,12 @@ function closeModal() {
   if (modalOverlay) modalOverlay.classList.add('hidden');
 }
 
-// ================= أنيميشن الكوماندز السينمائي (Splash FX) =================
+// شاشة الكوماندز السينمائية
 socket.on('commandSplash', ({ cmdType, cmdName, playerName }) => {
   const icons = {
     reverse: '🔄',
     hunt: '🎯',
+    thief: '🦹‍♂️',
     bank: '🏛️',
     keda: '😎',
     annoy: '😈',
@@ -702,39 +757,31 @@ socket.on('commandSplash', ({ cmdType, cmdName, playerName }) => {
   }, 1600);
 });
 
-// أنيميشن كارت هو كدة
 socket.on('kedaAnimation', ({ targetId, targetName }) => {
   SoundManager.playPlace();
   showToast(`🌪️ كارت هو كدة! تطايرت كروت ${targetName} إلى الأرض!`);
 });
 
-// أنيميشن تبديل رخم عليهم
 socket.on('annoySwapAnimation', ({ p1Id, p2Id }) => {
   SoundManager.playShuffle();
   showToast('😈 رخم عليهم: تم تبديل كارتين سراً بين اللاعبين في الهواء!');
 });
 
-// أنيميشن السحب المباشر للجميع
 socket.on('playerDrewCardAnim', ({ playerId, from }) => {
-  if (playerId !== socket.id) {
-    SoundManager.playDraw();
-  }
+  if (playerId !== socket.id) SoundManager.playDraw();
 });
 
-// أنيميشن التفنيط والتوزيع في البداية
 socket.on('animateDealing', ({ numPlayers }) => {
   SoundManager.playShuffle();
   showToast('🎲 جاري تفنيط وتوزيع الكروت على اللاعبين...');
 });
 
-// ================= رسم كومة الأرض العشوائية الواقعية =================
 function renderMessyDiscardPile(topCard, discardHistory) {
   if (!topCard) {
     messyDiscardPile.innerHTML = '<div id="top-discard-card" class="card-placeholder">لا يوجد</div>';
     return;
   }
 
-  // زوايا ميل عشوائية ثابتة للكروت التي بالأسفل
   const angles = [-9, 7, -4, 11];
   let html = '';
 
@@ -752,7 +799,6 @@ function renderMessyDiscardPile(topCard, discardHistory) {
     }
   }
 
-  // الكارت الأخير على الوش مستقر
   html += `
     <div id="top-discard-card" style="position:relative; z-index:2;">
       ${createCardHTML(topCard)}
@@ -762,32 +808,25 @@ function renderMessyDiscardPile(topCard, discardHistory) {
   messyDiscardPile.innerHTML = html;
 }
 
-// ================= تنظيم وتوزيع مقاعد الطاولة المحيطية 4 اتجاهات =================
 function updateTableSeats(players, myId) {
-  // اللاعب الحالي دائماً بالأسفل
   const me = players.find(p => p.id === myId);
   if (me) {
     myNameDisplay.innerText = `${me.isHost ? '👑 ' : ''}${me.name}`;
     myScoreDisplay.innerText = `${me.points}ن`;
   }
 
-  // الخصوم مرتبين بالنسبة لمكانك
   const otherPlayers = players.filter(p => p.id !== myId);
 
-  // إخفاء المقاعد أولاً
   spotTop.classList.add('hidden');
   spotLeft.classList.add('hidden');
   spotRight.classList.add('hidden');
 
   if (otherPlayers.length === 1) {
-    // 2 لاعبين: الخصم في المقابل (فوق)
     renderSeat(spotTop, otherPlayers[0]);
   } else if (otherPlayers.length === 2) {
-    // 3 لاعبين: خصم على الشمال وخصم في المقابل
     renderSeat(spotLeft, otherPlayers[0]);
     renderSeat(spotTop, otherPlayers[1]);
   } else if (otherPlayers.length === 3) {
-    // 4 لاعبين: طاولة كاملة محيطية (شمال، فوق، يمين)
     renderSeat(spotLeft, otherPlayers[0]);
     renderSeat(spotTop, otherPlayers[1]);
     renderSeat(spotRight, otherPlayers[2]);
@@ -804,7 +843,6 @@ function renderSeat(seatEl, player) {
   scoreEl.innerText = `${player.points}ن`;
 
   cardsEl.innerHTML = '';
-  // رسم كروت الخصم مقلوبة بظهر الكارت الأصلي
   for (let i = 0; i < (player.cardCount || 4); i++) {
     const mini = document.createElement('div');
     mini.className = 'mini-card-back';
@@ -840,7 +878,6 @@ function updateTurnTimer(deadline, totalSeconds) {
   }, 200);
 }
 
-// استقبال حالة اللعبة وتحديث الطاولة المحيطية بالكامل
 socket.on('gameState', data => {
   latestGameState = data;
   if (!data.hasDrawn) currentDrawnCard = null;
@@ -864,11 +901,8 @@ socket.on('gameState', data => {
   }
 
   deckCounter.innerText = data.deckCount;
-
-  // رسم كومة الأرض العشوائية
   renderMessyDiscardPile(data.topDiscard, data.discardPile);
 
-  // تحديث كروت يد اللاعب المكشوفة
   myHandDiv.innerHTML = '';
   data.hand.forEach(c => {
     const el = document.createElement('div');
@@ -876,7 +910,6 @@ socket.on('gameState', data => {
     myHandDiv.appendChild(el.firstElementChild);
   });
 
-  // تحديث المقاعد المحيطية الأربعة للخصوم
   updateTableSeats(data.players, socket.id);
 });
 
