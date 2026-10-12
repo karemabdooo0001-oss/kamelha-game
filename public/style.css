@@ -28,35 +28,6 @@ html, body {
 
 .hidden { display: none !important; }
 
-/* تبويبات اختيار نمط اللعب في اللوبي (أونلاين أو ضد البوتات) */
-.mode-select-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 15px;
-  background: rgba(0,0,0,0.4);
-  padding: 4px;
-  border-radius: 12px;
-}
-
-.mode-tab-btn {
-  flex: 1;
-  padding: 9px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #aaa;
-  font-weight: 800;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.mode-tab-btn.active {
-  background: #ffcc00;
-  color: #111;
-  box-shadow: 0 2px 10px rgba(255, 204, 0, 0.4);
-}
-
 /* أزرار الصوت والإشعار */
 .sound-toggle-btn {
   position: absolute;
@@ -117,7 +88,7 @@ html, body {
   color: #ffcc00;
   text-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
 }
-.tagline { color: #aaa; margin-bottom: 12px; font-size: 0.85rem; }
+.tagline { color: #aaa; margin-bottom: 14px; font-size: 0.85rem; }
 .input-group label { display: block; text-align: right; margin-bottom: 5px; font-size: 0.85rem; }
 
 input {
@@ -353,7 +324,7 @@ input {
 .seat-name { font-weight: 800; color: #ffcc00; }
 .seat-score { color: #00e676; font-weight: bold; }
 
-/* كروت الخصوم المتجاوبة (تكبر في الشاشات الكبيرة) */
+/* كروت الخصوم المتجاوبة */
 .seat-cards {
   display: flex;
   gap: 3px;
@@ -378,7 +349,7 @@ input {
   height: clamp(26px, 5vw, 52px);
 }
 
-/* مقعدك أنت بالأسفل (توسيط حديدي لا يتحرك) */
+/* مقعدك أنت بالأسفل */
 .seat-bottom {
   position: absolute;
   bottom: 8px;
