@@ -383,8 +383,10 @@ function handleNumberOrJokerModal(card) {
     <div style="display:flex;justify-content:center;margin:15px 0;">${createCardHTML(card)}</div>
     <p>ماذا تريد أن تفعل؟</p>
     <div style="display:flex;flex-direction:column;gap:10px;">
-      <button id="btn-discard" class="btn secondary-btn">ارميه على المكشوف 🗑️</button>
-      <button id="btn-swap" class="btn primary-btn">بدله بكارت من إيدك 🔄</button>
+      <!-- الخيار الأول بالأخضر الجذاب -->
+      <button id="btn-swap" class="btn btn-swap-green">بدله بكارت من إيدك 🔄</button>
+      <!-- الخيار الثاني بالأحمر الملفت -->
+      <button id="btn-discard" class="btn btn-discard-red">ارميه على الأرض 🗑️</button>
     </div>
   `);
 
