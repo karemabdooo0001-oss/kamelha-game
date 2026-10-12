@@ -51,9 +51,7 @@ async function initDatabase() {
       );
     `);
     await syncMemoryFromDatabase();
-  } catch (err) {
-    console.error('DB Error:', err.message);
-  }
+  } catch (err) {}
 }
 
 async function syncMemoryFromDatabase() {
@@ -141,11 +139,13 @@ const DEFAULT_TURN_TIME = 15;
 
 function createDeck() {
   const deck = [];
+  // 40 كارت أرقام
   for (let num = 1; num <= 10; num++) {
     for (let i = 0; i < 4; i++) {
       deck.push({ id: `num_${num}_${i}_${Math.random()}`, type: 'number', value: num });
     }
   }
+  // 24 كارت كوماندز (مع إضافة نسختين للحرامي)
   const commands = [
     { type: 'joker', name: 'جوكر', count: 4 },
     { type: 'hunt', name: 'اصطاد كارتك', count: 4 },
@@ -153,7 +153,8 @@ function createDeck() {
     { type: 'reverse', name: 'اعكس لفتك', count: 4 },
     { type: 'keda', name: 'هو كدة', count: 2 },
     { type: 'annoy', name: 'رخم عليهم', count: 2 },
-    { type: 'wild', name: 'براحتك', count: 2 }
+    { type: 'wild', name: 'براحتك', count: 2 },
+    { type: 'thief', name: 'الحرامي', count: 2 } // الكارت الجديد! 🦹‍♂️
   ];
   commands.forEach(cmd => {
     for (let i = 0; i < cmd.count; i++) {
@@ -425,7 +426,8 @@ io.on('connection', (socket) => {
       direction: 1,
       drawnCard: null,
       tempAnnoyCardIndex: null,
-      pendingHunter: null, // لميكانيكا الصيد الجديدة
+      pendingHunter: null,
+      pendingThief: null, // لميكانيكا كارت الحرامي
       gameStarted: false,
       kamelhaCallers: [],
       turnsLeftInOrbit: null,
@@ -510,6 +512,7 @@ io.on('connection', (socket) => {
     room.drawnCard = null;
     room.tempAnnoyCardIndex = null;
     room.pendingHunter = null;
+    room.pendingThief = null;
     room.kamelhaCallers = [];
     room.turnsLeftInOrbit = null;
 
@@ -522,7 +525,6 @@ io.on('connection', (socket) => {
     room.players.forEach(p => p.hand = room.deck.splice(0, 4));
     room.discardPile.push(room.deck.pop());
 
-    // أنيميشن التفنيط والتوزيع للجميع
     io.to(room.id).emit('animateDealing', { numPlayers: room.players.length });
 
     const starterName = room.players[room.currentTurnIndex].name;
@@ -564,7 +566,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // سحب كارت مع إرسال إشعار وأنيميشن السحب للجميع
   socket.on('drawCard', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.gameStarted) return;
@@ -576,10 +577,7 @@ io.on('connection', (socket) => {
     if (room.deck.length === 0) return socket.emit('errorMsg', 'الكروت خلصت تماماً!');
 
     room.drawnCard = room.deck.pop();
-
-    // إشعار أنيميشن السحب للجميع: سحب من المقلوب
     io.to(roomId).emit('playerDrewCardAnim', { playerId: socket.id, from: 'deck' });
-
     socket.emit('cardDrawn', room.drawnCard);
     sendGameState(roomId);
   });
@@ -602,7 +600,6 @@ io.on('connection', (socket) => {
     advanceTurn(room);
   });
 
-  // أخذ كارت الأرض المكشوف مع أنيميشن للجميع
   socket.on('takeDiscardCard', ({ roomId, handCardIndex }) => {
     const room = rooms[roomId];
     if (!room || !room.gameStarted) return;
@@ -614,14 +611,10 @@ io.on('connection', (socket) => {
     const taken = room.discardPile.pop();
     const oldCard = player.hand.splice(handCardIndex, 1, taken)[0];
     room.discardPile.push(oldCard);
-
-    // إشعار أنيميشن: سحب من المكشوف
     io.to(roomId).emit('playerDrewCardAnim', { playerId: socket.id, from: 'discard' });
-
     advanceTurn(room);
   });
 
-  // بث أنيميشن الكوماندز لجميع اللاعبين
   function broadcastCommandSplash(room, cmdType, cmdName, playerName) {
     io.to(room.id).emit('commandSplash', { cmdType, cmdName, playerName });
   }
@@ -658,8 +651,6 @@ io.on('connection', (socket) => {
     if (!target) return;
 
     broadcastCommandSplash(room, 'keda', 'هو كدة', player.name);
-
-    // بث أنيميشن كارت هو كدة للجميع
     io.to(roomId).emit('kedaAnimation', { targetId: target.id, targetName: target.name });
 
     room.discardPile.push(room.drawnCard);
@@ -677,7 +668,6 @@ io.on('connection', (socket) => {
     const player = room.players[room.currentTurnIndex];
 
     broadcastCommandSplash(room, 'bank', 'لم كمالتك', player.name);
-
     room.discardPile.push(room.drawnCard);
     const chosen = room.discardPile.splice(discardIndex, 1)[0];
     const oldCard = player.hand.splice(handCardIndex, 1, chosen)[0];
@@ -687,7 +677,7 @@ io.on('connection', (socket) => {
     advanceTurn(room);
   });
 
-  // ميكانيكا صيد كارتك المطورة: فحص فوري بدون إجبار اللاعب على التبديل لو فشل الصيد!
+  // صيد كارتك
   socket.on('checkHuntTarget', ({ roomId, targetPlayerId, requestedItem }) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -711,16 +701,9 @@ io.on('connection', (socket) => {
     const itemName = requestedItem === 'joker' ? 'جوكر' : `رقم ${requestedItem}`;
 
     if (foundIndex !== -1) {
-      // الصيد نجح: نطلب من الصياد فقط اختيار كارت للمبادلة
-      room.pendingHunter = {
-        targetPlayerId,
-        foundIndex,
-        requestedItem,
-        itemName
-      };
+      room.pendingHunter = { targetPlayerId, foundIndex, requestedItem, itemName };
       socket.emit('huntTargetHasCard', { targetName: target.name, itemName });
     } else {
-      // فشل الصيد: ينتهي الدور فوراً بدون أي تبديل!
       room.discardPile.push(room.drawnCard);
       room.drawnCard = null;
       io.to(roomId).emit('notify', `🐟 فشل الصيد! (${target.name}) معهوش ${itemName}.`);
@@ -728,7 +711,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // إكمال مبادلة الصيد بعد النجاح
   socket.on('confirmHuntSwap', ({ roomId, handCardIndexToGive }) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard || !room.pendingHunter) return;
@@ -737,15 +719,107 @@ io.on('connection', (socket) => {
     const target = room.players.find(p => p.id === room.pendingHunter.targetPlayerId);
 
     room.discardPile.push(room.drawnCard);
-
     if (target && target.hand[room.pendingHunter.foundIndex]) {
       const hunted = target.hand.splice(room.pendingHunter.foundIndex, 1)[0];
       const given = hunter.hand.splice(handCardIndexToGive, 1, hunted)[0];
       target.hand.push(given);
       io.to(roomId).emit('notify', `🎯 اصطياد ناجح! أخذ (${hunter.name}) ${room.pendingHunter.itemName} من (${target.name})!`);
     }
-
     room.pendingHunter = null;
+    advanceTurn(room);
+  });
+
+  // ================= ميكانيكا كارت الحرامي الأسطوري (3 مراحل مضمونة) =================
+  socket.on('executeThief', ({ roomId, requestedItem }) => {
+    const room = rooms[roomId];
+    if (!room || !room.drawnCard) return;
+
+    const thief = room.players[room.currentTurnIndex];
+    broadcastCommandSplash(room, 'thief', 'الحرامي', thief.name);
+
+    const itemName = requestedItem === 'joker' ? 'جوكر' : `رقم ${requestedItem}`;
+    const checkCard = (c) => requestedItem === 'joker' ? (c.type === 'command' && c.cmdType === 'joker') : (c.type === 'number' && c.value === parseInt(requestedItem));
+
+    // 1. المرحلة الأولى: فحص أيدي الخصوم غير المحميين
+    let victim = null;
+    let victimCardIndex = -1;
+    for (const opp of room.players) {
+      if (opp.id !== thief.id && !room.kamelhaCallers.includes(opp.id)) {
+        const idx = opp.hand.findIndex(checkCard);
+        if (idx !== -1) {
+          victim = opp;
+          victimCardIndex = idx;
+          break;
+        }
+      }
+    }
+
+    if (victim) {
+      room.pendingThief = { tier: 'opponent', victimId: victim.id, cardIndex: victimCardIndex, itemName };
+      return socket.emit('thiefFoundInHand', { victimName: victim.name, itemName });
+    }
+
+    // 2. المرحلة الثانية: فحص الأرض المكشوفة
+    let groundIndex = -1;
+    for (let i = room.discardPile.length - 1; i >= 0; i--) {
+      if (checkCard(room.discardPile[i])) {
+        groundIndex = i;
+        break;
+      }
+    }
+
+    if (groundIndex !== -1) {
+      room.pendingThief = { tier: 'ground', groundIndex, itemName };
+      return socket.emit('thiefFoundOnGround', { itemName });
+    }
+
+    // 3. المرحلة الثالثة: سحب الكارت مباشرة من كروت السحب المقلوبة
+    checkDrawDeckRefill(room);
+    let deckIndex = room.deck.findIndex(checkCard);
+
+    if (deckIndex !== -1) {
+      room.pendingThief = { tier: 'deck', deckIndex, itemName };
+      return socket.emit('thiefFoundInDeck', { itemName });
+    }
+
+    // حالة نادرة جداً لو كل النسخ محبوسة في حصانات
+    room.discardPile.push(room.drawnCard);
+    room.drawnCard = null;
+    io.to(roomId).emit('notify', `🦹‍♂️ لم يجد الحرامي أي كارت متاح لسرقته!`);
+    advanceTurn(room);
+  });
+
+  // إكمال سرقة الحرامي وتبديل الكارت من اليد
+  socket.on('confirmThiefSwap', ({ roomId, handCardIndexToGive }) => {
+    const room = rooms[roomId];
+    if (!room || !room.drawnCard || !room.pendingThief) return;
+
+    const thief = room.players[room.currentTurnIndex];
+    room.discardPile.push(room.drawnCard);
+
+    const { tier, itemName } = room.pendingThief;
+
+    if (tier === 'opponent') {
+      const victim = room.players.find(p => p.id === room.pendingThief.victimId);
+      if (victim && victim.hand[room.pendingThief.cardIndex]) {
+        const stolen = victim.hand.splice(room.pendingThief.cardIndex, 1)[0];
+        const given = thief.hand.splice(handCardIndexToGive, 1, stolen)[0];
+        victim.hand.push(given);
+        io.to(roomId).emit('notify', `🦹‍♂️ سرقة من اليد! سرق الحرامي كارت (${itemName}) من يد (${victim.name}) وبدله بكارت من يده!`);
+      }
+    } else if (tier === 'ground') {
+      const stolen = room.discardPile.splice(room.pendingThief.groundIndex, 1)[0];
+      const given = thief.hand.splice(handCardIndexToGive, 1, stolen)[0];
+      room.discardPile.push(given);
+      io.to(roomId).emit('notify', `🦹‍♂️ سرقة من الأرض! التقط الحرامي كارت (${itemName}) من الأرض ورمى كارت مكانه!`);
+    } else if (tier === 'deck') {
+      const stolen = room.deck.splice(room.pendingThief.deckIndex, 1)[0];
+      const given = thief.hand.splice(handCardIndexToGive, 1, stolen)[0];
+      room.discardPile.push(given);
+      io.to(roomId).emit('notify', `🦹‍♂️ سرقة من السحب! أخرج الحرامي كارت (${itemName}) من قلب كروت السحب المقلوبة!`);
+    }
+
+    room.pendingThief = null;
     advanceTurn(room);
   });
 
@@ -761,7 +835,6 @@ io.on('connection', (socket) => {
     }
 
     broadcastCommandSplash(room, 'annoy', 'رخم عليهم', player.name);
-
     room.tempAnnoyCardIndex = Math.floor(Math.random() * opponent.hand.length);
     socket.emit('annoy2PPeekResult', opponent.hand[room.tempAnnoyCardIndex]);
   });
@@ -778,7 +851,6 @@ io.on('connection', (socket) => {
       const given = player.hand.splice(handCardIndexToGive, 1, taken)[0];
       opponent.hand.push(given);
 
-      // أنيميشن تبديل الكروت
       io.to(roomId).emit('annoySwapAnimation', { p1Id: player.id, p2Id: opponent.id });
       io.to(roomId).emit('notify', `😈 رخم عليهم: رأى (${player.name}) كارت الخصم وبدّله!`);
     } else {
@@ -801,14 +873,12 @@ io.on('connection', (socket) => {
     if (!pA || !pB) return;
 
     broadcastCommandSplash(room, 'annoy', 'رخم عليهم', player.name);
-
     room.discardPile.push(room.drawnCard);
     const cardA = pA.hand.splice(Math.floor(Math.random() * pA.hand.length), 1)[0];
     const cardB = pB.hand.splice(Math.floor(Math.random() * pB.hand.length), 1)[0];
     pA.hand.push(cardB);
     pB.hand.push(cardA);
 
-    // أنيميشن تبديل الكروت بين اللاعبين
     io.to(roomId).emit('annoySwapAnimation', { p1Id: pA.id, p2Id: pB.id });
     io.to(roomId).emit('notify', `😈 رخم عليهم: تم تبديل كارت سراً بين (${pA.name}) و (${pB.name})!`);
     advanceTurn(room);
@@ -820,9 +890,8 @@ io.on('connection', (socket) => {
     const player = room.players[room.currentTurnIndex];
 
     broadcastCommandSplash(room, 'wild', 'براحتك', player.name);
-
     room.drawnCard.cmdType = chosenCmdType;
-    const map = { hunt: 'اصطاد كارتك', bank: 'لم كمالتك', reverse: 'اعكس لفتك', keda: 'هو كدة', annoy: 'رخم عليهم' };
+    const map = { hunt: 'اصطاد كارتك', bank: 'لم كمالتك', reverse: 'اعكس لفتك', keda: 'هو كدة', annoy: 'رخم عليهم', thief: 'الحرامي' };
     room.drawnCard.name = map[chosenCmdType] || chosenCmdType;
     socket.emit('wildTransformed', room.drawnCard);
   });
@@ -869,6 +938,7 @@ io.on('connection', (socket) => {
     room.drawnCard = null;
     room.tempAnnoyCardIndex = null;
     room.pendingHunter = null;
+    room.pendingThief = null;
     const count = room.players.length;
     if (count === 0) return;
 
