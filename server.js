@@ -248,6 +248,111 @@ function validateVoucher(code, playerId) {
   return { valid: true, voucher: v };
 }
 
+// ================= محرك ذكاء البوتات =================
+function evaluateBotHand(hand) {
+  const counts = {};
+  let jokers = 0;
+  hand.forEach(c => {
+    if (c.type === 'command' && c.cmdType === 'joker') jokers++;
+    else if (c.type === 'number') counts[c.value] = (counts[c.value] || 0) + 1;
+  });
+
+  let bestNum = null;
+  let maxCount = 0;
+  for (const n in counts) {
+    if (counts[n] > maxCount) {
+      maxCount = counts[n];
+      bestNum = parseInt(n);
+    }
+  }
+  return { targetNum: bestNum || Math.floor(1 + Math.random() * 10), count: maxCount, jokers };
+}
+
+function handleBotTurn(room) {
+  const bot = room.players[room.currentTurnIndex];
+  if (!bot || !bot.isBot || !room.gameStarted) return;
+
+  const delay = Math.floor(1200 + Math.random() * 800);
+
+  setTimeout(() => {
+    if (!room.gameStarted || room.players[room.currentTurnIndex]?.id !== bot.id) return;
+
+    // فحص الفوز أولاً
+    const check = verifyKamelhaHand(bot.hand);
+    if (check.valid && !room.kamelhaCallers.includes(bot.id)) {
+      room.kamelhaCallers.push(bot.id);
+      bot.earnedPointsThisRound = check.points;
+      io.to(room.id).emit('notify', `🎉 صاح (${bot.name}): "كمّلتهااا!" 🔒 وتم تفعيل قفل الحصانة له!`);
+      io.to(room.id).emit('soundTrigger', 'kamelha');
+      sendGameState(room.id);
+      if (room.turnsLeftInOrbit === null) room.turnsLeftInOrbit = room.players.length - 1;
+    }
+
+    const { targetNum } = evaluateBotHand(bot.hand);
+    const topGround = room.discardPile[room.discardPile.length - 1];
+
+    const wantGround = topGround && (
+      (topGround.type === 'number' && topGround.value === targetNum) ||
+      (topGround.type === 'command' && topGround.cmdType === 'joker')
+    );
+
+    if (wantGround && room.discardPile.length > 0) {
+      const taken = room.discardPile.pop();
+      let discardIdx = bot.hand.findIndex(c => c.type === 'number' && c.value !== targetNum);
+      if (discardIdx === -1) discardIdx = 0;
+
+      const discarded = bot.hand.splice(discardIdx, 1, taken)[0];
+      room.discardPile.push(discarded);
+      io.to(room.id).emit('playerDrewCardAnim', { playerId: bot.id, from: 'discard' });
+      advanceTurn(room);
+    } else {
+      checkDrawDeckRefill(room);
+      if (room.deck.length === 0) return advanceTurn(room);
+
+      const drawn = room.deck.pop();
+      io.to(room.id).emit('playerDrewCardAnim', { playerId: bot.id, from: 'deck' });
+
+      if (drawn.type === 'number') {
+        if (drawn.value === targetNum) {
+          let discardIdx = bot.hand.findIndex(c => c.type === 'number' && c.value !== targetNum);
+          if (discardIdx === -1) discardIdx = 0;
+          const old = bot.hand.splice(discardIdx, 1, drawn)[0];
+          room.discardPile.push(old);
+        } else {
+          room.discardPile.push(drawn);
+        }
+        advanceTurn(room);
+      } else if (drawn.type === 'command') {
+        if (drawn.cmdType === 'joker') {
+          let discardIdx = bot.hand.findIndex(c => c.type === 'number' && c.value !== targetNum);
+          if (discardIdx === -1) discardIdx = 0;
+          const old = bot.hand.splice(discardIdx, 1, drawn)[0];
+          room.discardPile.push(old);
+          advanceTurn(room);
+        } else {
+          room.discardPile.push(drawn);
+          broadcastCommandSplash(room, drawn.cmdType, drawn.name, bot.name);
+
+          if (drawn.cmdType === 'reverse') {
+            room.direction *= -1;
+            io.to(room.id).emit('notify', `تم عكس اتجاه اللعب بواسطة (${bot.name})!`);
+          } else if (drawn.cmdType === 'keda') {
+            const victim = room.players.find(p => p.id !== bot.id && !room.kamelhaCallers.includes(p.id));
+            if (victim) {
+              room.discardPile.push(...victim.hand);
+              checkDrawDeckRefill(room);
+              victim.hand = room.deck.splice(0, 4);
+              io.to(room.id).emit('kedaAnimation', { targetId: victim.id, targetName: victim.name });
+              io.to(room.id).emit('notify', `كارت هو كدة! تم تغيير كروت (${victim.name}) بواسطة (${bot.name})!`);
+            }
+          }
+          advanceTurn(room);
+        }
+      }
+    }
+  }, delay);
+}
+
 io.on('connection', (socket) => {
 
   socket.on('registerPlayerIdentity', ({ playerId, name }) => {
@@ -405,6 +510,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  // إنشاء غرفة جماعية أونلاين
   socket.on('createRoom', ({ playerName, playerId, targetPoints, maxRounds }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
 
@@ -441,6 +547,61 @@ io.on('connection', (socket) => {
     }
 
     socket.emit('roomJoined', { roomId, players: rooms[roomId].players, isHost: true });
+  });
+
+  // بدء اللعب الفردي ضد البوتات 🤖
+  socket.on('startSoloGame', ({ playerName, playerId, botCount, botDifficulty, targetPoints, maxRounds }) => {
+    if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
+
+    const roomId = 'SOLO-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    const count = parseInt(botCount) || 1;
+
+    const botNames = ['رعد 🤖', 'صخر 🤖', 'فلاش 🤖'];
+    const players = [
+      { id: socket.id, playerId, name: playerName.trim(), hand: [], points: 0, isHost: true, isBot: false }
+    ];
+
+    for (let i = 0; i < count; i++) {
+      players.push({
+        id: 'bot_' + i + '_' + Math.random(),
+        playerId: 'BOT-' + (i + 1),
+        name: botNames[i],
+        hand: [],
+        points: 0,
+        isHost: false,
+        isBot: true,
+        difficulty: botDifficulty || 'medium'
+      });
+    }
+
+    const room = {
+      id: roomId,
+      players,
+      deck: [],
+      discardPile: [],
+      currentTurnIndex: 0,
+      roundStarterIndex: 0,
+      roundCount: 0,
+      direction: 1,
+      drawnCard: null,
+      tempAnnoyCardIndex: null,
+      pendingHunter: null,
+      pendingThief: null,
+      gameStarted: false,
+      kamelhaCallers: [],
+      turnsLeftInOrbit: null,
+      turnTimer: null,
+      turnDeadline: null,
+      currentDuration: DEFAULT_TURN_TIME,
+      targetPoints: parseInt(targetPoints) >= 0 ? parseInt(targetPoints) : 5,
+      maxRounds: parseInt(maxRounds) >= 0 ? parseInt(maxRounds) : 0
+    };
+
+    rooms[roomId] = room;
+    socket.join(roomId);
+    socket.emit('roomJoined', { roomId, players: room.players, isHost: true });
+
+    startNewRound(room);
   });
 
   socket.on('joinRoom', ({ playerName, roomId, playerId }) => {
@@ -528,6 +689,10 @@ io.on('connection', (socket) => {
 
     startTurnTimer(room, DEFAULT_TURN_TIME);
     sendGameState(room.id);
+
+    if (room.players[room.currentTurnIndex]?.isBot) {
+      handleBotTurn(room);
+    }
   }
 
   function startTurnTimer(room, seconds = DEFAULT_TURN_TIME) {
@@ -896,7 +1061,7 @@ io.on('connection', (socket) => {
   socket.on('callKamelha', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.gameStarted) return;
-    const player = room.players.find(p => p.id === socket.id);
+    const player = room.players[room.currentTurnIndex];
     if (!player) return;
 
     const check = verifyKamelhaHand(player.hand);
@@ -942,6 +1107,10 @@ io.on('connection', (socket) => {
     room.currentTurnIndex = (room.currentTurnIndex + room.direction + count) % count;
     startTurnTimer(room, DEFAULT_TURN_TIME);
     sendGameState(room.id);
+
+    if (room.players[room.currentTurnIndex]?.isBot) {
+      handleBotTurn(room);
+    }
   }
 
   function endRound(room, instantEnd = false) {
@@ -1038,6 +1207,7 @@ io.on('connection', (socket) => {
           cardCount: pl.hand.length,
           points: pl.points,
           isHost: pl.isHost,
+          isBot: pl.isBot || false,
           isImmune: room.kamelhaCallers.includes(pl.id)
         }))
       });
