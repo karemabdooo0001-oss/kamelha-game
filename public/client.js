@@ -1,6 +1,6 @@
 const socket = io();
 
-// توليد رقم فريد دائم للجهاز (مثل: WL-4821)
+// معرف اللاعب الفريد
 let myPlayerId = localStorage.getItem('kamelha_uid');
 if (!myPlayerId) {
   const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -8,6 +8,7 @@ if (!myPlayerId) {
   localStorage.setItem('kamelha_uid', myPlayerId);
 }
 
+// عناصر DOM
 const gateScreen = document.getElementById('gate-screen');
 const gatePassInput = document.getElementById('gate-pass-input');
 const btnSubmitGate = document.getElementById('btn-submit-gate');
@@ -20,7 +21,21 @@ const toastBanner = document.getElementById('toast-banner');
 const displayMyUid = document.getElementById('display-my-uid');
 if (displayMyUid) displayMyUid.innerText = myPlayerId;
 
-// ================= فحص التذكرة عند الدخول =================
+const commandSplash = document.getElementById('command-splash');
+const splashIcon = document.getElementById('splash-icon');
+const splashTitle = document.getElementById('splash-title');
+const splashPlayer = document.getElementById('splash-player');
+
+// مقاعد الطاولة المحيطية 4 اتجاهات
+const spotTop = document.getElementById('spot-top');
+const spotLeft = document.getElementById('spot-left');
+const spotRight = document.getElementById('spot-right');
+
+const myNameDisplay = document.getElementById('my-name-display');
+const myScoreDisplay = document.getElementById('my-score-display');
+const messyDiscardPile = document.getElementById('messy-discard-pile');
+
+// ================= نظام فحص التذاكر =================
 const urlParams = new URLSearchParams(window.location.search);
 const ticketInUrl = urlParams.get('pass') || urlParams.get('ticket');
 
@@ -36,7 +51,7 @@ if (ticketInUrl) {
 if (btnSubmitGate) {
   btnSubmitGate.onclick = () => {
     const code = gatePassInput.value.trim();
-    if (!code) return alert('من فضلك اكتب كود التذكرة أولاً!');
+    if (!code) return alert('أدخل كود التذكرة!');
     socket.emit('verifyGatePasscode', { passcode: code, playerId: myPlayerId });
   };
 }
@@ -44,24 +59,22 @@ if (btnSubmitGate) {
 socket.on('gateAccessGranted', (data) => {
   const code = (data && data.voucherCode) ? data.voucherCode : 'active';
   sessionStorage.setItem('kamelha_gate_ticket', code);
-
   gateScreen.classList.add('hidden');
   lobbyScreen.classList.remove('hidden');
 });
 
 socket.on('gateAccessDenied', (errMsg) => {
   sessionStorage.removeItem('kamelha_gate_ticket');
-  alert(errMsg || 'كود التذكرة غير صحيح أو منتهي الصلاحية! تواصل مع المطور Wello_0: 01121040020');
+  alert(errMsg || 'كود التذكرة غير صحيح! تواصل مع المطور: 01121040020');
 });
 
 socket.on('bannedKickNotification', () => {
   document.body.innerHTML = `
     <div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#0d0914;color:#fff;text-align:center;font-family:'Cairo',sans-serif;padding:20px;">
-      <div style="background:#1a162b;border:2px solid #ff1744;padding:30px;border-radius:20px;max-width:400px;box-shadow:0 0 30px rgba(255,23,68,0.5);">
-        <h1 style="color:#ff1744;font-size:3rem;margin-bottom:10px;">🚫</h1>
-        <h2 style="color:#ff1744;margin-bottom:10px;">تم حظرك من اللعبة!</h2>
-        <p style="color:#ccc;font-size:0.95rem;line-height:1.6;">تم حظر جهازك ورقمك التعريفي (<b style="color:#ffcc00;">${myPlayerId}</b>) بواسطة المطور <b>Wello_0</b>.</p>
-        <p style="color:#777;font-size:0.8rem;margin-top:15px;">للاستفسار: 01121040020</p>
+      <div style="background:#1a162b;border:2px solid #ff1744;padding:30px;border-radius:20px;max-width:400px;">
+        <h1 style="color:#ff1744;font-size:3rem;">🚫</h1>
+        <h2 style="color:#ff1744;">تم حظرك من اللعبة!</h2>
+        <p style="color:#ccc;">تم حظر جهازك ورقمك التعريفي (<b style="color:#ffcc00;">${myPlayerId}</b>) بواسطة Wello_0.</p>
       </div>
     </div>
   `;
@@ -106,10 +119,16 @@ const SoundManager = {
 
   playDraw() { this.init(); this.playTone(320, 'sine', 0.15, 0.2); },
   playPlace() { this.init(); this.playTone(180, 'triangle', 0.1, 0.25); },
+  playShuffle() {
+    this.init();
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => this.playTone(200 + Math.random() * 200, 'triangle', 0.08, 0.1), i * 60);
+    }
+  },
   playCommand() {
     this.init();
     if (this.muted || !this.ctx) return;
-    [440, 554, 659].forEach((n, i) => setTimeout(() => this.playTone(n, 'sine', 0.2, 0.18), i * 70));
+    [440, 554, 659, 880].forEach((n, i) => setTimeout(() => this.playTone(n, 'sine', 0.25, 0.2), i * 60));
   },
   playTick() { this.init(); this.playTone(800, 'square', 0.05, 0.05); },
   playKamelha() {
@@ -127,7 +146,6 @@ const SoundManager = {
 window.addEventListener('click', () => SoundManager.init(), { once: true });
 window.addEventListener('touchstart', () => SoundManager.init(), { once: true });
 
-// DOM
 const btnSoundLobby = document.getElementById('btn-sound-lobby');
 const btnSoundGame = document.getElementById('btn-sound-game');
 const btnRules = document.getElementById('btn-rules');
@@ -152,10 +170,8 @@ const playerCount = document.getElementById('player-count');
 const waitMsg = document.getElementById('wait-msg');
 
 const myHandDiv = document.getElementById('my-hand');
-const topDiscardCardDiv = document.getElementById('top-discard-card');
 const deckCounter = document.getElementById('deck-counter');
 const currentPlayerName = document.getElementById('current-player-name');
-const otherPlayersDiv = document.getElementById('other-players');
 const drawDeckBtn = document.getElementById('draw-deck');
 const discardDeckBtn = document.getElementById('discard-deck');
 
@@ -200,16 +216,6 @@ if (btnRules) {
           <h3>🔒 قفل الحصانة:</h3>
           <p>من يقول <b>"كمّلتها"</b> يُقفل عليه بحصانة 🔒 ولا يمكن لأحد استهدافه بأي كوماند!</p>
         </div>
-        <div class="rule-section">
-          <h3>⚡ الكوماندز:</h3>
-          <p>• <b>الجوكر:</b> بديل لأي رقم ويدخل اليد.</p>
-          <p>• <b>اصطاد كارتك:</b> تطلب كارت أو جوكر وتبدله.</p>
-          <p>• <b>لم كمالتك:</b> تختار أي كارت من الأرض المكشوفة.</p>
-          <p>• <b>اعكس لفتك:</b> تعكس الدور (وفي 2 لاعبين تفوت دور الخصم).</p>
-          <p>• <b>هو كدة:</b> تجبر لاعباً على تغيير كل كروته.</p>
-          <p>• <b>رخم عليهم:</b> تتجسس على كارت الخصم وتبدله أو تبدل بين لاعبين.</p>
-          <p>• <b>براحتك:</b> تتحول لأي كوماند تختاره.</p>
-        </div>
       </div>
       <button class="btn primary-btn" onclick="closeModal()" style="margin-top:12px;">فهمت القواعد 👍</button>
     `);
@@ -223,11 +229,9 @@ if (btnBuy) {
       <div class="buy-card-info">
         <div class="brand-badge">Wello_0</div>
         <p class="phone-number-display">📞 01121040020</p>
-        <p style="font-size:0.85rem;color:#aaa;margin-top:5px;">شراء تذاكر لعب أونلاين فردية أو لشلة + النسخة الورقية الحقيقية</p>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+      <div style="display:flex;flex-direction:column;gap:8px;">
         <a href="https://wa.me/201121040020?text=أهلاً%20Wello_0،%20عايز%20أشتري%20تذكرة%20دخول%20للعبة%20كملها" target="_blank" class="btn whatsapp-btn">💬 تواصل عبر واتساب للشراء</a>
-        <a href="tel:01121040020" class="btn call-btn">📞 اتصال هاتفي مباشر</a>
         <button class="btn secondary-btn" onclick="closeModal()">إغلاق</button>
       </div>
     `);
@@ -358,12 +362,17 @@ if (btnKamelha) {
   });
 }
 
+// معالجة الكارت المسحوب
 socket.on('cardDrawn', card => {
   currentDrawnCard = card;
   if (card.type === 'number' || card.cmdType === 'joker') {
+    if (card.cmdType === 'joker') {
+      // تأثير سري وخاص بصاحب الجوكر فقط
+      SoundManager.playWin();
+      showToast('🤫 سحبت جوكر! الكارت سري ومحدش يعرف.');
+    }
     handleNumberOrJokerModal(card);
   } else {
-    SoundManager.playCommand();
     handleCommandCardModal(card);
   }
 });
@@ -401,14 +410,12 @@ function handleCommandCardModal(card) {
   const actions = {
     reverse: () => {
       currentDrawnCard = null;
-      SoundManager.playCommand();
       socket.emit('execReverse', currentRoomId);
     },
     keda: () => {
       socket.emit('extendTimerForCommand', currentRoomId);
       openPlayerPicker('اختار لاعباً لتبديل كل كروته:', targetId => {
         currentDrawnCard = null;
-        SoundManager.playCommand();
         socket.emit('execKeda', { roomId: currentRoomId, targetPlayerId: targetId });
       });
     },
@@ -481,6 +488,7 @@ function openBankPicker() {
   });
 }
 
+// ميكانيكا صيد كارتك المطورة: تطلب الكارت أولاً بدون إجبار على التبديل
 function openHuntFlow() {
   openPlayerPicker('اختر لاعباً لتصطاد منه:', targetId => {
     let html = `<h2>اختر الكارت الذي تبحث عنه:</h2><div class="hunt-grid">`;
@@ -498,21 +506,37 @@ function openHuntFlow() {
       b.onclick = () => {
         const item = b.getAttribute('data-val');
         closeModal();
-        showToast('اختر كارت من إيدك لتعطيه له في المقابل:');
-        pickCardFromHand(handIdx => {
-          currentDrawnCard = null;
-          SoundManager.playCommand();
-          socket.emit('execHunt', {
-            roomId: currentRoomId,
-            targetPlayerId: targetId,
-            requestedItem: item,
-            handCardIndexToGive: handIdx
-          });
+        // إرسال فحص للهدف مباشرة
+        socket.emit('checkHuntTarget', {
+          roomId: currentRoomId,
+          targetPlayerId: targetId,
+          requestedItem: item
         });
       };
     });
   });
 }
+
+// الرد في حالة نجاح الصيد فقط
+socket.on('huntTargetHasCard', ({ targetName, itemName }) => {
+  SoundManager.playWin();
+  showToast(`🎯 نجح الصيد! (${targetName}) معه كارت ${itemName}!`);
+  openModal(`
+    <h2 style="color:#00e676;">🎯 الصيد نجح!</h2>
+    <p>اللاعب <b>${targetName}</b> معه بالفعل كارت <b>${itemName}</b>!</p>
+    <p>اضغط أدناه لاختيار كارت من يدك لتبديله معه:</p>
+    <button id="btn-confirm-hunt-pick" class="btn primary-btn">اختر كارتك للمبادلة 🔄</button>
+  `);
+
+  document.getElementById('btn-confirm-hunt-pick').onclick = () => {
+    closeModal();
+    showToast('اضغط على كارت من يدك لإعطائه له:');
+    pickCardFromHand(handIdx => {
+      currentDrawnCard = null;
+      socket.emit('confirmHuntSwap', { roomId: currentRoomId, handCardIndexToGive: handIdx });
+    });
+  };
+});
 
 function openAnnoyFlow() {
   const others = latestGameState.players.filter(p => p.id !== socket.id && !p.isImmune);
@@ -543,7 +567,6 @@ function openAnnoyFlow() {
         if (selected.length === 2) {
           closeModal();
           currentDrawnCard = null;
-          SoundManager.playCommand();
           socket.emit('execAnnoyMulti', { roomId: currentRoomId, playerAId: selected[0], playerBId: selected[1] });
         }
       };
@@ -599,7 +622,6 @@ function openWildFlow() {
     btn.onclick = () => {
       const type = btn.getAttribute('data-type');
       closeModal();
-      SoundManager.playCommand();
       socket.emit('execWildAs', { roomId: currentRoomId, chosenCmdType: type });
     };
   });
@@ -656,27 +678,158 @@ function closeModal() {
   if (modalOverlay) modalOverlay.classList.add('hidden');
 }
 
+// ================= أنيميشن الكوماندز السينمائي (Splash FX) =================
+socket.on('commandSplash', ({ cmdType, cmdName, playerName }) => {
+  const icons = {
+    reverse: '🔄',
+    hunt: '🎯',
+    bank: '🏛️',
+    keda: '😎',
+    annoy: '😈',
+    wild: '⭐'
+  };
+
+  SoundManager.playCommand();
+  splashIcon.innerText = icons[cmdType] || '⚡';
+  splashTitle.innerText = cmdName;
+  splashPlayer.innerText = `${playerName} قام بتفعيل الكارت!`;
+
+  commandSplash.classList.remove('hidden');
+  setTimeout(() => {
+    commandSplash.classList.add('hidden');
+  }, 1600);
+});
+
+// أنيميشن كارت هو كدة
+socket.on('kedaAnimation', ({ targetId, targetName }) => {
+  SoundManager.playPlace();
+  showToast(`🌪️ كارت هو كدة! تطايرت كروت ${targetName} إلى الأرض!`);
+});
+
+// أنيميشن تبديل رخم عليهم
+socket.on('annoySwapAnimation', ({ p1Id, p2Id }) => {
+  SoundManager.playShuffle();
+  showToast('😈 رخم عليهم: تم تبديل كارتين سراً بين اللاعبين في الهواء!');
+});
+
+// أنيميشن السحب المباشر للجميع
+socket.on('playerDrewCardAnim', ({ playerId, from }) => {
+  if (playerId !== socket.id) {
+    SoundManager.playDraw();
+  }
+});
+
+// أنيميشن التفنيط والتوزيع في البداية
+socket.on('animateDealing', ({ numPlayers }) => {
+  SoundManager.playShuffle();
+  showToast('🎲 جاري تفنيط وتوزيع الكروت على اللاعبين...');
+});
+
+// ================= رسم كومة الأرض العشوائية الواقعية =================
+function renderMessyDiscardPile(topCard, discardHistory) {
+  if (!topCard) {
+    messyDiscardPile.innerHTML = '<div id="top-discard-card" class="card-placeholder">لا يوجد</div>';
+    return;
+  }
+
+  // زوايا ميل عشوائية ثابتة للكروت التي بالأسفل
+  const angles = [-9, 7, -4, 11];
+  let html = '';
+
+  if (discardHistory && discardHistory.length > 1) {
+    const underCount = Math.min(3, discardHistory.length - 1);
+    for (let i = 0; i < underCount; i++) {
+      const prevCard = discardHistory[discardHistory.length - 2 - i];
+      const img = prevCard.type === 'number' ? `${prevCard.value}.png` : `${prevCard.cmdType}.png`;
+      const rot = angles[i % angles.length];
+      html += `
+        <div class="messy-under-card" style="transform: rotate(${rot}deg) translate(${i * 2}px, ${-i * 2}px); opacity: 0.85;">
+          <img src="/cards/${img}" alt="">
+        </div>
+      `;
+    }
+  }
+
+  // الكارت الأخير على الوش مستقر
+  html += `
+    <div id="top-discard-card" style="position:relative; z-index:2;">
+      ${createCardHTML(topCard)}
+    </div>
+  `;
+
+  messyDiscardPile.innerHTML = html;
+}
+
+// ================= تنظيم وتوزيع مقاعد الطاولة المحيطية 4 اتجاهات =================
+function updateTableSeats(players, myId) {
+  // اللاعب الحالي دائماً بالأسفل
+  const me = players.find(p => p.id === myId);
+  if (me) {
+    myNameDisplay.innerText = `${me.isHost ? '👑 ' : ''}${me.name}`;
+    myScoreDisplay.innerText = `${me.points}ن`;
+  }
+
+  // الخصوم مرتبين بالنسبة لمكانك
+  const otherPlayers = players.filter(p => p.id !== myId);
+
+  // إخفاء المقاعد أولاً
+  spotTop.classList.add('hidden');
+  spotLeft.classList.add('hidden');
+  spotRight.classList.add('hidden');
+
+  if (otherPlayers.length === 1) {
+    // 2 لاعبين: الخصم في المقابل (فوق)
+    renderSeat(spotTop, otherPlayers[0]);
+  } else if (otherPlayers.length === 2) {
+    // 3 لاعبين: خصم على الشمال وخصم في المقابل
+    renderSeat(spotLeft, otherPlayers[0]);
+    renderSeat(spotTop, otherPlayers[1]);
+  } else if (otherPlayers.length === 3) {
+    // 4 لاعبين: طاولة كاملة محيطية (شمال، فوق، يمين)
+    renderSeat(spotLeft, otherPlayers[0]);
+    renderSeat(spotTop, otherPlayers[1]);
+    renderSeat(spotRight, otherPlayers[2]);
+  }
+}
+
+function renderSeat(seatEl, player) {
+  seatEl.classList.remove('hidden');
+  const nameEl = seatEl.querySelector('.seat-name');
+  const scoreEl = seatEl.querySelector('.seat-score');
+  const cardsEl = seatEl.querySelector('.seat-cards');
+
+  nameEl.innerHTML = `${player.isHost ? '👑 ' : ''}${player.name} ${player.isImmune ? '🔒' : ''}`;
+  scoreEl.innerText = `${player.points}ن`;
+
+  cardsEl.innerHTML = '';
+  // رسم كروت الخصم مقلوبة بظهر الكارت الأصلي
+  for (let i = 0; i < (player.cardCount || 4); i++) {
+    const mini = document.createElement('div');
+    mini.className = 'mini-card-back';
+    mini.innerHTML = `<img src="/cards/back.png" alt="">`;
+    cardsEl.appendChild(mini);
+  }
+}
+
 function updateTurnTimer(deadline, totalSeconds) {
   clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
-    if (timerSec) timerSec.innerText = remaining;
+    timerSec.innerText = remaining;
 
     if (remaining <= 3 && remaining > 0) {
       SoundManager.playTick();
     }
 
-    if (timerBar) {
-      const percentage = Math.max(0, (remaining / totalSeconds) * 100);
-      timerBar.style.width = percentage + '%';
+    const percentage = Math.max(0, (remaining / totalSeconds) * 100);
+    timerBar.style.width = percentage + '%';
 
-      if (percentage > 50) {
-        timerBar.style.background = '#00e676';
-      } else if (percentage > 25) {
-        timerBar.style.background = '#ffcc00';
-      } else {
-        timerBar.style.background = '#ff3d00';
-      }
+    if (percentage > 50) {
+      timerBar.style.background = '#00e676';
+    } else if (percentage > 25) {
+      timerBar.style.background = '#ffcc00';
+    } else {
+      timerBar.style.background = '#ff3d00';
     }
 
     if (remaining <= 0) {
@@ -685,6 +838,7 @@ function updateTurnTimer(deadline, totalSeconds) {
   }, 200);
 }
 
+// استقبال حالة اللعبة وتحديث الطاولة المحيطية بالكامل
 socket.on('gameState', data => {
   latestGameState = data;
   if (!data.hasDrawn) currentDrawnCard = null;
@@ -707,42 +861,21 @@ socket.on('gameState', data => {
     updateTurnTimer(data.turnDeadline, data.turnDuration || 15);
   }
 
-  if (deckCounter) deckCounter.innerText = data.deckCount;
+  deckCounter.innerText = data.deckCount;
 
-  if (data.topDiscard && topDiscardCardDiv) {
-    topDiscardCardDiv.innerHTML = createCardHTML(data.topDiscard);
-  }
+  // رسم كومة الأرض العشوائية
+  renderMessyDiscardPile(data.topDiscard, data.discardPile);
 
-  if (myHandDiv) {
-    myHandDiv.innerHTML = '';
-    data.hand.forEach(c => {
-      const el = document.createElement('div');
-      el.innerHTML = createCardHTML(c);
-      myHandDiv.appendChild(el.firstElementChild);
-    });
-  }
+  // تحديث كروت يد اللاعب المكشوفة
+  myHandDiv.innerHTML = '';
+  data.hand.forEach(c => {
+    const el = document.createElement('div');
+    el.innerHTML = createCardHTML(c);
+    myHandDiv.appendChild(el.firstElementChild);
+  });
 
-  const maxScore = Math.max(...data.players.map(p => p.points));
-
-  if (otherPlayersDiv) {
-    otherPlayersDiv.innerHTML = '';
-    data.players.forEach(p => {
-      const badge = document.createElement('div');
-      badge.className = `player-score-chip ${p.id === data.currentTurn ? 'active-turn' : ''} ${p.isImmune ? 'immune-player' : ''}`;
-      
-      const hasTrophy = p.points > 0 && p.points === maxScore;
-      const trophyIcon = hasTrophy ? '🏆 ' : '';
-
-      badge.innerHTML = `
-        <span class="chip-name">
-          ${p.isHost ? '👑 ' : ''}${p.name} ${p.id === socket.id ? '(أنت)' : ''}
-          ${p.isImmune ? '<b class="lock-tag">🔒 محمي</b>' : ''}
-        </span>
-        <span class="chip-score ${hasTrophy ? 'leader-score' : ''}">${trophyIcon}${p.points}ن</span>
-      `;
-      otherPlayersDiv.appendChild(badge);
-    });
-  }
+  // تحديث المقاعد المحيطية الأربعة للخصوم
+  updateTableSeats(data.players, socket.id);
 });
 
 socket.on('roundEnded', ({ msg, revealedHands }) => {
