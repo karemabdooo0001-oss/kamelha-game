@@ -919,7 +919,7 @@ socket.on('gameState', data => {
     currentPlayerName.parentElement.style.background = isMyTurn ? '#00e676' : '#ffcc00';
   }
 
-  // لافتة شروط الفوز الذكية
+  // لافتة شروط الفوز الذكية بالاعلى
   if (matchRulesTag) {
     const pts = data.targetPoints;
     const rnds = data.maxRounds;
@@ -934,7 +934,7 @@ socket.on('gameState', data => {
       matchRulesTag.innerText = `🎯 الهدف: أول من يجمع 5 نقاط | 🏁 الجولة ${data.roundCount}`;
     }
   }
-
+  
   if (data.turnDeadline) {
     updateTurnTimer(data.turnDeadline, data.turnDuration || 15);
   }
