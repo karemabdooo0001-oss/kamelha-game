@@ -28,6 +28,35 @@ html, body {
 
 .hidden { display: none !important; }
 
+/* تبويبات اختيار نمط اللعب في اللوبي (أونلاين أو ضد البوتات) */
+.mode-select-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+  background: rgba(0,0,0,0.4);
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.mode-tab-btn {
+  flex: 1;
+  padding: 9px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #aaa;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-tab-btn.active {
+  background: #ffcc00;
+  color: #111;
+  box-shadow: 0 2px 10px rgba(255, 204, 0, 0.4);
+}
+
 /* أزرار الصوت والإشعار */
 .sound-toggle-btn {
   position: absolute;
@@ -88,7 +117,7 @@ html, body {
   color: #ffcc00;
   text-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
 }
-.tagline { color: #aaa; margin-bottom: 14px; font-size: 0.85rem; }
+.tagline { color: #aaa; margin-bottom: 12px; font-size: 0.85rem; }
 .input-group label { display: block; text-align: right; margin-bottom: 5px; font-size: 0.85rem; }
 
 input {
@@ -103,7 +132,7 @@ input {
   margin-bottom: 10px;
 }
 
-/* صندوق إعدادات شروط الماتش */
+/* إعدادات شروط الماتش */
 .room-match-settings {
   background: rgba(0,0,0,0.4);
   padding: 10px;
@@ -292,7 +321,7 @@ input {
   border-radius: 14px;
 }
 
-/* تأثير الإضاءة الفسفورية لصاحب الدور (بدون كسر التوسيط) */
+/* تأثير الإضاءة الفسفورية لصاحب الدور */
 .active-turn-seat .seat-info, 
 .active-turn-seat .my-seat-tag {
   border: 2px solid #00e676 !important;
@@ -300,7 +329,6 @@ input {
   background: rgba(0, 230, 118, 0.25) !important;
   animation: badgePulse 1s infinite alternate ease-in-out;
 }
-
 @keyframes badgePulse {
   from { box-shadow: 0 0 8px 2px rgba(0, 230, 118, 0.4); }
   to { box-shadow: 0 0 25px 7px rgba(0, 230, 118, 0.95); }
@@ -350,8 +378,7 @@ input {
   height: clamp(26px, 5vw, 52px);
 }
 
-/* مقعدك أنت بالأسفل (داخل الطاولة على اللباد) */
-/* مقعدك أنت بالأسفل (توسيط حديدي ثابت لا يتحرك) */
+/* مقعدك أنت بالأسفل (توسيط حديدي لا يتحرك) */
 .seat-bottom {
   position: absolute;
   bottom: 8px;
@@ -364,12 +391,9 @@ input {
   align-items: center;
   gap: 4px;
   z-index: 5;
-  pointer-events: none; /* لمنع حجب النقرات */
+  pointer-events: none;
 }
-
-.seat-bottom * {
-  pointer-events: auto;
-}
+.seat-bottom * { pointer-events: auto; }
 
 .my-table-bar {
   width: 95%;
