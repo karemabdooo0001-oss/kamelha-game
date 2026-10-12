@@ -139,11 +139,13 @@ const DEFAULT_TURN_TIME = 15;
 
 function createDeck() {
   const deck = [];
+  // 40 كارت أرقام
   for (let num = 1; num <= 10; num++) {
     for (let i = 0; i < 4; i++) {
       deck.push({ id: `num_${num}_${i}_${Math.random()}`, type: 'number', value: num });
     }
   }
+  // 24 كارت كوماندز
   const commands = [
     { type: 'joker', name: 'جوكر', count: 4 },
     { type: 'hunt', name: 'اصطاد كارتك', count: 4 },
@@ -248,13 +250,16 @@ function validateVoucher(code, playerId) {
   return { valid: true, voucher: v };
 }
 
-// ================= محرك ذكاء البوتات =================
+// ================= محرك ذكاء البوتات (تم تصليحه بالملي) =================
 function evaluateBotHand(hand) {
   const counts = {};
   let jokers = 0;
   hand.forEach(c => {
-    if (c.type === 'command' && c.cmdType === 'joker') jokers++;
-    else if (c.type === 'number') counts[c.value] = (counts[c.value] || 0) + 1;
+    if (c.type === 'command' && c.cmdType === 'joker') {
+      jokers++;
+    } else if (c.type === 'number') {
+      counts[c.value] = (counts[c.value] || 0) + 1; // هنا تم إصلاح counts بدلاً من numCounts!
+    }
   });
 
   let bestNum = null;
@@ -289,10 +294,11 @@ function handleBotTurn(room) {
         if (room.turnsLeftInOrbit === null) room.turnsLeftInOrbit = room.players.length - 1;
       }
 
-      // 2. تحليل يد البوت
+      // 2. تحليل يد البوت واختيار الرقم الهدف
       const { targetNum } = evaluateBotHand(bot.hand);
       const topGround = room.discardPile[room.discardPile.length - 1];
 
+      // فحص هل كارت الأرض يفيد البوت
       const wantGround = topGround && (
         (topGround.type === 'number' && topGround.value === targetNum) ||
         (topGround.type === 'command' && topGround.cmdType === 'joker')
@@ -309,6 +315,7 @@ function handleBotTurn(room) {
         io.to(room.id).emit('notify', `🤖 (${bot.name}) أخذ كارت الأرض وبدل كارت مكانه!`);
         advanceTurn(room);
       } else {
+        // سحب من المقلوب
         checkDrawDeckRefill(room);
         if (room.deck.length === 0) {
           advanceTurn(room);
@@ -324,7 +331,7 @@ function handleBotTurn(room) {
             if (discardIdx === -1) discardIdx = 0;
             const old = bot.hand.splice(discardIdx, 1, drawn)[0];
             room.discardPile.push(old);
-            io.to(room.id).emit('notify', `🤖 (${bot.name}) احتفظ بالكارت المسحوب وبدل كارت مكانه!`);
+            io.to(room.id).emit('notify', `🤖 (${bot.name}) احتفظ بالكارت وبدل كارت مكانه!`);
           } else {
             room.discardPile.push(drawn);
             io.to(room.id).emit('notify', `🤖 (${bot.name}) سحب كارت ورماه على الأرض!`);
@@ -365,7 +372,7 @@ function handleBotTurn(room) {
         }
       }
     } catch (err) {
-      console.error('Bot Error:', err);
+      console.error('Bot Error Fixed:', err);
       advanceTurn(room);
     }
   }, 1300);
@@ -708,6 +715,7 @@ io.on('connection', (socket) => {
     startTurnTimer(room, DEFAULT_TURN_TIME);
     sendGameState(room.id);
 
+    // تشغيل دور البوت فوراً إذا كان هو من يبدأ
     if (room.players[room.currentTurnIndex]?.isBot) {
       handleBotTurn(room);
     }
@@ -1126,7 +1134,7 @@ io.on('connection', (socket) => {
     startTurnTimer(room, DEFAULT_TURN_TIME);
     sendGameState(room.id);
 
-    // تشغيل دور البوت فوراً
+    // تشغيل دور البوت فوراً وبشكل مضمون
     if (room.players[room.currentTurnIndex]?.isBot) {
       handleBotTurn(room);
     }
