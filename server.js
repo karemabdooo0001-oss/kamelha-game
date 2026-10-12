@@ -428,10 +428,21 @@ io.on('connection', (socket) => {
       turnTimer: null,
       turnDeadline: null,
       currentDuration: DEFAULT_TURN_TIME,
-      // المنظومة المزدوجة
-      targetPoints: parseInt(targetPoints) || 5, // من 1 إلى 10
-      maxRounds: parseInt(maxRounds) || 10      // من 1 إلى 20
+      // حفظ الإعدادات مع إمكانية "بدون تحديد"
+      targetPoints: parseInt(targetPoints) >= 0 ? parseInt(targetPoints) : 5,
+      maxRounds: parseInt(maxRounds) >= 0 ? parseInt(maxRounds) : 0
     };
+    socket.join(roomId);
+
+    if (registeredPlayers.has(playerId)) {
+      const r = registeredPlayers.get(playerId);
+      r.currentRoom = roomId;
+      r.name = playerName.trim();
+      dbSavePlayer(r);
+    }
+
+    socket.emit('roomJoined', { roomId, players: rooms[roomId].players, isHost: true });
+  });
     socket.join(roomId);
 
     if (registeredPlayers.has(playerId)) {
@@ -961,6 +972,55 @@ io.on('connection', (socket) => {
         }
       });
     }
+
+    // 1. فحص نقاط الفوز (لو تم تحديد نقاط أكبر من صفر)
+    if (room.targetPoints > 0) {
+      const pointsWinner = room.players.find(p => p.points >= room.targetPoints);
+      if (pointsWinner) {
+        matchWinner = pointsWinner;
+        winReason = `أول من وصل إلى هدف ${room.targetPoints} نقاط وفاز بالمباراة! 🏆`;
+      }
+    }
+
+    // 2. فحص انتهاء الجولات (لو تم تحديد جولات ومحدش وصل للنقاط لسه)
+    if (!matchWinner && room.maxRounds > 0 && room.roundCount >= room.maxRounds) {
+      const maxScore = Math.max(...room.players.map(p => p.points));
+      matchWinner = room.players.find(p => p.points === maxScore);
+      winReason = `فاز بأعلى مجموع نقاط بعد انتهاء كل الجولات (${room.maxRounds} جولة)! 🏆`;
+      winMessage += `\n🏁 انتهت كل جولات المباراة (${room.maxRounds} جولة)!`;
+    }
+
+    if (instantEnd) {
+      matchWinner = room.players.find(p => p.points >= 5);
+      winReason = 'فوز ساحق بـ 4 جواكر!';
+      winMessage = `فوز ساحق بـ 4 جواكر بواسطة ${matchWinner ? matchWinner.name : 'اللاعب'}!`;
+    }
+
+    const revealedHands = room.players.map(p => ({
+      name: p.name,
+      hand: p.hand,
+      points: p.points,
+      isHost: p.isHost
+    }));
+
+    if (matchWinner) {
+      io.to(room.id).emit('gameOver', { 
+        winnerName: matchWinner.name, 
+        scores: room.players, 
+        revealedHands,
+        reason: winReason
+      });
+      room.gameStarted = false;
+      expireRoomOneMatchVouchers(room);
+    } else {
+      io.to(room.id).emit('roundEnded', { msg: winMessage, revealedHands });
+      setTimeout(() => {
+        if (rooms[room.id] && rooms[room.id].players.length >= 2) {
+          startNewRound(rooms[room.id]);
+        }
+      }, 8000);
+    }
+  }
 
     // 1. فحص أولاً: هل وصل أي لاعب لنقاط الفوز المطلوبة؟
     const pointsWinner = room.players.find(p => p.points >= room.targetPoints);
