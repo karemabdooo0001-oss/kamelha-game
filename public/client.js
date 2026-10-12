@@ -19,6 +19,10 @@ const toastBanner = document.getElementById('toast-banner');
 const displayMyUid = document.getElementById('display-my-uid');
 if (displayMyUid) displayMyUid.innerText = myPlayerId;
 
+const targetPointsInput = document.getElementById('target-points-input');
+const maxRoundsInput = document.getElementById('max-rounds-input');
+const matchRulesTag = document.getElementById('match-rules-tag');
+
 const commandSplash = document.getElementById('command-splash');
 const splashIcon = document.getElementById('splash-icon');
 const splashTitle = document.getElementById('splash-title');
@@ -27,12 +31,13 @@ const splashPlayer = document.getElementById('splash-player');
 const spotTop = document.getElementById('spot-top');
 const spotLeft = document.getElementById('spot-left');
 const spotRight = document.getElementById('spot-right');
+const spotBottom = document.getElementById('spot-bottom');
 
 const myNameDisplay = document.getElementById('my-name-display');
 const myScoreDisplay = document.getElementById('my-score-display');
 const messyDiscardPile = document.getElementById('messy-discard-pile');
 
-// تذاكر الدخول
+// فحص التذاكر
 const urlParams = new URLSearchParams(window.location.search);
 const ticketInUrl = urlParams.get('pass') || urlParams.get('ticket');
 
@@ -80,7 +85,7 @@ socket.on('bannedKickNotification', () => {
 const savedName = localStorage.getItem('kamelha_name') || 'لاعب';
 socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name: savedName });
 
-// نظام الصوت
+// الصوت
 const SoundManager = {
   ctx: null,
   muted: localStorage.getItem('kamelha_muted') === 'true',
@@ -201,7 +206,7 @@ if (btnRules) {
       <div class="rules-scroll-content">
         <div class="rule-section">
           <h3>🎯 الهدف:</h3>
-          <p>تجميع <b>4 كروت من نفس الرقم</b>. أول من يصل لـ <b>5 نقاط</b> يفوز بالمباراة!</p>
+          <p>تجميع <b>4 كروت من نفس الرقم</b>. والمباراة تحسم بالوصول للنقاط المحددة أو انتهاء الجولات!</p>
         </div>
         <div class="rule-section">
           <h3>🃏 النقاط:</h3>
@@ -210,12 +215,8 @@ if (btnRules) {
           <p>• 4 جواكر = <b>فوز فوري بالمباراة (5 نقاط)</b>!</p>
         </div>
         <div class="rule-section">
-          <h3>🦹‍♂️ كارت الحرامي الجديد:</h3>
-          <p>أقوى كارت في اللعبة! تطلب رقماً أو جوكر ويسرقه فوراً (من أيدي الخصوم أولاً، أو من الأرض، أو من قلب كروت السحب المقلوبة مضمون 100%) وتبدل مكانه كارت من يدك!</p>
-        </div>
-        <div class="rule-section">
-          <h3>🔒 قفل الحصانة:</h3>
-          <p>من يقول <b>"كمّلتها"</b> يُقفل عليه بحصانة 🔒 ولا يمكن لأحد استهدافه بأي كوماند!</p>
+          <h3>🦹‍♂️ كارت الحرامي:</h3>
+          <p>يسرق الرقم المطلوب من أيدي الخصوم أولاً، أو من الأرض، أو من قلب كروت السحب المقلوبة مضمون 100%!</p>
         </div>
       </div>
       <button class="btn primary-btn" onclick="closeModal()" style="margin-top:12px;">فهمت القواعد 👍</button>
@@ -273,13 +274,23 @@ function copyRoomCode() {
 if (btnCopyCodeWait) btnCopyCodeWait.addEventListener('click', copyRoomCode);
 if (btnCopyCodeGame) btnCopyCodeGame.addEventListener('click', copyRoomCode);
 
+// إنشاء غرفة مع إرسال نقاط الفوز والحد الأقصى للجولات معاً
 if (btnCreate) {
   btnCreate.addEventListener('click', () => {
     const name = playerNameInput.value.trim();
     if (!name) return alert('اكتب اسمك الأول!');
     localStorage.setItem('kamelha_name', name);
     socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
-    socket.emit('createRoom', { playerName: name, playerId: myPlayerId });
+    
+    const pts = targetPointsInput ? targetPointsInput.value : 5;
+    const rnds = maxRoundsInput ? maxRoundsInput.value : 10;
+
+    socket.emit('createRoom', { 
+      playerName: name, 
+      playerId: myPlayerId,
+      targetPoints: pts,
+      maxRounds: rnds
+    });
   });
 }
 
@@ -363,7 +374,6 @@ if (btnKamelha) {
   });
 }
 
-// الكارت المسحوب
 socket.on('cardDrawn', card => {
   currentDrawnCard = card;
   if (card.type === 'number' || card.cmdType === 'joker') {
@@ -538,10 +548,9 @@ socket.on('huntTargetHasCard', ({ targetName, itemName }) => {
   };
 });
 
-// ================= نافذة كارت الحرامي =================
 function openThiefFlow() {
   let html = `<h2>🦹‍♂️ كارت الحرامي!</h2>`;
-  html += `<p style="font-size:0.85rem;color:#ccc;">اختر الكارت المطلوب، وسيأتي إليك حتماً (من يد الخصم، أو من الأرض، أو من السحب المقلوب)!</p>`;
+  html += `<p style="font-size:0.85rem;color:#ccc;">اختر الكارت المطلوب، وسيأتي إليك حتماً (من يد الخصم، أو الأرض، أو السحب)!</p>`;
   html += `<div class="hunt-grid">`;
   for (let i = 1; i <= 10; i++) {
     html += `<button class="btn secondary-btn thief-select-btn" data-val="${i}">${i}</button>`;
@@ -562,7 +571,6 @@ function openThiefFlow() {
   });
 }
 
-// مراحل استجابة الحرامي الثلاثة
 function handleThiefSuccessPrompt(title, text) {
   SoundManager.playWin();
   openModal(`
@@ -582,15 +590,15 @@ function handleThiefSuccessPrompt(title, text) {
 }
 
 socket.on('thiefFoundInHand', ({ victimName, itemName }) => {
-  handleThiefSuccessPrompt('🦹‍♂️ تم اصطياد الكارت من يد الخصم!', `الحرامي سرق كارت <b>${itemName}</b> من يد <b>${victimName}</b>! اضغط أدناه لاختيار كارت من يدك لتعطيه له في المقابل:`);
+  handleThiefSuccessPrompt('🦹‍♂️ سرقة من يد الخصم!', `الحرامي سرق كارت <b>${itemName}</b> من يد <b>${victimName}</b>! اضغط لاختيار كارت لتبديله معه:`);
 });
 
 socket.on('thiefFoundOnGround', ({ itemName }) => {
-  handleThiefSuccessPrompt('🦹‍♂️ تم التقاط الكارت من الأرض!', `التقط الحرامي كارت <b>${itemName}</b> من الأرض المكشوفة! اضغط أدناه لاختيار كارت من يدك لترميه مكانه على الأرض:`);
+  handleThiefSuccessPrompt('🦹‍♂️ سرقة من الأرض!', `التقط الحرامي كارت <b>${itemName}</b> من الأرض! اضغط لاختيار كارت لترميه مكانه:`);
 });
 
 socket.on('thiefFoundInDeck', ({ itemName }) => {
-  handleThiefSuccessPrompt('🦹‍♂️ تم سحب الكارت من قلب الديك!', `أخرج الحرامي كارت <b>${itemName}</b> من كروت السحب المقلوبة! اضغط أدناه لاختيار كارت من يدك لترميه في الأرض بدلاً منه:`);
+  handleThiefSuccessPrompt('🦹‍♂️ سرقة من قلب الديك!', `أخرج الحرامي كارت <b>${itemName}</b> من قلب كروت السحب المقلوبة! اضغط لاختيار كارت لترميه مكانه:`);
 });
 
 function openAnnoyFlow() {
@@ -733,7 +741,6 @@ function closeModal() {
   if (modalOverlay) modalOverlay.classList.add('hidden');
 }
 
-// شاشة الكوماندز السينمائية
 socket.on('commandSplash', ({ cmdType, cmdName, playerName }) => {
   const icons = {
     reverse: '🔄',
@@ -807,11 +814,19 @@ function renderMessyDiscardPile(topCard, discardHistory) {
   messyDiscardPile.innerHTML = html;
 }
 
-function updateTableSeats(players, myId) {
+// تحديث المقاعد وإبراز اللاعب صاحب الدور بالبرواز الفسفوري المضيء
+function updateTableSeats(players, myId, currentTurnId) {
   const me = players.find(p => p.id === myId);
   if (me) {
     myNameDisplay.innerText = `${me.isHost ? '👑 ' : ''}${me.name}`;
     myScoreDisplay.innerText = `${me.points}ن`;
+    
+    // إبراز مقعد اللاعب السفلي إذا كان دوره
+    if (me.id === currentTurnId) {
+      spotBottom.classList.add('active-turn-seat');
+    } else {
+      spotBottom.classList.remove('active-turn-seat');
+    }
   }
 
   const otherPlayers = players.filter(p => p.id !== myId);
@@ -821,24 +836,33 @@ function updateTableSeats(players, myId) {
   spotRight.classList.add('hidden');
 
   if (otherPlayers.length === 1) {
-    renderSeat(spotTop, otherPlayers[0]);
+    renderSeat(spotTop, otherPlayers[0], currentTurnId);
   } else if (otherPlayers.length === 2) {
-    renderSeat(spotLeft, otherPlayers[0]);
-    renderSeat(spotTop, otherPlayers[1]);
+    renderSeat(spotLeft, otherPlayers[0], currentTurnId);
+    renderSeat(spotTop, otherPlayers[1], currentTurnId);
   } else if (otherPlayers.length === 3) {
-    renderSeat(spotLeft, otherPlayers[0]);
-    renderSeat(spotTop, otherPlayers[1]);
-    renderSeat(spotRight, otherPlayers[2]);
+    renderSeat(spotLeft, otherPlayers[0], currentTurnId);
+    renderSeat(spotTop, otherPlayers[1], currentTurnId);
+    renderSeat(spotRight, otherPlayers[2], currentTurnId);
   }
 }
 
-function renderSeat(seatEl, player) {
+function renderSeat(seatEl, player, currentTurnId) {
   seatEl.classList.remove('hidden');
+  
+  // تفعيل الإطار الفسفوري المنبثق لصاحب الدور
+  if (player.id === currentTurnId) {
+    seatEl.classList.add('active-turn-seat');
+  } else {
+    seatEl.classList.remove('active-turn-seat');
+  }
+
   const nameEl = seatEl.querySelector('.seat-name');
   const scoreEl = seatEl.querySelector('.seat-score');
   const cardsEl = seatEl.querySelector('.seat-cards');
 
-  nameEl.innerHTML = `${player.isHost ? '👑 ' : ''}${player.name} ${player.isImmune ? '🔒' : ''}`;
+  const isTurn = player.id === currentTurnId;
+  nameEl.innerHTML = `${player.isHost ? '👑 ' : ''}${player.name} ${player.isImmune ? '🔒' : ''} ${isTurn ? '<b style="color:#00e676;">⚡</b>' : ''}`;
   scoreEl.innerText = `${player.points}ن`;
 
   cardsEl.innerHTML = '';
@@ -895,6 +919,11 @@ socket.on('gameState', data => {
     currentPlayerName.parentElement.style.background = isMyTurn ? '#00e676' : '#ffcc00';
   }
 
+  // لافتة شروط الفوز المزدوجة بالاعلى
+  if (matchRulesTag && data.targetPoints) {
+    matchRulesTag.innerText = `🎯 الهدف: أول من يجمع ${data.targetPoints} نقاط | 🏁 الجولة (${data.roundCount} من ${data.maxRounds})`;
+  }
+
   if (data.turnDeadline) {
     updateTurnTimer(data.turnDeadline, data.turnDuration || 15);
   }
@@ -909,7 +938,8 @@ socket.on('gameState', data => {
     myHandDiv.appendChild(el.firstElementChild);
   });
 
-  updateTableSeats(data.players, socket.id);
+  // تحديث المقاعد وتمييز صاحب الدور الفسفوري
+  updateTableSeats(data.players, socket.id, data.currentTurn);
 });
 
 socket.on('roundEnded', ({ msg, revealedHands }) => {
@@ -942,7 +972,7 @@ socket.on('gameOver', ({ winnerName, scores, revealedHands, reason }) => {
   let html = `
     <h1 style="color:#ffcc00;font-size:2.2rem;">مبروووك! 👑</h1>
     <h2>الفائز بالمباراة: ${winnerName}</h2>
-    <p style="color:#00e676;font-weight:bold;margin:8px 0;">${reason || 'أول من وصل إلى 5 نقاط وفاز بالجيم!'}</p>
+    <p style="color:#00e676;font-weight:bold;margin:8px 0;">${reason || 'فاز بالمباراة!'}</p>
   `;
   if (revealedHands) {
     html += `<h3>كروت النهاية:</h3><div class="revealed-container">`;
