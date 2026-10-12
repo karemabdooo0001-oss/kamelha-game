@@ -84,7 +84,7 @@
     </div>
   </div>
 
-  <!-- 4. شاشة اللعب الكلاسيكية المحيطية (Casino/Uno 4-Way Table) -->
+  <!-- 4. شاشة اللعب الكلاسيكية المحيطية -->
   <div id="game-screen" class="screen hidden">
     <!-- الشريط العلوي -->
     <header class="game-header">
@@ -105,7 +105,7 @@
       </div>
     </header>
 
-    <!-- مسرح طاولة اللعب المحيطية 4 اتجاهات -->
+    <!-- مسرح طاولة اللعب المحيطية الكاملة (مالية الشاشة) -->
     <div class="table-arena">
       <!-- اللاعب المقابل (فوق) -->
       <div id="spot-top" class="player-seat seat-top hidden">
@@ -119,7 +119,7 @@
         <div class="seat-cards"></div>
       </div>
 
-      <!-- وسط الطاولة: السحب وكومة الأرض العشوائية -->
+      <!-- وسط الطاولة: السحب وكومة الأرض -->
       <div class="table-center">
         <!-- كارت السحب -->
         <div class="deck-spot" id="draw-deck">
@@ -130,7 +130,7 @@
           <p>اسحب</p>
         </div>
 
-        <!-- كومة الأرض المكشوفة العشوائية الواقعية -->
+        <!-- كومة الأرض المكشوفة -->
         <div class="deck-spot" id="discard-deck">
           <div id="messy-discard-pile" class="messy-pile">
             <div id="top-discard-card" class="card-placeholder">لا يوجد</div>
@@ -144,19 +144,19 @@
         <div class="seat-info"><span class="seat-name">--</span> <span class="seat-score">0ن</span></div>
         <div class="seat-cards"></div>
       </div>
-    </div>
 
-    <!-- يد اللاعب الأساسي (تحت) -->
-    <footer class="player-zone">
-      <div class="zone-header">
-        <div class="my-seat-tag">👤 <b id="my-name-display">أنت</b> (<span id="my-score-display">0ن</span>)</div>
-        <button id="btn-kamelha" class="btn kamelha-btn">كمّلتهااا! 👑</button>
+      <!-- كروتك أنت (الآن بالكامل جوه الطاولة على اللباد الأخضر) -->
+      <div class="player-seat seat-bottom">
+        <div class="my-table-bar">
+          <div class="my-seat-tag">👤 <b id="my-name-display">أنت</b> (<span id="my-score-display">0ن</span>)</div>
+          <button id="btn-kamelha" class="btn kamelha-btn">كمّلتهااا! 👑</button>
+        </div>
+        <div id="my-hand" class="cards-hand"></div>
       </div>
-      <div id="my-hand" class="cards-hand"></div>
-    </footer>
+    </div>
   </div>
 
-  <!-- الشاشة السينمائية لأنيميشن الكوماندز (Command Splash FX) -->
+  <!-- الشاشة السينمائية لأنيميشن الكوماندز -->
   <div id="command-splash" class="command-splash-overlay hidden">
     <div class="splash-card-box">
       <div id="splash-icon" class="splash-big-icon">⚡</div>
