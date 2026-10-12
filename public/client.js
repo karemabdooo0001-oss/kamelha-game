@@ -660,10 +660,9 @@ socket.on('annoy2PPeekResult', (peekedCard) => {
 function openWildFlow() {
   openModal(`
     <h2>كارت براحتك!</h2>
-    <p>اختر أي كوماند تريد تحويله إليه:</p>
+    <p>اختر أي كوماند تريد تحويله إليه (ما عدا الجوكر والحرامي):</p>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <button class="btn primary-btn wild-opt" data-type="hunt">اصطاد كارتك 🎯</button>
-      <button class="btn primary-btn wild-opt" data-type="thief">الحرامي 🦹‍♂️</button>
       <button class="btn primary-btn wild-opt" data-type="bank">لم كمالتك 🏛️</button>
       <button class="btn primary-btn wild-opt" data-type="reverse">اعكس لفتك 🔄</button>
       <button class="btn primary-btn wild-opt" data-type="keda">هو كدة 😎</button>
