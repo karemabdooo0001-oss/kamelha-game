@@ -9,30 +9,21 @@ const io = new Server(server);
 
 app.use(express.static('public'));
 
-// ================= الإعدادات والأمان =================
-const MASTER_KEY = "7788"; // كود الماستر لدخول الأدمن (تقدر تعدله)
-let GAME_PASSCODE = "1234"; // باسوورد الطوارئ
+const MASTER_KEY = "7788"; 
+let GAME_PASSCODE = "1234"; 
 
-// كاش الذاكرة اللحظي للسرعة
 const registeredPlayers = new Map();
 const bannedPlayerIds = new Set();
 const vouchers = new Map();
 
-// ================= الاتصال بقاعدة بيانات Railway =================
-// في شبكة Railway الداخلية لا نحتاج لـ SSL
 const isInternalNetwork = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway.internal');
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: isInternalNetwork ? false : (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost') ? { rejectUnauthorized: false } : false)
 });
 
-// إنشاء الجداول في قاعدة بيانات Railway تلقائياً
 async function initDatabase() {
-  if (!process.env.DATABASE_URL) {
-    console.log('⚠️ جاري التشغيل في الوضع المحلي بدون قاعدة بيانات');
-    return;
-  }
+  if (!process.env.DATABASE_URL) return;
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS players (
@@ -59,14 +50,12 @@ async function initDatabase() {
         banned_at TIMESTAMP DEFAULT NOW()
       );
     `);
-    console.log('✅ تم الاتصال بقاعدة بيانات Railway بنجاح وإنشاء الجداول!');
     await syncMemoryFromDatabase();
   } catch (err) {
-    console.error('❌ خطأ في الاتصال بقاعدة البيانات:', err.message);
+    console.error('DB Error:', err.message);
   }
 }
 
-// مزامنة الذاكرة مع ما هو موجود في قاعدة بيانات Railway
 async function syncMemoryFromDatabase() {
   if (!process.env.DATABASE_URL) return;
   try {
@@ -103,15 +92,11 @@ async function syncMemoryFromDatabase() {
         status: r.status
       });
     });
-    console.log(`📦 تم تحميل البيانات من Railway: ${registeredPlayers.size} لاعب | ${vouchers.size} تذكرة | ${bannedPlayerIds.size} محظور`);
-  } catch (e) {
-    console.error('❌ خطأ في مزامنة البيانات:', e.message);
-  }
+  } catch (e) {}
 }
 
 initDatabase();
 
-// دوال حفظ البيانات مباشرة في Railway
 async function dbSavePlayer(p) {
   if (!process.env.DATABASE_URL) return;
   try {
@@ -121,8 +106,7 @@ async function dbSavePlayer(p) {
       ON CONFLICT (player_id) DO UPDATE 
       SET name = $2, last_seen = $3, current_room = $4;
     `, [p.playerId, p.name, p.lastSeen, p.currentRoom || 'اللوبي']);
-    console.log(`💾 تم تسجيل اللاعب [${p.name}] في قاعدة بيانات Railway`);
-  } catch (e) { console.error('خطأ حفظ لاعب:', e.message); }
+  } catch (e) {}
 }
 
 async function dbSaveVoucher(v) {
@@ -134,44 +118,34 @@ async function dbSaveVoucher(v) {
       ON CONFLICT (code) DO UPDATE 
       SET used_match = $8, devices = $9, status = $10;
     `, [v.code, v.type, v.maxDevices, v.duration, v.price, v.createdAt, v.expiresAt, v.usedMatch, JSON.stringify(v.devices), v.status]);
-    console.log(`🎟️ تم تسجيل التذكرة [${v.code}] في قاعدة بيانات Railway`);
-  } catch (e) { console.error('خطأ حفظ تذكرة:', e.message); }
+  } catch (e) {}
 }
 
 async function dbDeleteVoucher(code) {
   if (!process.env.DATABASE_URL) return;
-  try {
-    await pool.query('DELETE FROM vouchers WHERE code = $1', [code]);
-  } catch (e) {}
+  try { await pool.query('DELETE FROM vouchers WHERE code = $1', [code]); } catch (e) {}
 }
 
 async function dbBanPlayer(playerId) {
   if (!process.env.DATABASE_URL) return;
-  try {
-    await pool.query('INSERT INTO banned_players (player_id) VALUES ($1) ON CONFLICT DO NOTHING;', [playerId]);
-  } catch (e) {}
+  try { await pool.query('INSERT INTO banned_players (player_id) VALUES ($1) ON CONFLICT DO NOTHING;', [playerId]); } catch (e) {}
 }
 
 async function dbUnbanPlayer(playerId) {
   if (!process.env.DATABASE_URL) return;
-  try {
-    await pool.query('DELETE FROM banned_players WHERE player_id = $1;', [playerId]);
-  } catch (e) {}
+  try { await pool.query('DELETE FROM banned_players WHERE player_id = $1;', [playerId]); } catch (e) {}
 }
 
-// ================= محرك وقواعد لعبة كمّلها (62 كارت) =================
 const rooms = {};
 const DEFAULT_TURN_TIME = 15;
 
 function createDeck() {
   const deck = [];
-  // 40 كارت أرقام من 1 إلى 10 (كل رقم 4 نسخ)
   for (let num = 1; num <= 10; num++) {
     for (let i = 0; i < 4; i++) {
       deck.push({ id: `num_${num}_${i}_${Math.random()}`, type: 'number', value: num });
     }
   }
-  // 22 كارت كوماندز
   const commands = [
     { type: 'joker', name: 'جوكر', count: 4 },
     { type: 'hunt', name: 'اصطاد كارتك', count: 4 },
@@ -200,7 +174,6 @@ function checkDrawDeckRefill(room) {
   }
 }
 
-// احتساب نقاط المكسب وقاعدة الـ 4 جواكر
 function verifyKamelhaHand(hand) {
   if (!hand || hand.length !== 4) return { valid: false };
   let jokers = 0;
@@ -210,7 +183,6 @@ function verifyKamelhaHand(hand) {
     else if (c.type === 'number') numCounts[c.value] = (numCounts[c.value] || 0) + 1;
   });
 
-  // 4 جواكر = فوز فوري بالمباراة كاملة (5 نقاط)
   if (jokers === 4) return { valid: true, points: 5, isInstantWin: true };
 
   for (const val in numCounts) {
@@ -249,7 +221,6 @@ function expireRoomOneMatchVouchers(room) {
   });
 }
 
-// فحص التذكرة
 function validateVoucher(code, playerId) {
   if (code === GAME_PASSCODE) return { valid: true, msg: 'دخول بكود المطور العام' };
 
@@ -267,9 +238,7 @@ function validateVoucher(code, playerId) {
     return { valid: false, msg: 'تم استخدام هذه التذكرة في جيم سابق وانتهت!' };
   }
 
-  if (v.devices.includes(playerId)) {
-    return { valid: true, voucher: v };
-  }
+  if (v.devices.includes(playerId)) return { valid: true, voucher: v };
 
   if (v.devices.length >= v.maxDevices) {
     return { valid: false, msg: `عفواً! استهلكت التذكرة الحد الأقصى للأجهزة المصرح بها (${v.maxDevices} جهاز)!` };
@@ -282,7 +251,6 @@ function validateVoucher(code, playerId) {
 
 io.on('connection', (socket) => {
 
-  // تسجيل وحفظ اللاعب في قاعدة بيانات Railway
   socket.on('registerPlayerIdentity', ({ playerId, name }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
     const pData = {
@@ -297,7 +265,6 @@ io.on('connection', (socket) => {
     dbSavePlayer(pData);
   });
 
-  // فحص التذكرة عند البوابة
   socket.on('verifyGatePasscode', ({ passcode, playerId }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
 
@@ -309,7 +276,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ================= أوامر لوحة الأدمن =================
   socket.on('adminLogin', (key) => {
     if (key === MASTER_KEY) {
       socket.emit('adminLoginSuccess', getAdminDashboardData());
@@ -334,7 +300,6 @@ io.on('connection', (socket) => {
     };
   }
 
-  // توليد تذكرة جديدة
   socket.on('adminCreateVoucher', ({ masterKey, type, duration, price }) => {
     if (masterKey !== MASTER_KEY) return;
 
@@ -377,11 +342,10 @@ io.on('connection', (socket) => {
     if (masterKey === MASTER_KEY && newPasscode) {
       GAME_PASSCODE = newPasscode.trim();
       socket.emit('passcodeUpdated', GAME_PASSCODE);
-      io.emit('notify', 'تم تحديث كود الطوارئ العام بواسطة المطور!');
+      io.emit('notify', 'تم تحديث كود الطوارئ العام!');
     }
   });
 
-  // حظر لاعب
   socket.on('adminBanPlayer', ({ masterKey, targetPlayerId }) => {
     if (masterKey !== MASTER_KEY) return;
     bannedPlayerIds.add(targetPlayerId);
@@ -418,7 +382,6 @@ io.on('connection', (socket) => {
     socket.emit('adminDataUpdated', getAdminDashboardData());
   });
 
-  // ================= إدارة الغرف واللعب =================
   socket.on('reconnectPlayer', ({ roomId, playerId }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
 
@@ -462,6 +425,7 @@ io.on('connection', (socket) => {
       direction: 1,
       drawnCard: null,
       tempAnnoyCardIndex: null,
+      pendingHunter: null, // لميكانيكا الصيد الجديدة
       gameStarted: false,
       kamelhaCallers: [],
       turnsLeftInOrbit: null,
@@ -545,6 +509,7 @@ io.on('connection', (socket) => {
     room.direction = 1;
     room.drawnCard = null;
     room.tempAnnoyCardIndex = null;
+    room.pendingHunter = null;
     room.kamelhaCallers = [];
     room.turnsLeftInOrbit = null;
 
@@ -556,6 +521,9 @@ io.on('connection', (socket) => {
 
     room.players.forEach(p => p.hand = room.deck.splice(0, 4));
     room.discardPile.push(room.deck.pop());
+
+    // أنيميشن التفنيط والتوزيع للجميع
+    io.to(room.id).emit('animateDealing', { numPlayers: room.players.length });
 
     const starterName = room.players[room.currentTurnIndex].name;
     io.to(room.id).emit('notify', `بدأت الجولة ${room.roundCount}! يبدأ الدور: (${starterName}) 🎯`);
@@ -596,16 +564,22 @@ io.on('connection', (socket) => {
     }
   });
 
+  // سحب كارت مع إرسال إشعار وأنيميشن السحب للجميع
   socket.on('drawCard', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.gameStarted) return;
-    if (room.players[room.currentTurnIndex]?.id !== socket.id) return socket.emit('errorMsg', 'مش دورك!');
+    const currPlayer = room.players[room.currentTurnIndex];
+    if (currPlayer?.id !== socket.id) return socket.emit('errorMsg', 'مش دورك!');
     if (room.drawnCard) return socket.emit('errorMsg', 'أنت سحبت كارت بالفعل!');
 
     checkDrawDeckRefill(room);
     if (room.deck.length === 0) return socket.emit('errorMsg', 'الكروت خلصت تماماً!');
 
     room.drawnCard = room.deck.pop();
+
+    // إشعار أنيميشن السحب للجميع: سحب من المقلوب
+    io.to(roomId).emit('playerDrewCardAnim', { playerId: socket.id, from: 'deck' });
+
     socket.emit('cardDrawn', room.drawnCard);
     sendGameState(roomId);
   });
@@ -628,6 +602,7 @@ io.on('connection', (socket) => {
     advanceTurn(room);
   });
 
+  // أخذ كارت الأرض المكشوف مع أنيميشن للجميع
   socket.on('takeDiscardCard', ({ roomId, handCardIndex }) => {
     const room = rooms[roomId];
     if (!room || !room.gameStarted) return;
@@ -639,12 +614,24 @@ io.on('connection', (socket) => {
     const taken = room.discardPile.pop();
     const oldCard = player.hand.splice(handCardIndex, 1, taken)[0];
     room.discardPile.push(oldCard);
+
+    // إشعار أنيميشن: سحب من المكشوف
+    io.to(roomId).emit('playerDrewCardAnim', { playerId: socket.id, from: 'discard' });
+
     advanceTurn(room);
   });
+
+  // بث أنيميشن الكوماندز لجميع اللاعبين
+  function broadcastCommandSplash(room, cmdType, cmdName, playerName) {
+    io.to(room.id).emit('commandSplash', { cmdType, cmdName, playerName });
+  }
 
   socket.on('execReverse', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
+    const player = room.players[room.currentTurnIndex];
+
+    broadcastCommandSplash(room, 'reverse', 'اعكس لفتك', player.name);
     room.discardPile.push(room.drawnCard);
 
     if (room.players.length === 2) {
@@ -666,8 +653,14 @@ io.on('connection', (socket) => {
       return socket.emit('errorMsg', 'هذا اللاعب قال كملها ومحمي بقفل الحصانة! 🔒');
     }
 
+    const player = room.players[room.currentTurnIndex];
     const target = room.players.find(p => p.id === targetPlayerId);
     if (!target) return;
+
+    broadcastCommandSplash(room, 'keda', 'هو كدة', player.name);
+
+    // بث أنيميشن كارت هو كدة للجميع
+    io.to(roomId).emit('kedaAnimation', { targetId: target.id, targetName: target.name });
 
     room.discardPile.push(room.drawnCard);
     room.discardPile.push(...target.hand);
@@ -683,6 +676,8 @@ io.on('connection', (socket) => {
     if (!room || !room.drawnCard) return;
     const player = room.players[room.currentTurnIndex];
 
+    broadcastCommandSplash(room, 'bank', 'لم كمالتك', player.name);
+
     room.discardPile.push(room.drawnCard);
     const chosen = room.discardPile.splice(discardIndex, 1)[0];
     const oldCard = player.hand.splice(handCardIndex, 1, chosen)[0];
@@ -692,18 +687,19 @@ io.on('connection', (socket) => {
     advanceTurn(room);
   });
 
-  socket.on('execHunt', ({ roomId, targetPlayerId, requestedItem, handCardIndexToGive }) => {
+  // ميكانيكا صيد كارتك المطورة: فحص فوري بدون إجبار اللاعب على التبديل لو فشل الصيد!
+  socket.on('checkHuntTarget', ({ roomId, targetPlayerId, requestedItem }) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
     if (room.kamelhaCallers.includes(targetPlayerId)) {
-      return socket.emit('errorMsg', 'هذا اللاعب قال كملها ومحمي بقفل الحصانة! 🔒');
+      return socket.emit('errorMsg', 'هذا اللاعب محمي بقفل الحصانة! 🔒');
     }
 
-    const player = room.players[room.currentTurnIndex];
+    const hunter = room.players[room.currentTurnIndex];
     const target = room.players.find(p => p.id === targetPlayerId);
     if (!target) return;
 
-    room.discardPile.push(room.drawnCard);
+    broadcastCommandSplash(room, 'hunt', 'اصطاد كارتك', hunter.name);
 
     let foundIndex = -1;
     if (requestedItem === 'joker') {
@@ -712,16 +708,44 @@ io.on('connection', (socket) => {
       foundIndex = target.hand.findIndex(c => c.type === 'number' && c.value === parseInt(requestedItem));
     }
 
+    const itemName = requestedItem === 'joker' ? 'جوكر' : `رقم ${requestedItem}`;
+
     if (foundIndex !== -1) {
-      const hunted = target.hand.splice(foundIndex, 1)[0];
-      const given = player.hand.splice(handCardIndexToGive, 1, hunted)[0];
-      target.hand.push(given);
-      const itemName = requestedItem === 'joker' ? 'جوكر' : `رقم ${requestedItem}`;
-      io.to(roomId).emit('notify', `🎯 اصطياد ناجح! أخذ (${player.name}) ${itemName} من (${target.name})!`);
+      // الصيد نجح: نطلب من الصياد فقط اختيار كارت للمبادلة
+      room.pendingHunter = {
+        targetPlayerId,
+        foundIndex,
+        requestedItem,
+        itemName
+      };
+      socket.emit('huntTargetHasCard', { targetName: target.name, itemName });
     } else {
-      const itemName = requestedItem === 'joker' ? 'جوكر' : `رقم ${requestedItem}`;
+      // فشل الصيد: ينتهي الدور فوراً بدون أي تبديل!
+      room.discardPile.push(room.drawnCard);
+      room.drawnCard = null;
       io.to(roomId).emit('notify', `🐟 فشل الصيد! (${target.name}) معهوش ${itemName}.`);
+      advanceTurn(room);
     }
+  });
+
+  // إكمال مبادلة الصيد بعد النجاح
+  socket.on('confirmHuntSwap', ({ roomId, handCardIndexToGive }) => {
+    const room = rooms[roomId];
+    if (!room || !room.drawnCard || !room.pendingHunter) return;
+
+    const hunter = room.players[room.currentTurnIndex];
+    const target = room.players.find(p => p.id === room.pendingHunter.targetPlayerId);
+
+    room.discardPile.push(room.drawnCard);
+
+    if (target && target.hand[room.pendingHunter.foundIndex]) {
+      const hunted = target.hand.splice(room.pendingHunter.foundIndex, 1)[0];
+      const given = hunter.hand.splice(handCardIndexToGive, 1, hunted)[0];
+      target.hand.push(given);
+      io.to(roomId).emit('notify', `🎯 اصطياد ناجح! أخذ (${hunter.name}) ${room.pendingHunter.itemName} من (${target.name})!`);
+    }
+
+    room.pendingHunter = null;
     advanceTurn(room);
   });
 
@@ -735,6 +759,8 @@ io.on('connection', (socket) => {
     if (room.kamelhaCallers.includes(opponent.id)) {
       return socket.emit('errorMsg', 'الخصم قال كملها ومحمي بقفل الحصانة! 🔒');
     }
+
+    broadcastCommandSplash(room, 'annoy', 'رخم عليهم', player.name);
 
     room.tempAnnoyCardIndex = Math.floor(Math.random() * opponent.hand.length);
     socket.emit('annoy2PPeekResult', opponent.hand[room.tempAnnoyCardIndex]);
@@ -751,6 +777,9 @@ io.on('connection', (socket) => {
       const taken = opponent.hand.splice(room.tempAnnoyCardIndex, 1)[0];
       const given = player.hand.splice(handCardIndexToGive, 1, taken)[0];
       opponent.hand.push(given);
+
+      // أنيميشن تبديل الكروت
+      io.to(roomId).emit('annoySwapAnimation', { p1Id: player.id, p2Id: opponent.id });
       io.to(roomId).emit('notify', `😈 رخم عليهم: رأى (${player.name}) كارت الخصم وبدّله!`);
     } else {
       io.to(roomId).emit('notify', `رخم عليهم: رأى (${player.name}) كارت الخصم وتركه مكانه.`);
@@ -766,9 +795,12 @@ io.on('connection', (socket) => {
       return socket.emit('errorMsg', 'لا يمكنك اختيار لاعب محمي بقفل كملها! 🔒');
     }
 
+    const player = room.players[room.currentTurnIndex];
     const pA = room.players.find(p => p.id === playerAId);
     const pB = room.players.find(p => p.id === playerBId);
     if (!pA || !pB) return;
+
+    broadcastCommandSplash(room, 'annoy', 'رخم عليهم', player.name);
 
     room.discardPile.push(room.drawnCard);
     const cardA = pA.hand.splice(Math.floor(Math.random() * pA.hand.length), 1)[0];
@@ -776,6 +808,8 @@ io.on('connection', (socket) => {
     pA.hand.push(cardB);
     pB.hand.push(cardA);
 
+    // أنيميشن تبديل الكروت بين اللاعبين
+    io.to(roomId).emit('annoySwapAnimation', { p1Id: pA.id, p2Id: pB.id });
     io.to(roomId).emit('notify', `😈 رخم عليهم: تم تبديل كارت سراً بين (${pA.name}) و (${pB.name})!`);
     advanceTurn(room);
   });
@@ -783,6 +817,10 @@ io.on('connection', (socket) => {
   socket.on('execWildAs', ({ roomId, chosenCmdType }) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
+    const player = room.players[room.currentTurnIndex];
+
+    broadcastCommandSplash(room, 'wild', 'براحتك', player.name);
+
     room.drawnCard.cmdType = chosenCmdType;
     const map = { hunt: 'اصطاد كارتك', bank: 'لم كمالتك', reverse: 'اعكس لفتك', keda: 'هو كدة', annoy: 'رخم عليهم' };
     room.drawnCard.name = map[chosenCmdType] || chosenCmdType;
@@ -830,6 +868,7 @@ io.on('connection', (socket) => {
 
     room.drawnCard = null;
     room.tempAnnoyCardIndex = null;
+    room.pendingHunter = null;
     const count = room.players.length;
     if (count === 0) return;
 
