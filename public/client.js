@@ -919,9 +919,20 @@ socket.on('gameState', data => {
     currentPlayerName.parentElement.style.background = isMyTurn ? '#00e676' : '#ffcc00';
   }
 
-  // لافتة شروط الفوز المزدوجة بالاعلى
-  if (matchRulesTag && data.targetPoints) {
-    matchRulesTag.innerText = `🎯 الهدف: أول من يجمع ${data.targetPoints} نقاط | 🏁 الجولة (${data.roundCount} من ${data.maxRounds})`;
+  // لافتة شروط الفوز الذكية
+  if (matchRulesTag) {
+    const pts = data.targetPoints;
+    const rnds = data.maxRounds;
+
+    if (pts > 0 && rnds > 0) {
+      matchRulesTag.innerText = `🎯 الهدف: ${pts} نقاط أو انتهاء الجولات | 🏁 الجولة (${data.roundCount} من ${rnds})`;
+    } else if (pts > 0 && rnds === 0) {
+      matchRulesTag.innerText = `🎯 الهدف: أول من يجمع ${pts} نقاط (جولات مفتوحة ♾️) | 🏁 الجولة ${data.roundCount}`;
+    } else if (pts === 0 && rnds > 0) {
+      matchRulesTag.innerText = `🏁 الجولة (${data.roundCount} من ${rnds}) | 🏆 الأعلى نقاطاً عند النهاية يفوز`;
+    } else {
+      matchRulesTag.innerText = `🎯 الهدف: أول من يجمع 5 نقاط | 🏁 الجولة ${data.roundCount}`;
+    }
   }
 
   if (data.turnDeadline) {
