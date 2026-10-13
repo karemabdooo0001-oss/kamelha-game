@@ -76,7 +76,7 @@ async function syncMemoryFromDatabase() {
 
     const vouchersRes = await pool.query('SELECT * FROM vouchers');
     vouchers.clear();
-    vouchersRes.forEach(r => {
+    vouchersRes.rows.forEach(r => {
       vouchers.set(r.code, {
         code: r.code,
         type: r.type,
@@ -139,13 +139,11 @@ const DEFAULT_TURN_TIME = 15;
 
 function createDeck() {
   const deck = [];
-  // 40 كارت أرقام من 1 إلى 10
   for (let num = 1; num <= 10; num++) {
     for (let i = 0; i < 4; i++) {
       deck.push({ id: `num_${num}_${i}_${Math.random()}`, type: 'number', value: num });
     }
   }
-  // 24 كارت كوماندز (بما فيهم نسختين كارت الحرامي 🦹‍♂️)
   const commands = [
     { type: 'joker', name: 'جوكر', count: 4 },
     { type: 'hunt', name: 'اصطاد كارتك', count: 4 },
@@ -407,7 +405,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // إنشاء الغرفة أونلاين بشروط الفوز المزدوجة (نقاط وجولات وبدون تحديد)
   socket.on('createRoom', ({ playerName, playerId, targetPoints, maxRounds }) => {
     if (bannedPlayerIds.has(playerId)) return socket.emit('bannedKickNotification');
 
@@ -899,7 +896,7 @@ io.on('connection', (socket) => {
   socket.on('callKamelha', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.gameStarted) return;
-    const player = room.players[room.currentTurnIndex];
+    const player = room.players.find(p => p.id === socket.id);
     if (!player) return;
 
     const check = verifyKamelhaHand(player.hand);
@@ -963,7 +960,6 @@ io.on('connection', (socket) => {
       });
     }
 
-    // 1. فحص نقاط الفوز أولاً
     if (room.targetPoints > 0) {
       const pointsWinner = room.players.find(p => p.points >= room.targetPoints);
       if (pointsWinner) {
@@ -972,7 +968,6 @@ io.on('connection', (socket) => {
       }
     }
 
-    // 2. فحص انتهاء الجولات إذا لم يصل أحد للنقاط
     if (!matchWinner && room.maxRounds > 0 && room.roundCount >= room.maxRounds) {
       const maxScore = Math.max(...room.players.map(p => p.points));
       matchWinner = room.players.find(p => p.points === maxScore);
