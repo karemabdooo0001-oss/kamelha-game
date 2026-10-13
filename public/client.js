@@ -916,7 +916,6 @@ socket.on('gameState', data => {
     currentPlayerName.parentElement.style.background = isMyTurn ? '#00e676' : '#ffcc00';
   }
 
-  // لافتة شروط الفوز المزدوجة بالاعلى مع دعم خيار "بدون تحديد"
   if (matchRulesTag) {
     const pts = data.targetPoints;
     const rnds = data.maxRounds;
