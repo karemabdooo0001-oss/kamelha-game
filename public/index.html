@@ -34,7 +34,7 @@
     </div>
   </div>
 
-  <!-- 2. شاشة اللوبي الأصلية (لعب جماعي أونلاين فقط) -->
+  <!-- 2. شاشة اللوبي (مع خيارات بدون تحديد) -->
   <div id="lobby-screen" class="screen hidden">
     <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">🔊</button>
 
@@ -49,9 +49,9 @@
         <input type="text" id="player-name" placeholder="اكتب اسمك...">
       </div>
 
-      <!-- إعدادات شروط المباراة (نقاط وجولات مع إمكانية بدون تحديد) -->
+      <!-- إعدادات شروط الفوز -->
       <div class="room-match-settings">
-        <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">⚙️ شروط إنهاء المباراة:</h4>
+        <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">⚙️ شروط إنهاء المباراة (أيهما يكتمل أولاً):</h4>
         
         <div class="match-setting-row">
           <label>🎯 نقاط الفوز:</label>
@@ -86,7 +86,7 @@
             <option value="20">20 جولة</option>
           </select>
         </div>
-        <p style="font-size:0.7rem;color:#888;margin-top:5px;">* الفائز أول من يصل للنقاط، أو صاحب أعلى سكور بنهاية الجولات.</p>
+        <p style="font-size:0.7rem;color:#888;margin-top:5px;">* لو اخترت بدون تحديد لأحدهما، سيعتمد الماتش على الآخر فقط.</p>
       </div>
 
       <button id="btn-create" class="btn primary-btn" style="margin-top:10px;">إنشاء غرفة جديدة 🎲</button>
@@ -124,7 +124,7 @@
     </div>
   </div>
 
-  <!-- 4. شاشة اللعب الكلاسيكية المحيطية (Casino/Uno 4-Way Table) -->
+  <!-- 4. شاشة اللعب الكلاسيكية المحيطية -->
   <div id="game-screen" class="screen hidden">
     <header class="game-header">
       <div class="top-row">
