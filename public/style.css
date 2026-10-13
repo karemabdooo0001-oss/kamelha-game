@@ -516,7 +516,34 @@ input {
 .phone-number-display { font-size: 1.3rem; font-weight: 800; color: #fff; margin: 6px 0; direction: ltr; }
 .hunt-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 8px; }
 .hunt-num-btn { font-size: 1rem; padding: 7px; }
-.modal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; margin: 12px 0; max-height: 180px; overflow-y: auto; }
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+  gap: 12px 8px;
+  margin: 14px 0;
+  max-height: 240px;
+  overflow-y: auto;
+  justify-items: center;
+  padding: 6px 2px;
+}
+
+.bank-pick-card {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.15s ease;
+  cursor: pointer;
+}
+
+.bank-pick-card:hover {
+  transform: translateY(-4px) scale(1.05);
+}
+
+.bank-pick-card .card {
+  width: 62px !important;
+  height: 90px !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6) !important;
+}
 .revealed-container { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; max-height: 240px; overflow-y: auto; text-align: right; }
 .revealed-player-row { background: rgba(0,0,0,0.3); padding: 7px; border-radius: 10px; }
 .rev-name { display: block; font-size: 0.8rem; font-weight: 800; margin-bottom: 5px; color: #ffcc00; }
