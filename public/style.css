@@ -103,7 +103,7 @@ input {
   margin-bottom: 10px;
 }
 
-/* إعدادات شروط الماتش */
+/* صندوق إعدادات شروط الماتش */
 .room-match-settings {
   background: rgba(0,0,0,0.4);
   padding: 10px;
@@ -292,7 +292,7 @@ input {
   border-radius: 14px;
 }
 
-/* تأثير الإضاءة الفسفورية لصاحب الدور */
+/* تأثير الإضاءة الفسفورية لصاحب الدور (بدون كسر التوسيط) */
 .active-turn-seat .seat-info, 
 .active-turn-seat .my-seat-tag {
   border: 2px solid #00e676 !important;
@@ -300,6 +300,7 @@ input {
   background: rgba(0, 230, 118, 0.25) !important;
   animation: badgePulse 1s infinite alternate ease-in-out;
 }
+
 @keyframes badgePulse {
   from { box-shadow: 0 0 8px 2px rgba(0, 230, 118, 0.4); }
   to { box-shadow: 0 0 25px 7px rgba(0, 230, 118, 0.95); }
@@ -324,7 +325,7 @@ input {
 .seat-name { font-weight: 800; color: #ffcc00; }
 .seat-score { color: #00e676; font-weight: bold; }
 
-/* كروت الخصوم المتجاوبة */
+/* كروت الخصوم المتجاوبة (تكبر في الشاشات الكبيرة) */
 .seat-cards {
   display: flex;
   gap: 3px;
@@ -349,7 +350,7 @@ input {
   height: clamp(26px, 5vw, 52px);
 }
 
-/* مقعدك أنت بالأسفل */
+/* مقعدك أنت بالأسفل (توسيط حديدي ثابت لا يتحرك) */
 .seat-bottom {
   position: absolute;
   bottom: 8px;
@@ -362,9 +363,12 @@ input {
   align-items: center;
   gap: 4px;
   z-index: 5;
-  pointer-events: none;
+  pointer-events: none; /* لمنع حجب النقرات */
 }
-.seat-bottom * { pointer-events: auto; }
+
+.seat-bottom * {
+  pointer-events: auto;
+}
 
 .my-table-bar {
   width: 95%;
