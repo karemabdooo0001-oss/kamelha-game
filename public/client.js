@@ -320,6 +320,33 @@ socket.on('roomJoined', ({ roomId, players, isHost }) => {
   }
 });
 
+// تشغيل اللعب ضد البوتات
+const btnPlayBots = document.getElementById('btn-play-bots');
+const botCountSelect = document.getElementById('bot-count-select');
+const botDifficultySelect = document.getElementById('bot-difficulty-select');
+
+if (btnPlayBots) {
+  btnPlayBots.addEventListener('click', () => {
+    const name = playerNameInput.value.trim() || 'لاعب';
+    localStorage.setItem('kamelha_name', name);
+    socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
+
+    const pts = targetPointsInput ? targetPointsInput.value : 5;
+    const rnds = maxRoundsInput ? maxRoundsInput.value : 0;
+    const botCount = botCountSelect ? parseInt(botCountSelect.value) : 3;
+    const difficulty = botDifficultySelect ? botDifficultySelect.value : 'medium';
+
+    socket.emit('createBotGame', {
+      playerName: name,
+      playerId: myPlayerId,
+      targetPoints: pts,
+      maxRounds: rnds,
+      botCount,
+      difficulty
+    });
+  });
+}
+
 socket.on('updatePlayers', players => renderWaitingPlayers(players));
 
 function renderWaitingPlayers(players) {
