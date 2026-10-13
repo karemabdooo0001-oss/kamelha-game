@@ -1,6 +1,5 @@
 const socket = io();
 
-// توليد رقم فريد دائم للجهاز (مثل: WL-4821)
 let myPlayerId = localStorage.getItem('kamelha_uid');
 if (!myPlayerId) {
   const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -207,7 +206,7 @@ if (btnRules) {
       <div class="rules-scroll-content">
         <div class="rule-section">
           <h3>🎯 الهدف:</h3>
-          <p>تجميع <b>4 كروت من نفس الرقم</b>. والمباراة تحسم بالوصول للنقاط المحددة أو انتهاء الجولات!</p>
+          <p>تجميع <b>4 كروت من نفس الرقم</b>. والمباراة تحسم بالوصول للنقاط أو انتهاء الجولات!</p>
         </div>
         <div class="rule-section">
           <h3>🃏 النقاط:</h3>
@@ -218,10 +217,6 @@ if (btnRules) {
         <div class="rule-section">
           <h3>🦹‍♂️ كارت الحرامي:</h3>
           <p>يسرق الرقم المطلوب من أيدي الخصوم أولاً، أو من الأرض، أو من قلب كروت السحب المقلوبة مضمون 100%!</p>
-        </div>
-        <div class="rule-section">
-          <h3>🔒 قفل الحصانة:</h3>
-          <p>من يقول <b>"كمّلتها"</b> يُقفل عليه بحصانة 🔒 ولا يمكن لأحد استهدافه بأي كوماند!</p>
         </div>
       </div>
       <button class="btn primary-btn" onclick="closeModal()" style="margin-top:12px;">فهمت القواعد 👍</button>
@@ -279,7 +274,6 @@ function copyRoomCode() {
 if (btnCopyCodeWait) btnCopyCodeWait.addEventListener('click', copyRoomCode);
 if (btnCopyCodeGame) btnCopyCodeGame.addEventListener('click', copyRoomCode);
 
-// إنشاء غرفة جماعية أونلاين بشروط النقاط والجولات
 if (btnCreate) {
   btnCreate.addEventListener('click', () => {
     const name = playerNameInput.value.trim();
@@ -922,7 +916,7 @@ socket.on('gameState', data => {
     currentPlayerName.parentElement.style.background = isMyTurn ? '#00e676' : '#ffcc00';
   }
 
-  // لافتة شروط الفوز
+  // لافتة شروط الفوز المزدوجة بالاعلى مع دعم خيار "بدون تحديد"
   if (matchRulesTag) {
     const pts = data.targetPoints;
     const rnds = data.maxRounds;
