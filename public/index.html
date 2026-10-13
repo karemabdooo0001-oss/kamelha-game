@@ -34,7 +34,7 @@
     </div>
   </div>
 
-  <!-- 2. شاشة اللوبي (مع خيارات بدون تحديد) -->
+  <!-- 2. شاشة اللوبي (مع خيارات اللعب أونلاين أو ضد البوتات) -->
   <div id="lobby-screen" class="screen hidden">
     <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">🔊</button>
 
@@ -51,7 +51,7 @@
 
       <!-- إعدادات شروط الفوز -->
       <div class="room-match-settings">
-        <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">⚙️ شروط إنهاء المباراة (أيهما يكتمل أولاً):</h4>
+        <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">⚙️ شروط إنهاء المباراة:</h4>
         
         <div class="match-setting-row">
           <label>🎯 نقاط الفوز:</label>
@@ -86,10 +86,33 @@
             <option value="20">20 جولة</option>
           </select>
         </div>
-        <p style="font-size:0.7rem;color:#888;margin-top:5px;">* لو اخترت بدون تحديد لأحدهما، سيعتمد الماتش على الآخر فقط.</p>
       </div>
 
-      <button id="btn-create" class="btn primary-btn" style="margin-top:10px;">إنشاء غرفة جديدة 🎲</button>
+      <!-- قسم اللعب ضد البوتات الجديد -->
+      <div class="room-match-settings" style="border-color:#00e676;background:rgba(0,230,118,0.06);">
+        <h4 style="color:#00e676;margin-bottom:8px;font-size:0.85rem;">🤖 اللعب ضد البوتات:</h4>
+        <div class="match-setting-row">
+          <label>👥 الخصوم:</label>
+          <select id="bot-count-select">
+            <option value="1">بوت واحد (موكشة)</option>
+            <option value="2">2 بوت (موكشة وحنتيره)</option>
+            <option value="3" selected>3 بوتات (موكشة، حنتيره، وشفشق)</option>
+          </select>
+        </div>
+        <div class="match-setting-row" style="margin-top:6px;">
+          <label>🧠 الصعوبة:</label>
+          <select id="bot-difficulty-select">
+            <option value="easy">سهل (غلبان وبيلعب عشوائي)</option>
+            <option value="medium" selected>متوسط (بيلعب بتركيز)</option>
+            <option value="hard">محترف (شيطان مبيفوتش كارت)</option>
+          </select>
+        </div>
+        <button id="btn-play-bots" class="btn" style="background:#00e676;color:#111;margin-top:8px;">ابدأ الجيم ضد البوتات 🤖</button>
+      </div>
+
+      <div class="separator" style="margin:12px 0;">⚡ أو العب أونلاين مع أصحابك ⚡</div>
+
+      <button id="btn-create" class="btn primary-btn">إنشاء غرفة أونلاين 🎲</button>
       <div class="separator">أو</div>
       <div class="join-group">
         <input type="text" id="room-code-input" placeholder="كود الغرفة">
@@ -101,7 +124,7 @@
       </div>
     </div>
   </div>
-
+  
   <!-- 3. غرفة الانتظار -->
   <div id="waiting-screen" class="screen hidden">
     <div class="lobby-box">
