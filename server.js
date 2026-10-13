@@ -1,7 +1,6 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const { Pool } = require('pg');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,127 +11,10 @@ app.use(express.static('public'));
 const MASTER_KEY = "7788"; 
 let GAME_PASSCODE = "1234"; 
 
+// التخزين في الذاكرة (In-Memory)
 const registeredPlayers = new Map();
 const bannedPlayerIds = new Set();
 const vouchers = new Map();
-
-const isInternalNetwork = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway.internal');
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: isInternalNetwork ? false : (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost') ? { rejectUnauthorized: false } : false)
-});
-
-async function initDatabase() {
-  if (!process.env.DATABASE_URL) return;
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS players (
-        player_id VARCHAR(50) PRIMARY KEY,
-        name VARCHAR(100),
-        last_seen VARCHAR(50),
-        current_room VARCHAR(50),
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-      CREATE TABLE IF NOT EXISTS vouchers (
-        code VARCHAR(50) PRIMARY KEY,
-        type VARCHAR(20),
-        max_devices INT,
-        duration VARCHAR(20),
-        price VARCHAR(20),
-        created_at VARCHAR(50),
-        expires_at BIGINT,
-        used_match BOOLEAN DEFAULT FALSE,
-        devices TEXT,
-        status VARCHAR(50)
-      );
-      CREATE TABLE IF NOT EXISTS banned_players (
-        player_id VARCHAR(50) PRIMARY KEY,
-        banned_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-    await syncMemoryFromDatabase();
-  } catch (err) {}
-}
-
-async function syncMemoryFromDatabase() {
-  if (!process.env.DATABASE_URL) return;
-  try {
-    const bannedRes = await pool.query('SELECT player_id FROM banned_players');
-    bannedPlayerIds.clear();
-    bannedRes.rows.forEach(r => bannedPlayerIds.add(r.player_id));
-
-    const playersRes = await pool.query('SELECT * FROM players');
-    registeredPlayers.clear();
-    playersRes.rows.forEach(r => {
-      registeredPlayers.set(r.player_id, {
-        playerId: r.player_id,
-        name: r.name,
-        lastSeen: r.last_seen,
-        isOnline: false,
-        currentRoom: r.current_room,
-        socketId: null
-      });
-    });
-
-    const vouchersRes = await pool.query('SELECT * FROM vouchers');
-    vouchers.clear();
-    vouchersRes.rows.forEach(r => {
-      vouchers.set(r.code, {
-        code: r.code,
-        type: r.type,
-        maxDevices: r.max_devices,
-        duration: r.duration,
-        price: r.price,
-        createdAt: r.created_at,
-        expiresAt: r.expires_at ? Number(r.expires_at) : null,
-        usedMatch: r.used_match,
-        devices: r.devices ? JSON.parse(r.devices) : [],
-        status: r.status
-      });
-    });
-  } catch (e) {}
-}
-
-initDatabase();
-
-async function dbSavePlayer(p) {
-  if (!process.env.DATABASE_URL) return;
-  try {
-    await pool.query(`
-      INSERT INTO players (player_id, name, last_seen, current_room)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (player_id) DO UPDATE 
-      SET name = $2, last_seen = $3, current_room = $4;
-    `, [p.playerId, p.name, p.lastSeen, p.currentRoom || 'اللوبي']);
-  } catch (e) {}
-}
-
-async function dbSaveVoucher(v) {
-  if (!process.env.DATABASE_URL) return;
-  try {
-    await pool.query(`
-      INSERT INTO vouchers (code, type, max_devices, duration, price, created_at, expires_at, used_match, devices, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      ON CONFLICT (code) DO UPDATE 
-      SET used_match = $8, devices = $9, status = $10;
-    `, [v.code, v.type, v.maxDevices, v.duration, v.price, v.createdAt, v.expiresAt, v.usedMatch, JSON.stringify(v.devices), v.status]);
-  } catch (e) {}
-}
-
-async function dbDeleteVoucher(code) {
-  if (!process.env.DATABASE_URL) return;
-  try { await pool.query('DELETE FROM vouchers WHERE code = $1', [code]); } catch (e) {}
-}
-
-async function dbBanPlayer(playerId) {
-  if (!process.env.DATABASE_URL) return;
-  try { await pool.query('INSERT INTO banned_players (player_id) VALUES ($1) ON CONFLICT DO NOTHING;', [playerId]); } catch (e) {}
-}
-
-async function dbUnbanPlayer(playerId) {
-  if (!process.env.DATABASE_URL) return;
-  try { await pool.query('DELETE FROM banned_players WHERE player_id = $1;', [playerId]); } catch (e) {}
-}
 
 const rooms = {};
 const DEFAULT_TURN_TIME = 15;
@@ -214,7 +96,6 @@ function expireRoomOneMatchVouchers(room) {
       if (v.duration === '1match' && v.devices.includes(p.playerId)) {
         v.usedMatch = true;
         v.status = 'منتهية (تم لعب الجيم)';
-        dbSaveVoucher(v);
       }
     }
   });
@@ -229,7 +110,6 @@ function validateVoucher(code, playerId) {
 
   if (v.expiresAt && Date.now() > v.expiresAt) {
     v.status = 'منتهية الصلاحية';
-    dbSaveVoucher(v);
     return { valid: false, msg: 'هذه التذكرة انتهت صلاحيتها الزمنية!' };
   }
 
@@ -244,7 +124,6 @@ function validateVoucher(code, playerId) {
   }
 
   v.devices.push(playerId);
-  dbSaveVoucher(v);
   return { valid: true, voucher: v };
 }
 
@@ -261,7 +140,6 @@ io.on('connection', (socket) => {
       socketId: socket.id
     };
     registeredPlayers.set(playerId, pData);
-    dbSavePlayer(pData);
   });
 
   socket.on('verifyGatePasscode', ({ passcode, playerId }) => {
@@ -280,9 +158,8 @@ io.on('connection', (socket) => {
     else socket.emit('adminLoginFail');
   });
 
-  socket.on('adminRefreshData', async (key) => {
+  socket.on('adminRefreshData', (key) => {
     if (key === MASTER_KEY) {
-      await syncMemoryFromDatabase();
       socket.emit('adminDataUpdated', getAdminDashboardData());
     }
   });
@@ -322,14 +199,12 @@ io.on('connection', (socket) => {
     };
 
     vouchers.set(code, newVoucher);
-    dbSaveVoucher(newVoucher);
     socket.emit('adminDataUpdated', getAdminDashboardData());
   });
 
   socket.on('adminDeleteVoucher', ({ masterKey, code }) => {
     if (masterKey !== MASTER_KEY) return;
     vouchers.delete(code);
-    dbDeleteVoucher(code);
     socket.emit('adminDataUpdated', getAdminDashboardData());
   });
 
@@ -344,7 +219,6 @@ io.on('connection', (socket) => {
   socket.on('adminBanPlayer', ({ masterKey, targetPlayerId }) => {
     if (masterKey !== MASTER_KEY) return;
     bannedPlayerIds.add(targetPlayerId);
-    dbBanPlayer(targetPlayerId);
 
     const playerRecord = registeredPlayers.get(targetPlayerId);
     if (playerRecord && playerRecord.socketId) {
@@ -373,7 +247,6 @@ io.on('connection', (socket) => {
   socket.on('adminUnbanPlayer', ({ masterKey, targetPlayerId }) => {
     if (masterKey !== MASTER_KEY) return;
     bannedPlayerIds.delete(targetPlayerId);
-    dbUnbanPlayer(targetPlayerId);
     socket.emit('adminDataUpdated', getAdminDashboardData());
   });
 
@@ -395,7 +268,6 @@ io.on('connection', (socket) => {
       r.socketId = socket.id;
       r.isOnline = true;
       r.currentRoom = roomId;
-      dbSavePlayer(r);
     }
 
     socket.emit('roomJoined', { roomId, players: room.players, isHost: player.isHost });
@@ -437,7 +309,6 @@ io.on('connection', (socket) => {
       const r = registeredPlayers.get(playerId);
       r.currentRoom = roomId;
       r.name = playerName.trim();
-      dbSavePlayer(r);
     }
 
     socket.emit('roomJoined', { roomId, players: rooms[roomId].players, isHost: true });
@@ -477,7 +348,6 @@ io.on('connection', (socket) => {
       const r = registeredPlayers.get(playerId);
       r.currentRoom = roomId;
       r.name = trimmedName;
-      dbSavePlayer(r);
     }
 
     io.to(roomId).emit('updatePlayers', room.players);
