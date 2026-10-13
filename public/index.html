@@ -34,7 +34,7 @@
     </div>
   </div>
 
-  <!-- 2. شاشة اللوبي (مع خيارات بدون تحديد) -->
+  <!-- 2. شاشة اللوبي (بدون قسم البوتات) -->
   <div id="lobby-screen" class="screen hidden">
     <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">🔊</button>
 
@@ -148,21 +148,18 @@
       <div id="match-rules-tag" class="match-rules-tag">🎯 هدف الفوز: جاري التحميل...</div>
     </header>
 
-    <!-- مسرح طاولة اللعب المحيطية الكاملة (مالية الشاشة) -->
+    <!-- مسرح طاولة اللعب -->
     <div class="table-arena">
-      <!-- اللاعب المقابل (فوق) -->
       <div id="spot-top" class="player-seat seat-top hidden">
         <div class="seat-info"><span class="seat-name">--</span> <span class="seat-score">0ن</span></div>
         <div class="seat-cards"></div>
       </div>
 
-      <!-- اللاعب على الشمال -->
       <div id="spot-left" class="player-seat seat-left hidden">
         <div class="seat-info"><span class="seat-name">--</span> <span class="seat-score">0ن</span></div>
         <div class="seat-cards"></div>
       </div>
 
-      <!-- وسط الطاولة: السحب وكومة الأرض -->
       <div class="table-center">
         <div class="deck-spot" id="draw-deck">
           <div class="card card-real-img card-back-img">
@@ -180,13 +177,11 @@
         </div>
       </div>
 
-      <!-- اللاعب على اليمين -->
       <div id="spot-right" class="player-seat seat-right hidden">
         <div class="seat-info"><span class="seat-name">--</span> <span class="seat-score">0ن</span></div>
         <div class="seat-cards"></div>
       </div>
 
-      <!-- كروتك أنت (بالكامل جوه الطاولة على اللباد الأخضر) -->
       <div id="spot-bottom" class="player-seat seat-bottom">
         <div class="my-table-bar">
           <div class="my-seat-tag">👤 <b id="my-name-display">أنت</b> (<span id="my-score-display">0ن</span>)</div>
@@ -197,7 +192,7 @@
     </div>
   </div>
 
-  <!-- الشاشة السينمائية لأنيميشن الكوماندز -->
+  <!-- الشاشة السينمائية للكوماندز -->
   <div id="command-splash" class="command-splash-overlay hidden">
     <div class="splash-card-box">
       <div id="splash-icon" class="splash-big-icon">⚡</div>
