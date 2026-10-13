@@ -11,7 +11,7 @@ app.use(express.static('public'));
 const MASTER_KEY = "7788"; 
 let GAME_PASSCODE = "1234"; 
 
-// التخزين في الذاكرة (In-Memory)
+// التخزين في الذاكرة (بدون قاعدة بيانات)
 const registeredPlayers = new Map();
 const bannedPlayerIds = new Set();
 const vouchers = new Map();
