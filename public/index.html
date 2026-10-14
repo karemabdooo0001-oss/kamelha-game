@@ -100,7 +100,7 @@
         </div>
 
         <!-- قائمة اختيار الكوماندز في الوضع المخصص -->
-        <div id="custom-commands-box" class="custom-commands-container hidden">
+        <div id="custom-commands-box" class="custom-commands-container" style="display:none;">
           <p style="font-size:0.75rem;color:#00e676;margin:6px 0;">حدد الكوماندز اللي حابب تلعب بيها:</p>
           <div class="commands-checkbox-grid">
             <!-- الكروت الأصلية -->
@@ -252,6 +252,7 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="client.js"></script>
+  <!-- تم إضافة رقم الإصدار لمنع كاش المتصفح القديم -->
+  <script src="client.js?v=3.5"></script>
 </body>
 </html>
