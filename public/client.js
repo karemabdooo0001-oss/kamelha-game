@@ -23,6 +23,9 @@ const targetPointsInput = document.getElementById('target-points-input');
 const maxRoundsInput = document.getElementById('max-rounds-input');
 const matchRulesTag = document.getElementById('match-rules-tag');
 
+const deckModeSelect = document.getElementById('deck-mode-select');
+const customCommandsBox = document.getElementById('custom-commands-box');
+
 const commandSplash = document.getElementById('command-splash');
 const splashIcon = document.getElementById('splash-icon');
 const splashTitle = document.getElementById('splash-title');
@@ -36,6 +39,17 @@ const spotBottom = document.getElementById('spot-bottom');
 const myNameDisplay = document.getElementById('my-name-display');
 const myScoreDisplay = document.getElementById('my-score-display');
 const messyDiscardPile = document.getElementById('messy-discard-pile');
+
+// إظهار وإخفاء قائمة الكوماندز المخصصة في اللوبي
+if (deckModeSelect && customCommandsBox) {
+  deckModeSelect.addEventListener('change', () => {
+    if (deckModeSelect.value === 'custom') {
+      customCommandsBox.classList.remove('hidden');
+    } else {
+      customCommandsBox.classList.add('hidden');
+    }
+  });
+}
 
 // فحص التذاكر
 const urlParams = new URLSearchParams(window.location.search);
@@ -85,7 +99,7 @@ socket.on('bannedKickNotification', () => {
 const savedName = localStorage.getItem('kamelha_name') || 'لاعب';
 socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name: savedName });
 
-// الصوت
+// محرك الصوت
 const SoundManager = {
   ctx: null,
   muted: localStorage.getItem('kamelha_muted') === 'true',
@@ -150,8 +164,11 @@ window.addEventListener('touchstart', () => SoundManager.init(), { once: true })
 
 const btnSoundLobby = document.getElementById('btn-sound-lobby');
 const btnSoundGame = document.getElementById('btn-sound-game');
-const btnRules = document.getElementById('btn-rules');
 const btnBuy = document.getElementById('btn-buy');
+
+const btnRulesGate = document.getElementById('btn-rules-gate') || document.getElementById('btn-rules');
+const btnRulesLobby = document.getElementById('btn-rules-lobby');
+const btnRulesWait = document.getElementById('btn-rules-wait');
 
 const playerNameInput = document.getElementById('player-name');
 const roomCodeInput = document.getElementById('room-code-input');
@@ -199,30 +216,167 @@ updateSoundIcons();
 if (btnSoundLobby) btnSoundLobby.addEventListener('click', () => SoundManager.toggleMute());
 if (btnSoundGame) btnSoundGame.addEventListener('click', () => SoundManager.toggleMute());
 
-if (btnRules) {
-  btnRules.addEventListener('click', () => {
-    openModal(`
-      <h2 style="color:#ffcc00;margin-bottom:10px;">📖 قواعد لعبة كمّلها</h2>
-      <div class="rules-scroll-content">
-        <div class="rule-section">
-          <h3>🎯 الهدف:</h3>
-          <p>تجميع <b>4 كروت من نفس الرقم</b>. والمباراة تحسم بالوصول للنقاط أو انتهاء الجولات!</p>
+// موسوعة ودليل الكروت المصورة بالكامل
+function openCardEncyclopediaModal() {
+  openModal(`
+    <h2 style="color:#ffcc00;margin-bottom:8px;">📖 دليل وقواعد لعبة كمّلها</h2>
+    <div class="guide-container">
+      <div class="guide-section-title">🎯 الهدف وطريقة المكسب:</div>
+      <p style="font-size:0.8rem;color:#ccc;line-height:1.4;">
+        تجميع <b>4 كروت من نفس الرقم</b>. والمباراة تُحسم إما بالوصول للهدف المحدد من النقاط أو انتهاء الجولات!
+      </p>
+      <div style="font-size:0.75rem;color:#00e676;margin-top:4px;">
+        • 4 كروت مطابقة بدون جوكر = <b>نقطتان</b>.<br>
+        • مع جوكر = <b>نقطة واحدة</b>.<br>
+        • 4 جواكر = <b>فوز فوري بالمباراة كاملة (5 نقاط)</b>!
+      </div>
+
+      <div class="guide-section-title">🃏 موسوعة الكوماندز وقدراتهم:</div>
+      <div class="guide-cards-list">
+        <div class="guide-card-item">
+          <img src="/cards/mirror.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🪞 المراية</h4>
+            <p>كارت فخ في إيدك؛ لو حد هاجمك بكوماند تقدر تلغيه فوراً أو ترده في صدره وتسحب بداله كارت!</p>
+          </div>
         </div>
-        <div class="rule-section">
-          <h3>🃏 النقاط:</h3>
-          <p>• 4 كروت مطابقة بدون جوكر = <b>نقطتان</b>.</p>
-          <p>• مع جوكر = <b>نقطة واحدة</b>.</p>
-          <p>• 4 جواكر = <b>فوز فوري بالمباراة (5 نقاط)</b>!</p>
+
+        <div class="guide-card-item">
+          <img src="/cards/swap.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🔄 بدّل يا نجم</h4>
+            <p>تبديل إيدك كلها (الـ 4 كروت) مع إيد أي لاعب تختاره على الترابيزة دفعة واحدة!</p>
+          </div>
         </div>
-        <div class="rule-section">
-          <h3>🦹‍♂️ كارت الحرامي:</h3>
-          <p>يسرق الرقم المطلوب من أيدي الخصوم أولاً، أو من الأرض، أو من قلب كروت السحب المقلوبة مضمون 100%!</p>
+
+        <div class="guide-card-item">
+          <img src="/cards/fire.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🔥 ولعانة</h4>
+            <p>كل لاعب على الترابيزة مجبر يختار كارت يرميه في الأرض ويسحب بداله كارت مقلوب عشوائي!</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/reveal.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>👁️ ع المكشوف</h4>
+            <p>تكشف الـ 4 كروت بتوع أي خصم قدام الكل على الترابيزة مباشرة بدون نوافذ وتفضح خطته!</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/freeze.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🛑 فرملة</h4>
+            <p>تجميد دور أي لاعب (تخطي دور) ومنعه من قول كمّلتها نهائياً خلال اللفة دي!</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/spin.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🎭 شقلباظ</h4>
+            <p>دربكة جماعية؛ كل لاعب مجبر يختار كارت من إيده ويباصيه للي جنبه في اتجاه اللعب!</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/magnet.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🧲 المغناطيس</h4>
+            <p>تختار رقم من إيدك، ويشفط كل الكروت اللي بنفس الرقم من الأرض لحسابك دفعة واحدة!</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/ambush.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🚨 الكمين</h4>
+            <p>تفتيش عام؛ يصادر كل الجواكر من أيدي الخصوم للأرض ويحميك أنت شخصياً!</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/curse.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🧿 عين حسودة</h4>
+            <p>حرمان لاعب محدد من أخذ أي كارت مكشوف من الأرض لمدة لفتين كاملين (يسحب مقلوب بس)!</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/joker.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🃏 جوكر</h4>
+            <p>يعوض أي رقم ناقص في إيدك، وجمع 4 جواكر يحقق الفوز الفوري والمباشر!</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/hunt.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🎯 اصطاد كارتك</h4>
+            <p>تطلب رقم معين أو جوكر من لاعب، لو معاه تاخده منه وتديله كارت مكانه من إيدك.</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/bank.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🏛️ لم كمالتك</h4>
+            <p>تفتح كروت الأرض كلها وتختار أي كارت محتاجه ليدك وترمي كارت مكانه.</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/reverse.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🔄 اعكس لفتك</h4>
+            <p>يعكس اتجاه اللعب (أو يتخطى الخصم وتلعب دور تاني في حالة لاعبين فقط).</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/keda.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>😎 هو كدة</h4>
+            <p>تغيير كل كروت الخصم الأربعة وترميهم في الأرض وتوزعله 4 جداد من السحب!</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/annoy.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>😈 رخم عليهم</h4>
+            <p>تبديل كارت عشوائي سراً بين اتنين لاعيبة، أو كشف كارت الخصم وتبديله في لاعبين.</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/wild.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>⭐ براحتك</h4>
+            <p>يتحول لأي كوماند تختاره أنت (اصطاد، لم كمالتك، اعكس لفتك، هو كدة، رخم عليهم).</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/thief.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>🦹‍♂️ الحرامي</h4>
+            <p>سرقة مضمونة للكارت المطلوب من يد الخصوم أولاً، أو من الأرض، أو من قلب السحب!</p>
+          </div>
         </div>
       </div>
-      <button class="btn primary-btn" onclick="closeModal()" style="margin-top:12px;">فهمت القواعد 👍</button>
-    `);
-  });
+    </div>
+    <button class="btn primary-btn" onclick="closeModal()" style="margin-top:12px;">فهمت القواعد 👍</button>
+  `);
 }
+
+if (btnRulesGate) btnRulesGate.addEventListener('click', openCardEncyclopediaModal);
+if (btnRulesLobby) btnRulesLobby.addEventListener('click', openCardEncyclopediaModal);
+if (btnRulesWait) btnRulesWait.addEventListener('click', openCardEncyclopediaModal);
 
 if (btnBuy) {
   btnBuy.addEventListener('click', () => {
@@ -274,6 +428,7 @@ function copyRoomCode() {
 if (btnCopyCodeWait) btnCopyCodeWait.addEventListener('click', copyRoomCode);
 if (btnCopyCodeGame) btnCopyCodeGame.addEventListener('click', copyRoomCode);
 
+// إنشاء غرفة مع دعم النمط الكلاسيكي أو المخصص
 if (btnCreate) {
   btnCreate.addEventListener('click', () => {
     const name = playerNameInput.value.trim();
@@ -283,12 +438,25 @@ if (btnCreate) {
     
     const pts = targetPointsInput ? targetPointsInput.value : 5;
     const rnds = maxRoundsInput ? maxRoundsInput.value : 0;
+    const deckMode = deckModeSelect ? deckModeSelect.value : 'classic';
+
+    const customCommands = [];
+    if (deckMode === 'custom') {
+      document.querySelectorAll('.commands-checkbox-grid input:checked').forEach(cb => {
+        customCommands.push(cb.value);
+      });
+      if (customCommands.length === 0) {
+        return alert('يرجى اختيار كوماند واحد على الأقل في الوضع المخصص!');
+      }
+    }
 
     socket.emit('createRoom', { 
       playerName: name, 
       playerId: myPlayerId,
       targetPoints: pts,
-      maxRounds: rnds
+      maxRounds: rnds,
+      deckMode,
+      customCommands
     });
   });
 }
@@ -373,12 +541,61 @@ if (btnKamelha) {
   });
 }
 
+// نافذة فخ المراية عند تعرضك لهجوم
+socket.on('mirrorPrompt', ({ attackerName, cmdType, cmdName }) => {
+  SoundManager.playCommand();
+  openModal(`
+    <h2 style="color:#00e5ff;">🪞 كارت المراية في إيدك!</h2>
+    <p>اللاعب <b>${attackerName}</b> استخدم عليك كارت: <b style="color:#ffcc00;">${cmdName}</b>!</p>
+    <p style="font-size:0.85rem;color:#ccc;margin:8px 0;">ماذا تريد أن تفعل؟</p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button id="btn-mirror-reflect" class="btn primary-btn">ردّ الكوماند في صدره 🪞⚡</button>
+      <button id="btn-mirror-cancel" class="btn secondary-btn">إلغاء الكوماند فقط ❌</button>
+      <button id="btn-mirror-ignore" class="btn info-btn" style="background:rgba(255,255,255,0.1);color:#fff;">تجاهل واحتفظ بالمراية 🛡️</button>
+    </div>
+  `);
+
+  document.getElementById('btn-mirror-reflect').onclick = () => {
+    closeModal();
+    socket.emit('resolveMirrorResponse', { roomId: currentRoomId, action: 'reflect' });
+  };
+  document.getElementById('btn-mirror-cancel').onclick = () => {
+    closeModal();
+    socket.emit('resolveMirrorResponse', { roomId: currentRoomId, action: 'cancel' });
+  };
+  document.getElementById('btn-mirror-ignore').onclick = () => {
+    closeModal();
+    socket.emit('resolveMirrorResponse', { roomId: currentRoomId, action: 'ignore' });
+  };
+});
+
+// طلب شقلباظ
+socket.on('spinRequest', () => {
+  showToast('🎭 كارت شقلباظ! اختر كارت من يدك لتمريره لجارك:');
+  pickCardFromHand(index => {
+    SoundManager.playPlace();
+    socket.emit('submitSpinCard', { roomId: currentRoomId, handCardIndex: index });
+  });
+});
+
+// طلب ولعانة
+socket.on('fireRequest', () => {
+  showToast('🔥 كارت ولعانة! اختر كارت من يدك لرميه في الأرض واستبداله:');
+  pickCardFromHand(index => {
+    SoundManager.playPlace();
+    socket.emit('submitFireCard', { roomId: currentRoomId, handCardIndex: index });
+  });
+});
+
 socket.on('cardDrawn', card => {
   currentDrawnCard = card;
-  if (card.type === 'number' || card.cmdType === 'joker') {
+  if (card.type === 'number' || card.cmdType === 'joker' || card.cmdType === 'mirror') {
     if (card.cmdType === 'joker') {
       SoundManager.playWin();
       showToast('🤫 سحبت جوكر! الكارت سري ومحدش يعرف.');
+    } else if (card.cmdType === 'mirror') {
+      SoundManager.playCommand();
+      showToast('🪞 سحبت كارت المراية! احتفظ بيه في إيدك لحمايتك.');
     }
     handleNumberOrJokerModal(card);
   } else {
@@ -387,12 +604,13 @@ socket.on('cardDrawn', card => {
 });
 
 function handleNumberOrJokerModal(card) {
+  const isMirror = card.cmdType === 'mirror';
   openModal(`
     <h2>الكارت المسحوب:</h2>
     <div style="display:flex;justify-content:center;margin:15px 0;">${createCardHTML(card)}</div>
-    <p>ماذا تريد أن تفعل؟</p>
+    <p>${isMirror ? 'كارت المراية بيحميك طول ما هو في إيدك!' : 'ماذا تريد أن تفعل؟'}</p>
     <div style="display:flex;flex-direction:column;gap:10px;">
-      <button id="btn-swap" class="btn btn-swap-green">بدله بكارت من إيدك 🔄</button>
+      <button id="btn-swap" class="btn btn-swap-green">خده في إيدك وبدله 🔄</button>
       <button id="btn-discard" class="btn btn-discard-red">ارميه على الأرض 🗑️</button>
     </div>
   `);
@@ -417,6 +635,7 @@ function handleNumberOrJokerModal(card) {
 
 function handleCommandCardModal(card) {
   const actions = {
+    // الكروت الأصلية
     reverse: () => {
       currentDrawnCard = null;
       socket.emit('execReverse', currentRoomId);
@@ -445,7 +664,60 @@ function handleCommandCardModal(card) {
       socket.emit('extendTimerForCommand', currentRoomId);
       openAnnoyFlow();
     },
-    wild: () => openWildFlow()
+    wild: () => openWildFlow(),
+
+    // الكروت الجديدة (مع تفعيل تمديد الـ 20 ثانية)
+    reveal: () => {
+      socket.emit('extendTimerForCommand', currentRoomId);
+      openPlayerPicker('اختر لاعباً لكشف كروته للجميع:', targetId => {
+        currentDrawnCard = null;
+        SoundManager.playCommand();
+        socket.emit('execReveal', { roomId: currentRoomId, targetPlayerId: targetId });
+      });
+    },
+    swap: () => {
+      socket.emit('extendTimerForCommand', currentRoomId);
+      openPlayerPicker('اختر لاعباً لتبديل إيدك بالكامل معه:', targetId => {
+        currentDrawnCard = null;
+        SoundManager.playCommand();
+        socket.emit('execSwapHand', { roomId: currentRoomId, targetPlayerId: targetId });
+      });
+    },
+    freeze: () => {
+      socket.emit('extendTimerForCommand', currentRoomId);
+      openPlayerPicker('اختر لاعباً لفرملته وتجميد دوره:', targetId => {
+        currentDrawnCard = null;
+        SoundManager.playCommand();
+        socket.emit('execFreeze', { roomId: currentRoomId, targetPlayerId: targetId });
+      });
+    },
+    spin: () => {
+      currentDrawnCard = null;
+      SoundManager.playCommand();
+      socket.emit('execSpin', currentRoomId);
+    },
+    ambush: () => {
+      currentDrawnCard = null;
+      SoundManager.playCommand();
+      socket.emit('execAmbush', currentRoomId);
+    },
+    magnet: () => {
+      socket.emit('extendTimerForCommand', currentRoomId);
+      openMagnetFlow();
+    },
+    curse: () => {
+      socket.emit('extendTimerForCommand', currentRoomId);
+      openPlayerPicker('اختر لاعباً لمنعه من السحب من الأرض:', targetId => {
+        currentDrawnCard = null;
+        SoundManager.playCommand();
+        socket.emit('execCurse', { roomId: currentRoomId, targetPlayerId: targetId });
+      });
+    },
+    fire: () => {
+      currentDrawnCard = null;
+      SoundManager.playCommand();
+      socket.emit('execFire', currentRoomId);
+    }
   };
 
   openModal(`
@@ -502,15 +774,37 @@ function openBankPicker() {
   });
 }
 
+function openMagnetFlow() {
+  let html = '<h2>اختر الرقم لشفطه من الأرض:</h2><div class="hunt-grid">';
+  for (let i = 1; i <= 10; i++) {
+    html += `<button class="btn secondary-btn magnet-num-btn" data-val="${i}">${i}</button>`;
+  }
+  html += '</div>';
+  html += '<button id="btn-cancel-magnet" class="btn secondary-btn" style="margin-top:10px;">إلغاء ورمي الكارت ❌</button>';
+  openModal(html);
+
+  document.getElementById('btn-cancel-magnet').onclick = cancelCommandExecution;
+
+  document.querySelectorAll('.magnet-num-btn').forEach(b => {
+    b.onclick = () => {
+      const val = parseInt(b.getAttribute('data-val'));
+      closeModal();
+      currentDrawnCard = null;
+      SoundManager.playCommand();
+      socket.emit('execMagnet', { roomId: currentRoomId, targetNumber: val });
+    };
+  });
+}
+
 function openHuntFlow() {
   openPlayerPicker('اختر لاعباً لتصطاد منه:', targetId => {
-    let html = `<h2>اختر الكارت الذي تبحث عنه:</h2><div class="hunt-grid">`;
+    let html = '<h2>اختر الكارت الذي تبحث عنه:</h2><div class="hunt-grid">';
     for (let i = 1; i <= 10; i++) {
       html += `<button class="btn secondary-btn hunt-num-btn" data-val="${i}">${i}</button>`;
     }
-    html += `</div>`;
-    html += `<button class="btn primary-btn hunt-num-btn" style="margin-top:8px;background:#00bcd4;color:#fff;" data-val="joker">🃏 صيد كارت الجوكر</button>`;
-    html += `<button id="btn-cancel-hunt" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>`;
+    html += '</div>';
+    html += '<button class="btn primary-btn hunt-num-btn" style="margin-top:8px;background:#00bcd4;color:#fff;" data-val="joker">🃏 صيد كارت الجوكر</button>';
+    html += '<button id="btn-cancel-hunt" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>';
     openModal(html);
 
     document.getElementById('btn-cancel-hunt').onclick = cancelCommandExecution;
@@ -549,15 +843,15 @@ socket.on('huntTargetHasCard', ({ targetName, itemName }) => {
 });
 
 function openThiefFlow() {
-  let html = `<h2>🦹‍♂️ كارت الحرامي!</h2>`;
-  html += `<p style="font-size:0.85rem;color:#ccc;">اختر الكارت المطلوب، وسيأتي إليك حتماً (من يد الخصم، أو الأرض، أو السحب)!</p>`;
-  html += `<div class="hunt-grid">`;
+  let html = '<h2>🦹‍♂️ كارت الحرامي!</h2>';
+  html += '<p style="font-size:0.85rem;color:#ccc;">اختر الكارت المطلوب، وسيأتي إليك حتماً (من يد الخصم، أو الأرض، أو السحب)!</p>';
+  html += '<div class="hunt-grid">';
   for (let i = 1; i <= 10; i++) {
     html += `<button class="btn secondary-btn thief-select-btn" data-val="${i}">${i}</button>`;
   }
-  html += `</div>`;
-  html += `<button class="btn primary-btn thief-select-btn" style="margin-top:8px;background:#00bcd4;color:#fff;" data-val="joker">🃏 سرقة كارت الجوكر</button>`;
-  html += `<button id="btn-cancel-thief" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>`;
+  html += '</div>';
+  html += '<button class="btn primary-btn thief-select-btn" style="margin-top:8px;background:#00bcd4;color:#fff;" data-val="joker">🃏 سرقة كارت الجوكر</button>';
+  html += '<button id="btn-cancel-thief" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>';
   openModal(html);
 
   document.getElementById('btn-cancel-thief').onclick = cancelCommandExecution;
@@ -616,7 +910,7 @@ function openAnnoyFlow() {
     others.forEach(p => {
       html += `<button class="btn secondary-btn annoy-p-btn" style="margin-bottom:8px;" data-id="${p.id}">${p.name}</button>`;
     });
-    html += `<button id="btn-cancel-annoy" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>`;
+    html += '<button id="btn-cancel-annoy" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>';
     openModal(html);
 
     document.getElementById('btn-cancel-annoy').onclick = cancelCommandExecution;
@@ -704,7 +998,7 @@ function openPlayerPicker(title, onSelect) {
   others.forEach(p => {
     html += `<button class="btn primary-btn pick-target-btn" style="margin-bottom:8px;" data-id="${p.id}">${p.name}</button>`;
   });
-  html += `<button id="btn-cancel-picker" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>`;
+  html += '<button id="btn-cancel-picker" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>';
   openModal(html);
 
   document.getElementById('btn-cancel-picker').onclick = cancelCommandExecution;
@@ -749,7 +1043,16 @@ socket.on('commandSplash', ({ cmdType, cmdName, playerName }) => {
     bank: '🏛️',
     keda: '😎',
     annoy: '😈',
-    wild: '⭐'
+    wild: '⭐',
+    reveal: '👁️',
+    swap: '🔄',
+    freeze: '🛑',
+    spin: '🎭',
+    mirror: '🪞',
+    ambush: '🚨',
+    magnet: '🧲',
+    curse: '🧿',
+    fire: '🔥'
   };
 
   SoundManager.playCommand();
@@ -845,6 +1148,7 @@ function updateTableSeats(players, myId, currentTurnId) {
   }
 }
 
+// رسم مقعد الخصم وعرض كروته المكشوفة بدقة
 function renderSeat(seatEl, player, currentTurnId) {
   seatEl.classList.remove('hidden');
   
@@ -859,15 +1163,28 @@ function renderSeat(seatEl, player, currentTurnId) {
   const cardsEl = seatEl.querySelector('.seat-cards');
 
   const isTurn = player.id === currentTurnId;
-  nameEl.innerHTML = `${player.isHost ? '👑 ' : ''}${player.name} ${player.isImmune ? '🔒' : ''} ${isTurn ? '<b style="color:#00e676;">⚡</b>' : ''}`;
+  const curseTag = player.isCursed ? '🧿' : '';
+  const frozenTag = player.isFrozen ? '🛑' : '';
+  nameEl.innerHTML = `${player.isHost ? '👑 ' : ''}${player.name} ${player.isImmune ? '🔒' : ''} ${curseTag} ${frozenTag} ${isTurn ? '<b style="color:#00e676;">⚡</b>' : ''}`;
   scoreEl.innerText = `${player.points}ن`;
 
   cardsEl.innerHTML = '';
-  for (let i = 0; i < (player.cardCount || 4); i++) {
-    const mini = document.createElement('div');
-    mini.className = 'mini-card-back';
-    mini.innerHTML = `<img src="/cards/back.png" alt="">`;
-    cardsEl.appendChild(mini);
+  // عرض كروت الخصم لو متفعل عليه كارت ع المكشوف
+  if (player.revealedHand && Array.isArray(player.revealedHand) && player.revealedHand.length > 0) {
+    player.revealedHand.forEach(c => {
+      const imgName = c.type === 'number' ? `${c.value}.png` : `${c.cmdType}.png`;
+      const mini = document.createElement('div');
+      mini.className = 'mini-card-back mini-card-revealed';
+      mini.innerHTML = `<img src="/cards/${imgName}" alt="">`;
+      cardsEl.appendChild(mini);
+    });
+  } else {
+    for (let i = 0; i < (player.cardCount || 4); i++) {
+      const mini = document.createElement('div');
+      mini.className = 'mini-card-back';
+      mini.innerHTML = `<img src="/cards/back.png" alt="">`;
+      cardsEl.appendChild(mini);
+    }
   }
 }
 
