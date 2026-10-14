@@ -40,15 +40,36 @@ const myNameDisplay = document.getElementById('my-name-display');
 const myScoreDisplay = document.getElementById('my-score-display');
 const messyDiscardPile = document.getElementById('messy-discard-pile');
 
-// إظهار وإخفاء قائمة الكوماندز المخصصة في اللوبي
-if (deckModeSelect && customCommandsBox) {
-  deckModeSelect.addEventListener('change', () => {
+const modalOverlay = document.getElementById('modal-overlay');
+const modalContainer = document.getElementById('modal-container');
+
+// إتاحة دوال النوافذ للـ HTML مباشرة
+window.openModal = function(html) {
+  if (modalContainer && modalOverlay) {
+    modalContainer.innerHTML = html;
+    modalOverlay.classList.remove('hidden');
+  }
+};
+
+window.closeModal = function() {
+  if (modalOverlay) {
+    modalOverlay.classList.add('hidden');
+  }
+};
+
+// إظهار وإخفاء قائمة الكوماندز المخصصة في اللوبي مباشرة
+function syncCustomCommandsVisibility() {
+  if (deckModeSelect && customCommandsBox) {
     if (deckModeSelect.value === 'custom') {
-      customCommandsBox.classList.remove('hidden');
+      customCommandsBox.style.display = 'block';
     } else {
-      customCommandsBox.classList.add('hidden');
+      customCommandsBox.style.display = 'none';
     }
-  });
+  }
+}
+if (deckModeSelect) {
+  deckModeSelect.addEventListener('change', syncCustomCommandsVisibility);
+  syncCustomCommandsVisibility();
 }
 
 // فحص التذاكر
@@ -166,7 +187,7 @@ const btnSoundLobby = document.getElementById('btn-sound-lobby');
 const btnSoundGame = document.getElementById('btn-sound-game');
 const btnBuy = document.getElementById('btn-buy');
 
-const btnRulesGate = document.getElementById('btn-rules-gate') || document.getElementById('btn-rules');
+const btnRulesGate = document.getElementById('btn-rules-gate');
 const btnRulesLobby = document.getElementById('btn-rules-lobby');
 const btnRulesWait = document.getElementById('btn-rules-wait');
 
@@ -197,9 +218,6 @@ const discardDeckBtn = document.getElementById('discard-deck');
 const timerSec = document.getElementById('timer-sec');
 const timerBar = document.getElementById('timer-bar');
 
-const modalOverlay = document.getElementById('modal-overlay');
-const modalContainer = document.getElementById('modal-container');
-
 let currentRoomId = localStorage.getItem('kamelha_room');
 let isMyTurn = false;
 let currentDrawnCard = null;
@@ -217,8 +235,8 @@ if (btnSoundLobby) btnSoundLobby.addEventListener('click', () => SoundManager.to
 if (btnSoundGame) btnSoundGame.addEventListener('click', () => SoundManager.toggleMute());
 
 // موسوعة ودليل الكروت المصورة بالكامل
-function openCardEncyclopediaModal() {
-  openModal(`
+window.openCardEncyclopediaModal = function() {
+  window.openModal(`
     <h2 style="color:#ffcc00;margin-bottom:8px;">📖 دليل وقواعد لعبة كمّلها</h2>
     <div class="guide-container">
       <div class="guide-section-title">🎯 الهدف وطريقة المكسب:</div>
@@ -370,28 +388,29 @@ function openCardEncyclopediaModal() {
         </div>
       </div>
     </div>
-    <button class="btn primary-btn" onclick="closeModal()" style="margin-top:12px;">فهمت القواعد 👍</button>
+    <button class="btn primary-btn" onclick="window.closeModal()" style="margin-top:12px;">فهمت القواعد 👍</button>
   `);
-}
+};
 
-if (btnRulesGate) btnRulesGate.addEventListener('click', openCardEncyclopediaModal);
-if (btnRulesLobby) btnRulesLobby.addEventListener('click', openCardEncyclopediaModal);
-if (btnRulesWait) btnRulesWait.addEventListener('click', openCardEncyclopediaModal);
+if (btnRulesGate) btnRulesGate.onclick = () => window.openCardEncyclopediaModal();
+if (btnRulesLobby) btnRulesLobby.onclick = () => window.openCardEncyclopediaModal();
+if (btnRulesWait) btnRulesWait.onclick = () => window.openCardEncyclopediaModal();
 
 if (btnBuy) {
-  btnBuy.addEventListener('click', () => {
-    openModal(`
+  btnBuy.onclick = () => {
+    window.openModal(`
       <h2 style="color:#ffcc00;margin-bottom:6px;">📦 شراء التذاكر / النسخة الأصلية</h2>
       <div class="buy-card-info">
         <div class="brand-badge">Wello_0</div>
         <p class="phone-number-display">📞 01121040020</p>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
-        <a href="https://wa.me/201121040020?text=أهلاً%20Wello_0،%20عايز%20أشتري%20تذكرة%20دخول%20للعبة%20كملها" target="_blank" class="btn whatsapp-btn">💬 تواصل عبر واتساب للشراء</a>
-        <button class="btn secondary-btn" onclick="closeModal()">إغلاق</button>
+        <a href="https://wa.me/201121040020?text=أهلاً%20Wello_0،%20عايز%20أشتري%20تذكرة%20دخول%20للعبة%20كملها" target="_blank" class="btn whatsapp-btn">💬 تواصل عبر واتساب</a>
+        <a href="tel:01121040020" class="btn call-btn">📞 اتصال تليفوني مباشر</a>
+        <button class="btn secondary-btn" onclick="window.closeModal()">إغلاق</button>
       </div>
     `);
-  });
+  };
 }
 
 window.addEventListener('load', () => {
@@ -425,12 +444,12 @@ function copyRoomCode() {
     showToast(`تم نسخ كود الغرفة: ${currentRoomId} 📋`);
   }).catch(() => prompt('انسخ كود الغرفة:', currentRoomId));
 }
-if (btnCopyCodeWait) btnCopyCodeWait.addEventListener('click', copyRoomCode);
-if (btnCopyCodeGame) btnCopyCodeGame.addEventListener('click', copyRoomCode);
+if (btnCopyCodeWait) btnCopyCodeWait.onclick = copyRoomCode;
+if (btnCopyCodeGame) btnCopyCodeGame.onclick = copyRoomCode;
 
 // إنشاء غرفة مع دعم النمط الكلاسيكي أو المخصص
 if (btnCreate) {
-  btnCreate.addEventListener('click', () => {
+  btnCreate.onclick = () => {
     const name = playerNameInput.value.trim();
     if (!name) return alert('اكتب اسمك الأول!');
     localStorage.setItem('kamelha_name', name);
@@ -458,18 +477,18 @@ if (btnCreate) {
       deckMode,
       customCommands
     });
-  });
+  };
 }
 
 if (btnJoin) {
-  btnJoin.addEventListener('click', () => {
+  btnJoin.onclick = () => {
     const name = playerNameInput.value.trim();
     const code = roomCodeInput.value.trim();
     if (!name || !code) return alert('اكتب اسمك وكود الغرفة!');
     localStorage.setItem('kamelha_name', name);
     socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
     socket.emit('joinRoom', { playerName: name, roomId: code, playerId: myPlayerId });
-  });
+  };
 }
 
 socket.on('roomJoined', ({ roomId, players, isHost }) => {
@@ -501,7 +520,7 @@ function renderWaitingPlayers(players) {
   });
 }
 
-if (btnStart) btnStart.addEventListener('click', () => socket.emit('startGame', currentRoomId));
+if (btnStart) btnStart.onclick = () => socket.emit('startGame', currentRoomId);
 
 function leaveCurrentRoom() {
   if (confirm('هل أنت متأكد من الخروج من الغرفة؟')) {
@@ -510,20 +529,20 @@ function leaveCurrentRoom() {
     location.reload();
   }
 }
-if (btnLeave) btnLeave.addEventListener('click', leaveCurrentRoom);
-if (btnLeaveWaiting) btnLeaveWaiting.addEventListener('click', leaveCurrentRoom);
+if (btnLeave) btnLeave.onclick = leaveCurrentRoom;
+if (btnLeaveWaiting) btnLeaveWaiting.onclick = leaveCurrentRoom;
 
 if (drawDeckBtn) {
-  drawDeckBtn.addEventListener('click', () => {
+  drawDeckBtn.onclick = () => {
     if (!isMyTurn) return alert('مش دورك دلوقتي!');
     if (currentDrawnCard) return alert('أنت سحبت كارت بالفعل!');
     SoundManager.playDraw();
     socket.emit('drawCard', currentRoomId);
-  });
+  };
 }
 
 if (discardDeckBtn) {
-  discardDeckBtn.addEventListener('click', () => {
+  discardDeckBtn.onclick = () => {
     if (!isMyTurn) return alert('مش دورك دلوقتي!');
     if (currentDrawnCard) return alert('أنت سحبت كارت مقلوب بالفعل!');
     showToast('اضغط على كارت من إيدك لتبديله مع كارت الأرض!');
@@ -531,20 +550,20 @@ if (discardDeckBtn) {
       SoundManager.playPlace();
       socket.emit('takeDiscardCard', { roomId: currentRoomId, handCardIndex: index });
     });
-  });
+  };
 }
 
 if (btnKamelha) {
-  btnKamelha.addEventListener('click', () => {
+  btnKamelha.onclick = () => {
     SoundManager.playKamelha();
     socket.emit('callKamelha', currentRoomId);
-  });
+  };
 }
 
 // نافذة فخ المراية عند تعرضك لهجوم
 socket.on('mirrorPrompt', ({ attackerName, cmdType, cmdName }) => {
   SoundManager.playCommand();
-  openModal(`
+  window.openModal(`
     <h2 style="color:#00e5ff;">🪞 كارت المراية في إيدك!</h2>
     <p>اللاعب <b>${attackerName}</b> استخدم عليك كارت: <b style="color:#ffcc00;">${cmdName}</b>!</p>
     <p style="font-size:0.85rem;color:#ccc;margin:8px 0;">ماذا تريد أن تفعل؟</p>
@@ -556,15 +575,15 @@ socket.on('mirrorPrompt', ({ attackerName, cmdType, cmdName }) => {
   `);
 
   document.getElementById('btn-mirror-reflect').onclick = () => {
-    closeModal();
+    window.closeModal();
     socket.emit('resolveMirrorResponse', { roomId: currentRoomId, action: 'reflect' });
   };
   document.getElementById('btn-mirror-cancel').onclick = () => {
-    closeModal();
+    window.closeModal();
     socket.emit('resolveMirrorResponse', { roomId: currentRoomId, action: 'cancel' });
   };
   document.getElementById('btn-mirror-ignore').onclick = () => {
-    closeModal();
+    window.closeModal();
     socket.emit('resolveMirrorResponse', { roomId: currentRoomId, action: 'ignore' });
   };
 });
@@ -605,7 +624,7 @@ socket.on('cardDrawn', card => {
 
 function handleNumberOrJokerModal(card) {
   const isMirror = card.cmdType === 'mirror';
-  openModal(`
+  window.openModal(`
     <h2>الكارت المسحوب:</h2>
     <div style="display:flex;justify-content:center;margin:15px 0;">${createCardHTML(card)}</div>
     <p>${isMirror ? 'كارت المراية بيحميك طول ما هو في إيدك!' : 'ماذا تريد أن تفعل؟'}</p>
@@ -616,14 +635,14 @@ function handleNumberOrJokerModal(card) {
   `);
 
   document.getElementById('btn-discard').onclick = () => {
-    closeModal();
+    window.closeModal();
     SoundManager.playPlace();
     socket.emit('discardDrawnCard', currentRoomId);
     currentDrawnCard = null;
   };
 
   document.getElementById('btn-swap').onclick = () => {
-    closeModal();
+    window.closeModal();
     showToast('اختار الكارت اللي عايز ترميه من إيدك:');
     pickCardFromHand(index => {
       SoundManager.playPlace();
@@ -666,7 +685,7 @@ function handleCommandCardModal(card) {
     },
     wild: () => openWildFlow(),
 
-    // الكروت الجديدة (مع تفعيل تمديد الـ 20 ثانية)
+    // الكروت الجديدة
     reveal: () => {
       socket.emit('extendTimerForCommand', currentRoomId);
       openPlayerPicker('اختر لاعباً لكشف كروته للجميع:', targetId => {
@@ -720,7 +739,7 @@ function handleCommandCardModal(card) {
     }
   };
 
-  openModal(`
+  window.openModal(`
     <h2>سحبت كوماند: ${card.name}!</h2>
     <div style="display:flex;justify-content:center;margin:15px 0;">${createCardHTML(card)}</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
@@ -730,11 +749,11 @@ function handleCommandCardModal(card) {
   `);
 
   document.getElementById('btn-run-cmd').onclick = () => {
-    closeModal();
+    window.closeModal();
     if (actions[card.cmdType]) actions[card.cmdType]();
   };
   document.getElementById('btn-drop-cmd').onclick = () => {
-    closeModal();
+    window.closeModal();
     SoundManager.playPlace();
     socket.emit('discardDrawnCard', currentRoomId);
     currentDrawnCard = null;
@@ -742,7 +761,7 @@ function handleCommandCardModal(card) {
 }
 
 function cancelCommandExecution() {
-  closeModal();
+  window.closeModal();
   currentDrawnCard = null;
   SoundManager.playPlace();
   socket.emit('cancelCommand', currentRoomId);
@@ -756,14 +775,14 @@ function openBankPicker() {
   });
   html += '</div>';
   html += '<button id="btn-cancel-bank" class="btn secondary-btn" style="margin-top:10px;">إلغاء ورمي الكارت ❌</button>';
-  openModal(html);
+  window.openModal(html);
 
   document.getElementById('btn-cancel-bank').onclick = cancelCommandExecution;
 
   document.querySelectorAll('.bank-pick-card').forEach(el => {
     el.onclick = () => {
       const discardIdx = parseInt(el.getAttribute('data-idx'));
-      closeModal();
+      window.closeModal();
       showToast('اختار كارت من إيدك لوضعه مكانه:');
       pickCardFromHand(handIdx => {
         currentDrawnCard = null;
@@ -781,14 +800,14 @@ function openMagnetFlow() {
   }
   html += '</div>';
   html += '<button id="btn-cancel-magnet" class="btn secondary-btn" style="margin-top:10px;">إلغاء ورمي الكارت ❌</button>';
-  openModal(html);
+  window.openModal(html);
 
   document.getElementById('btn-cancel-magnet').onclick = cancelCommandExecution;
 
   document.querySelectorAll('.magnet-num-btn').forEach(b => {
     b.onclick = () => {
       const val = parseInt(b.getAttribute('data-val'));
-      closeModal();
+      window.closeModal();
       currentDrawnCard = null;
       SoundManager.playCommand();
       socket.emit('execMagnet', { roomId: currentRoomId, targetNumber: val });
@@ -805,14 +824,14 @@ function openHuntFlow() {
     html += '</div>';
     html += '<button class="btn primary-btn hunt-num-btn" style="margin-top:8px;background:#00bcd4;color:#fff;" data-val="joker">🃏 صيد كارت الجوكر</button>';
     html += '<button id="btn-cancel-hunt" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>';
-    openModal(html);
+    window.openModal(html);
 
     document.getElementById('btn-cancel-hunt').onclick = cancelCommandExecution;
 
     document.querySelectorAll('.hunt-num-btn').forEach(b => {
       b.onclick = () => {
         const item = b.getAttribute('data-val');
-        closeModal();
+        window.closeModal();
         socket.emit('checkHuntTarget', {
           roomId: currentRoomId,
           targetPlayerId: targetId,
@@ -826,14 +845,14 @@ function openHuntFlow() {
 socket.on('huntTargetHasCard', ({ targetName, itemName }) => {
   SoundManager.playWin();
   showToast(`🎯 نجح الصيد! (${targetName}) معه كارت ${itemName}!`);
-  openModal(`
+  window.openModal(`
     <h2 style="color:#00e676;">🎯 الصيد نجح!</h2>
     <p>اللاعب <b>${targetName}</b> معه كارت <b>${itemName}</b>!</p>
     <button id="btn-confirm-hunt-pick" class="btn primary-btn">اختر كارتك للمبادلة 🔄</button>
   `);
 
   document.getElementById('btn-confirm-hunt-pick').onclick = () => {
-    closeModal();
+    window.closeModal();
     showToast('اضغط على كارت من يدك لإعطائه له:');
     pickCardFromHand(handIdx => {
       currentDrawnCard = null;
@@ -852,14 +871,14 @@ function openThiefFlow() {
   html += '</div>';
   html += '<button class="btn primary-btn thief-select-btn" style="margin-top:8px;background:#00bcd4;color:#fff;" data-val="joker">🃏 سرقة كارت الجوكر</button>';
   html += '<button id="btn-cancel-thief" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>';
-  openModal(html);
+  window.openModal(html);
 
   document.getElementById('btn-cancel-thief').onclick = cancelCommandExecution;
 
   document.querySelectorAll('.thief-select-btn').forEach(b => {
     b.onclick = () => {
       const item = b.getAttribute('data-val');
-      closeModal();
+      window.closeModal();
       socket.emit('executeThief', { roomId: currentRoomId, requestedItem: item });
     };
   });
@@ -867,14 +886,14 @@ function openThiefFlow() {
 
 function handleThiefSuccessPrompt(title, text) {
   SoundManager.playWin();
-  openModal(`
+  window.openModal(`
     <h2 style="color:#00e676;">${title}</h2>
     <p>${text}</p>
     <button id="btn-thief-pick-mine" class="btn primary-btn">اختر كارتك الآن 🔄</button>
   `);
 
   document.getElementById('btn-thief-pick-mine').onclick = () => {
-    closeModal();
+    window.closeModal();
     showToast('اضغط على كارت من يدك لإكمال التبديل:');
     pickCardFromHand(handIdx => {
       currentDrawnCard = null;
@@ -911,7 +930,7 @@ function openAnnoyFlow() {
       html += `<button class="btn secondary-btn annoy-p-btn" style="margin-bottom:8px;" data-id="${p.id}">${p.name}</button>`;
     });
     html += '<button id="btn-cancel-annoy" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>';
-    openModal(html);
+    window.openModal(html);
 
     document.getElementById('btn-cancel-annoy').onclick = cancelCommandExecution;
 
@@ -922,7 +941,7 @@ function openAnnoyFlow() {
         btn.disabled = true;
         btn.style.opacity = '0.5';
         if (selected.length === 2) {
-          closeModal();
+          window.closeModal();
           currentDrawnCard = null;
           socket.emit('execAnnoyMulti', { roomId: currentRoomId, playerAId: selected[0], playerBId: selected[1] });
         }
@@ -932,7 +951,7 @@ function openAnnoyFlow() {
 }
 
 socket.on('annoy2PPeekResult', (peekedCard) => {
-  openModal(`
+  window.openModal(`
     <h2>كارت الخصم المسحوب:</h2>
     <div style="display:flex;justify-content:center;margin:15px 0;">${createCardHTML(peekedCard)}</div>
     <p>هل يعجبك وتريد تبديله بكارت من يدك؟</p>
@@ -943,7 +962,7 @@ socket.on('annoy2PPeekResult', (peekedCard) => {
   `);
 
   document.getElementById('btn-annoy-swap').onclick = () => {
-    closeModal();
+    window.closeModal();
     showToast('اختر كارت من يدك لإعطائه للخصم:');
     pickCardFromHand(handIdx => {
       currentDrawnCard = null;
@@ -953,14 +972,14 @@ socket.on('annoy2PPeekResult', (peekedCard) => {
   };
 
   document.getElementById('btn-annoy-keep').onclick = () => {
-    closeModal();
+    window.closeModal();
     currentDrawnCard = null;
     socket.emit('resolveAnnoy2P', { roomId: currentRoomId, swap: false });
   };
 });
 
 function openWildFlow() {
-  openModal(`
+  window.openModal(`
     <h2>كارت براحتك!</h2>
     <p>اختر أي كوماند تريد تحويله إليه (ما عدا الجوكر والحرامي):</p>
     <div style="display:flex;flex-direction:column;gap:8px;">
@@ -978,7 +997,7 @@ function openWildFlow() {
   document.querySelectorAll('.wild-opt').forEach(btn => {
     btn.onclick = () => {
       const type = btn.getAttribute('data-type');
-      closeModal();
+      window.closeModal();
       socket.emit('execWildAs', { roomId: currentRoomId, chosenCmdType: type });
     };
   });
@@ -999,13 +1018,13 @@ function openPlayerPicker(title, onSelect) {
     html += `<button class="btn primary-btn pick-target-btn" style="margin-bottom:8px;" data-id="${p.id}">${p.name}</button>`;
   });
   html += '<button id="btn-cancel-picker" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت ❌</button>';
-  openModal(html);
+  window.openModal(html);
 
   document.getElementById('btn-cancel-picker').onclick = cancelCommandExecution;
 
   document.querySelectorAll('.pick-target-btn').forEach(b => {
     b.onclick = () => {
-      closeModal();
+      window.closeModal();
       onSelect(b.getAttribute('data-id'));
     };
   });
@@ -1023,16 +1042,6 @@ function pickCardFromHand(callback) {
       callback(index);
     };
   });
-}
-
-function openModal(html) {
-  if (modalContainer && modalOverlay) {
-    modalContainer.innerHTML = html;
-    modalOverlay.classList.remove('hidden');
-  }
-}
-function closeModal() {
-  if (modalOverlay) modalOverlay.classList.add('hidden');
 }
 
 socket.on('commandSplash', ({ cmdType, cmdName, playerName }) => {
@@ -1283,8 +1292,8 @@ socket.on('roundEnded', ({ msg, revealedHands }) => {
     `;
   });
   html += `</div><p style="font-size:0.85rem;color:#aaa;">الجولة التالية ستبدأ خلال ثوانٍ...</p>`;
-  openModal(html);
-  setTimeout(() => closeModal(), 8000);
+  window.openModal(html);
+  setTimeout(() => window.closeModal(), 8000);
 });
 
 socket.on('gameOver', ({ winnerName, scores, revealedHands, reason }) => {
@@ -1310,7 +1319,7 @@ socket.on('gameOver', ({ winnerName, scores, revealedHands, reason }) => {
     html += `</div>`;
   }
   html += `<button onclick="localStorage.removeItem('kamelha_room');location.reload();" class="btn primary-btn" style="margin-top:15px;">العودة للرئيسية</button>`;
-  openModal(html);
+  window.openModal(html);
 });
 
 function createCardHTML(card) {
