@@ -16,29 +16,31 @@
   <div id="gate-screen" class="screen">
     <div class="lobby-box">
       <h1 class="game-logo">كمّلها</h1>
-      <div style="font-size:3.5rem;margin:10px 0;">🔒</div>
-      <h2 style="color:#ffcc00;margin-bottom:6px;">بوابة الدخول</h2>
+      <h2 style="color:#ffcc00;margin:15px 0 6px 0;">بوابة الدخول</h2>
       <p style="color:#ccc;font-size:0.9rem;margin-bottom:15px;">أدخل كود التذكرة أو رقم الدخول للعب مع أصحابك:</p>
 
       <input type="text" id="gate-pass-input" placeholder="اكتب كود التذكرة (مثلاً: KM-84912)">
-      <button id="btn-submit-gate" class="btn primary-btn">تأكيد التذكرة والدخول 🎮</button>
+      <button id="btn-submit-gate" class="btn primary-btn">تأكيد التذكرة والدخول</button>
 
       <div class="lobby-extra-buttons" style="margin-top:15px;">
-        <button id="btn-buy" class="btn order-btn">📦 شراء تذكرة / النسخة الأصلية</button>
-        <button id="btn-rules-gate" class="btn info-btn">📖 طريقة وقواعد اللعبة</button>
+        <button id="btn-buy" class="btn order-btn">شراء تذكرة / النسخة الأصلية</button>
+        <button id="btn-rules-gate" class="btn info-btn">طريقة وقواعد اللعبة</button>
       </div>
 
       <div class="footer-brand">
-        صُنعت بواسطة <b>Wello_0</b> • 📞 01121040020
+        صُنعت بواسطة <b>Wello_0</b> • 01121040020
       </div>
     </div>
   </div>
 
   <!-- 2. شاشة اللوبي وإنشاء الغرفة -->
   <div id="lobby-screen" class="screen hidden">
-    <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">🔊</button>
+    <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">صوت</button>
 
     <div class="lobby-box">
+      <!-- زرار الرجوع للبوابة -->
+      <button id="btn-back-to-gate" class="btn secondary-btn" style="margin-bottom:12px;padding:6px;font-size:0.8rem;background:rgba(255,255,255,0.1);">رجوع للبوابة</button>
+
       <h1 class="game-logo">كمّلها</h1>
       <p class="tagline">لعبة الذكاء والسرعة والتحدي</p>
 
@@ -51,12 +53,12 @@
 
       <!-- إعدادات شروط الفوز -->
       <div class="room-match-settings">
-        <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">⚙️ شروط إنهاء المباراة (أيهما يكتمل أولاً):</h4>
+        <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">شروط إنهاء المباراة (أيهما يكتمل أولاً):</h4>
         
         <div class="match-setting-row">
-          <label>🎯 نقاط الفوز:</label>
+          <label>نقاط الفوز:</label>
           <select id="target-points-input">
-            <option value="0">بدون تحديد (مفتوح) ♾️</option>
+            <option value="0">بدون تحديد (مفتوح)</option>
             <option value="1">نقطة واحدة</option>
             <option value="2">نقطتان</option>
             <option value="3">3 نقاط</option>
@@ -71,9 +73,9 @@
         </div>
 
         <div class="match-setting-row" style="margin-top:6px;">
-          <label>🏁 أقصى جولات:</label>
+          <label>أقصى جولات:</label>
           <select id="max-rounds-input">
-            <option value="0" selected>بدون تحديد (مفتوح) ♾️</option>
+            <option value="0" selected>بدون تحديد (مفتوح)</option>
             <option value="1">جولة واحدة</option>
             <option value="2">جولتان</option>
             <option value="3">3 جولات</option>
@@ -90,44 +92,44 @@
 
       <!-- نظام اختيار نمط الكروت (كلاسيكي أو مخصص) -->
       <div class="room-match-settings" style="border-color:#5c6bc0;background:rgba(92,107,192,0.08);">
-        <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">🃏 نمط كروت الغرفة:</h4>
+        <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">نمط كروت الغرفة:</h4>
         <div class="match-setting-row">
           <label>الوضع:</label>
           <select id="deck-mode-select">
-            <option value="classic" selected>كلاسيكي (الكروت الأصلية فقط)</option>
-            <option value="custom">مخصص (اختيار الكوماندز بمزاجك) ✨</option>
+            <option value="classic" selected>كلاسيكي (الكروت الأصلية)</option>
+            <option value="custom">مخصص (اختيار الكوماندز بمزاجك)</option>
           </select>
         </div>
 
-        <!-- قائمة اختيار الكوماندز في الوضع المخصص -->
+        <!-- قائمة اختيار الكوماندز في الوضع المخصص (بدون إيموجي والجوكر بس محدد) -->
         <div id="custom-commands-box" class="custom-commands-container" style="display:none;">
-          <p style="font-size:0.75rem;color:#00e676;margin:6px 0;">حدد الكوماندز اللي حابب تلعب بيها:</p>
+          <p style="font-size:0.75rem;color:#00e676;margin:6px 0;">حدد الكوماندز المراد اللعب بها:</p>
           <div class="commands-checkbox-grid">
             <!-- الكروت الأصلية -->
-            <label class="cmd-check-item"><input type="checkbox" value="joker" checked> 🃏 جوكر</label>
-            <label class="cmd-check-item"><input type="checkbox" value="hunt"> 🎯 اصطاد كارتك</label>
-            <label class="cmd-check-item"><input type="checkbox" value="bank"> 🏛️ لم كمالتك</label>
-            <label class="cmd-check-item"><input type="checkbox" value="reverse"> 🔄 اعكس لفتك</label>
-            <label class="cmd-check-item"><input type="checkbox" value="keda"> 😎 هو كدة</label>
-            <label class="cmd-check-item"><input type="checkbox" value="annoy"> 😈 رخم عليهم</label>
-            <label class="cmd-check-item"><input type="checkbox" value="wild"> ⭐ براحتك</label>
-            <label class="cmd-check-item"><input type="checkbox" value="thief"> 🦹‍♂️ الحرامي</label>
+            <label class="cmd-check-item"><input type="checkbox" value="joker" checked> جوكر</label>
+            <label class="cmd-check-item"><input type="checkbox" value="hunt"> اصطاد كارتك</label>
+            <label class="cmd-check-item"><input type="checkbox" value="bank"> لم كمالتك</label>
+            <label class="cmd-check-item"><input type="checkbox" value="reverse"> اعكس لفتك</label>
+            <label class="cmd-check-item"><input type="checkbox" value="keda"> هو كدة</label>
+            <label class="cmd-check-item"><input type="checkbox" value="annoy"> رخم عليهم</label>
+            <label class="cmd-check-item"><input type="checkbox" value="wild"> براحتك</label>
+            <label class="cmd-check-item"><input type="checkbox" value="thief"> الحرامي</label>
 
             <!-- الكروت الجديدة -->
-            <label class="cmd-check-item new-cmd"><input type="checkbox" value="reveal"> 👁️ ع المكشوف</label>
-            <label class="cmd-check-item new-cmd"><input type="checkbox" value="swap"> 🔄 بدّل يا نجم</label>
-            <label class="cmd-check-item new-cmd"><input type="checkbox" value="freeze"> 🛑 فرملة</label>
-            <label class="cmd-check-item new-cmd"><input type="checkbox" value="spin"> 🎭 شقلباظ</label>
-            <label class="cmd-check-item new-cmd"><input type="checkbox" value="mirror"> 🪞 المراية</label>
-            <label class="cmd-check-item new-cmd"><input type="checkbox" value="ambush"> 🚨 الكمين</label>
-            <label class="cmd-check-item new-cmd"><input type="checkbox" value="magnet"> 🧲 المغناطيس</label>
-            <label class="cmd-check-item new-cmd"><input type="checkbox" value="curse"> 🧿 عين حسودة</label>
-            <label class="cmd-check-item new-cmd"><input type="checkbox" value="fire"> 🔥 ولعانة</label>
+            <label class="cmd-check-item new-cmd"><input type="checkbox" value="reveal"> ع المكشوف</label>
+            <label class="cmd-check-item new-cmd"><input type="checkbox" value="swap"> بدّل يا نجم</label>
+            <label class="cmd-check-item new-cmd"><input type="checkbox" value="freeze"> فرملة</label>
+            <label class="cmd-check-item new-cmd"><input type="checkbox" value="spin"> شقلباظ</label>
+            <label class="cmd-check-item new-cmd"><input type="checkbox" value="mirror"> المراية</label>
+            <label class="cmd-check-item new-cmd"><input type="checkbox" value="ambush"> الكمين</label>
+            <label class="cmd-check-item new-cmd"><input type="checkbox" value="magnet"> المغناطيس</label>
+            <label class="cmd-check-item new-cmd"><input type="checkbox" value="curse"> عين حسودة</label>
+            <label class="cmd-check-item new-cmd"><input type="checkbox" value="fire"> ولعانة</label>
           </div>
         </div>
       </div>
 
-      <button id="btn-create" class="btn primary-btn" style="margin-top:10px;">إنشاء غرفة جديدة 🎲</button>
+      <button id="btn-create" class="btn primary-btn" style="margin-top:10px;">إنشاء غرفة جديدة</button>
 
       <div class="separator">أو</div>
       <div class="join-group">
@@ -136,10 +138,10 @@
       </div>
 
       <!-- زرار دليل الكروت في اللوبي -->
-      <button id="btn-rules-lobby" class="btn info-btn" style="margin-top:12px;">📖 دليل الكروت وطريقة اللعب</button>
+      <button id="btn-rules-lobby" class="btn info-btn" style="margin-top:12px;">دليل الكروت وطريقة اللعب</button>
 
       <div class="footer-brand" style="margin-top:15px;">
-        المطور: <b>Wello_0</b> • تذكرة نشطة ومصرحة ✅
+        المطور: <b>Wello_0</b> • تذكرة نشطة ومصرحة
       </div>
     </div>
   </div>
@@ -149,7 +151,7 @@
     <div class="lobby-box">
       <div class="room-code-header">
         <h2>كود الغرفة: <span id="display-room-code" class="code-badge"></span></h2>
-        <button id="btn-copy-code-wait" class="btn-copy-mini">نسخ 📋</button>
+        <button id="btn-copy-code-wait" class="btn-copy-mini">نسخ</button>
       </div>
       <p class="share-hint">شارك هذا الكود مع أصحابك للدخول</p>
       
@@ -159,11 +161,12 @@
       </div>
 
       <!-- زرار دليل الكروت داخل غرفة الانتظار -->
-      <button id="btn-rules-wait" class="btn info-btn" style="margin-bottom:10px;">📖 دليل الكروت وطريقة اللعب</button>
+      <button id="btn-rules-wait" class="btn info-btn" style="margin-bottom:10px;">دليل الكروت وطريقة اللعب</button>
 
       <div class="waiting-actions">
-        <button id="btn-start" class="btn primary-btn hidden">ابدأ اللعبة 🎮</button>
-        <button id="btn-leave-waiting" class="btn secondary-btn">خروج من الغرفة 🚪</button>
+        <button id="btn-start" class="btn primary-btn hidden">ابدأ اللعبة</button>
+        <!-- زرار الرجوع للوبي -->
+        <button id="btn-back-to-lobby" class="btn secondary-btn">رجوع للوبي</button>
       </div>
       <p id="wait-msg">في انتظار صاحب الغرفة لبدء الجيم...</p>
     </div>
@@ -175,22 +178,22 @@
       <div class="top-row">
         <div class="game-room-tag">
           غرفة: <b id="game-room-code-txt">--</b>
-          <button id="btn-copy-code-game" class="btn-copy-tiny">نسخ 📋</button>
+          <button id="btn-copy-code-game" class="btn-copy-tiny">نسخ</button>
         </div>
 
         <div id="turn-badge" class="badge">دور: <span id="current-player-name">--</span></div>
-        <div id="timer-box" class="timer-badge">⏳ <span id="timer-sec">15</span>ث</div>
+        <div id="timer-box" class="timer-badge">الوقت: <span id="timer-sec">15</span>ث</div>
 
         <div class="game-controls">
-          <button id="btn-sound-game" class="sound-toggle-mini">🔊</button>
-          <button id="btn-leave" class="leave-btn">خروج 🚪</button>
+          <button id="btn-sound-game" class="sound-toggle-mini">صوت</button>
+          <button id="btn-leave" class="leave-btn">خروج</button>
         </div>
       </div>
 
       <div class="timer-bar-container">
         <div id="timer-bar" class="timer-bar"></div>
       </div>
-      <div id="match-rules-tag" class="match-rules-tag">🎯 هدف الفوز: جاري التحميل...</div>
+      <div id="match-rules-tag" class="match-rules-tag">هدف الفوز: جاري التحميل...</div>
     </header>
 
     <!-- مسرح طاولة اللعب -->
@@ -229,8 +232,8 @@
 
       <div id="spot-bottom" class="player-seat seat-bottom">
         <div class="my-table-bar">
-          <div class="my-seat-tag">👤 <b id="my-name-display">أنت</b> (<span id="my-score-display">0ن</span>)</div>
-          <button id="btn-kamelha" class="btn kamelha-btn">كمّلتهااا! 👑</button>
+          <div class="my-seat-tag">لاعب: <b id="my-name-display">أنت</b> (<span id="my-score-display">0ن</span>)</div>
+          <button id="btn-kamelha" class="btn kamelha-btn">كمّلتهااا!</button>
         </div>
         <div id="my-hand" class="cards-hand"></div>
       </div>
@@ -240,7 +243,7 @@
   <!-- الشاشة السينمائية للكوماندز -->
   <div id="command-splash" class="command-splash-overlay hidden">
     <div class="splash-card-box">
-      <div id="splash-icon" class="splash-big-icon">⚡</div>
+      <div id="splash-icon" class="splash-big-icon">★</div>
       <h1 id="splash-title" class="splash-title">اسم الكوماند</h1>
       <p id="splash-player" class="splash-player-name">فلان استخدم الكارت!</p>
     </div>
@@ -252,7 +255,7 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <!-- تم إضافة رقم الإصدار لمنع كاش المتصفح القديم -->
-  <script src="client.js?v=3.5"></script>
+  <!-- منع الكاش التلقائي -->
+  <script src="client.js?v=4.0"></script>
 </body>
 </html>
