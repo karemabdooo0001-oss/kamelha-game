@@ -230,8 +230,29 @@ input {
   font-size: 0.95rem;
   box-shadow: 0 0 15px rgba(255,0,85,0.6);
   animation: bounce 1.5s infinite;
+  transition: all 0.3s ease;
 }
 @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+/* تأثير الرعشة والإضاءة القوية لزرار كمّلتهااا عند اكتمال الكروت */
+.kamelha-ready-glow {
+  animation: kamelhaReadyPulse 0.7s infinite alternate ease-in-out !important;
+  box-shadow: 0 0 25px 6px #00e676, 0 0 50px rgba(0, 230, 118, 0.8) !important;
+  border: 2px solid #fff !important;
+  background: linear-gradient(45deg, #00e676, #ffcc00) !important;
+  color: #000 !important;
+  font-weight: 900 !important;
+}
+@keyframes kamelhaReadyPulse {
+  from {
+    transform: scale(1);
+    box-shadow: 0 0 15px 4px #00e676;
+  }
+  to {
+    transform: scale(1.1);
+    box-shadow: 0 0 35px 8px #00e676, 0 0 60px rgba(0, 230, 118, 0.9);
+  }
+}
 
 .separator { margin: 8px 0; color: #666; font-size: 0.85rem; }
 .join-group { display: flex; gap: 8px; }
