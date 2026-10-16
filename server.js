@@ -9,7 +9,7 @@ const io = new Server(server);
 app.use(express.static('public'));
 
 const MASTER_KEY = "7788"; 
-let GAME_PASSCODE = "0000"; 
+let GAME_PASSCODE = "1234"; 
 
 // التخزين في الذاكرة
 const registeredPlayers = new Map();
@@ -163,13 +163,11 @@ function validateVoucher(code, playerId) {
   return { valid: true, voucher: v };
 }
 
-// فحص اعتراض كارت المراية في يد الهدف (شرط ألا تكون مسحوبة من الأرض)
+// فحص اعتراض كارت المراية في يد الهدف
 function checkMirrorTrap(room, attacker, target, cmdType, cmdName, executeCallback, reflectCallback, cancelCallback) {
-  // فحص وجود مراية أصلية وليست مسحوبة من الأرض
   const mirrorIdx = target.hand.findIndex(c => c.type === 'command' && c.cmdType === 'mirror' && !c.fromGround);
 
   if (mirrorIdx !== -1) {
-    // تجميد مؤقت الدور فوراً أثناء الرد
     clearTimeout(room.turnTimer);
 
     room.pendingMirror = {
@@ -380,7 +378,7 @@ io.on('connection', (socket) => {
       fireTimeout: null,
       gameStarted: false,
       kamelhaCallers: [],
-      turnsLeftInOrbit: null,
+      orbitPendingPlayers: null,
       turnTimer: null,
       turnDeadline: null,
       currentDuration: DEFAULT_TURN_TIME,
@@ -477,7 +475,7 @@ io.on('connection', (socket) => {
     room.pendingSpinMap.clear();
     room.pendingFireMap.clear();
     room.kamelhaCallers = [];
-    room.turnsLeftInOrbit = null;
+    room.orbitPendingPlayers = null;
 
     room.players.forEach(p => {
       p.isFrozen = false;
@@ -526,7 +524,6 @@ io.on('connection', (socket) => {
     }, seconds * 1000);
   }
 
-  // تمديد الوقت لـ 20 ثانية عند تفعيل أي كوماند
   socket.on('extendTimerForCommand', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.gameStarted) return;
@@ -581,7 +578,6 @@ io.on('connection', (socket) => {
     if (room.discardPile.length === 0) return;
 
     const taken = room.discardPile.pop();
-    // تعليم الكارت لو كان مراية ومسحوب من الأرض عشان ميتفعلش كفخ
     if (taken.type === 'command' && taken.cmdType === 'mirror') {
       taken.fromGround = true;
     }
@@ -593,12 +589,10 @@ io.on('connection', (socket) => {
   });
 
   function broadcastCommandSplash(room, cmdType, cmdName, playerName) {
-    // تجميد مؤقت الدور فوراً أثناء تفعيل الكوماند
     clearTimeout(room.turnTimer);
     io.to(room.id).emit('commandSplash', { cmdType, cmdName, playerName });
   }
 
-  // الرد على فخ المراية
   socket.on('resolveMirrorResponse', ({ roomId, action }) => {
     const room = rooms[roomId];
     if (!room || !room.pendingMirror) return;
@@ -808,7 +802,6 @@ io.on('connection', (socket) => {
         io.to(thief.id).emit('thiefFoundInHand', { victimName: victim.name, itemName });
       };
 
-      // لو صد بالمراية: الخصم يتحمى ولكن الحرامي يكمل طريقه!
       const cancel = () => {
         excludedVictimIds.push(victim.id);
         continueThiefSearch(room, thief, requestedItem, itemName, checkCard, excludedVictimIds);
@@ -984,7 +977,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // كارت شقلباظ (مع خيار اختياري لصاحب الكارت لحماية يده)
+  // كارت شقلباظ
   socket.on('execSpin', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -1022,7 +1015,6 @@ io.on('connection', (socket) => {
     if (participate) {
       io.to(player.id).emit('spinRequest');
     } else {
-      // استثناء صاحب الكارت وحفظ كروته
       room.pendingSpinMap.set(player.id, null);
       checkSpinCompletion(room);
     }
@@ -1057,7 +1049,6 @@ io.on('connection', (socket) => {
 
   function finishSpinExecution(room) {
     clearTimeout(room.spinTimeout);
-    // تدوير الكروت بين المشاركين فقط
     const participants = room.players.filter(p => room.pendingSpinMap.get(p.id) !== null);
     const count = participants.length;
 
@@ -1087,7 +1078,6 @@ io.on('connection', (socket) => {
 
     let seizedCount = 0;
     room.players.forEach(p => {
-      // حماية صاحب الكارت
       if (p.id === player.id) return;
 
       const jokers = p.hand.filter(c => c.type === 'command' && c.cmdType === 'joker');
@@ -1111,7 +1101,7 @@ io.on('connection', (socket) => {
     advanceTurn(room);
   });
 
-  // كارت المغناطيس (يدعم الأرقام والجواكر + اختيار يدوي للرمي)
+  // كارت المغناطيس
   socket.on('execMagnet', ({ roomId, targetNumber }) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -1148,7 +1138,6 @@ io.on('connection', (socket) => {
     const { pulledCards, player } = room.pendingMagnet;
     if (player.id !== socket.id) return;
 
-    // فرز المؤشرات تنازلياً للحذف الآمن
     const sorted = discardIndices.sort((a, b) => b - a);
     sorted.forEach(idx => {
       const discarded = player.hand.splice(idx, 1)[0];
@@ -1191,7 +1180,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // كارت ولعانة (مع خيار اختياري لصاحب الكارت لحماية يده)
+  // كارت ولعانة
   socket.on('execFire', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -1204,10 +1193,8 @@ io.on('connection', (socket) => {
 
     io.to(roomId).emit('notify', `كارت ولعانة! استعدوا لحرق واستبدال الكروت!`);
     
-    // سؤال صاحب الكارت الأول إن كان عايز يستبدل
     io.to(player.id).emit('fireCasterPrompt');
 
-    // الخصوم إجباري
     room.players.forEach(p => {
       if (p.id !== player.id) {
         io.to(p.id).emit('fireRequest');
@@ -1229,7 +1216,6 @@ io.on('connection', (socket) => {
     if (burn) {
       io.to(player.id).emit('fireRequest');
     } else {
-      // حماية صاحب الكارت وعدم حرق أي كارت من يده
       room.pendingFireMap.set(player.id, true);
       checkFireCompletion(room);
     }
@@ -1377,11 +1363,15 @@ io.on('connection', (socket) => {
       player.earnedPointsThisRound = check.points;
       io.to(roomId).emit('notify', `صاح (${player.name}): "كمّلتهااا!" وتم تفعيل قفل الحصانة له!`);
       io.to(roomId).emit('soundTrigger', 'kamelha');
-      sendGameState(roomId);
 
-      if (room.turnsLeftInOrbit === null) {
-        room.turnsLeftInOrbit = room.players.length - 1;
+      // تفعيل لفة الأدوار المتبقية لجميع الخصوم الآخرين فقط
+      if (!room.orbitPendingPlayers) {
+        room.orbitPendingPlayers = new Set(
+          room.players.filter(pl => pl.id !== player.id).map(pl => pl.id)
+        );
       }
+
+      sendGameState(roomId);
     }
   });
 
@@ -1397,29 +1387,41 @@ io.on('connection', (socket) => {
     const count = room.players.length;
     if (count === 0) return;
 
-    if (room.turnsLeftInOrbit !== null) {
-      room.turnsLeftInOrbit--;
-      if (room.turnsLeftInOrbit <= 0) {
-        endRound(room, false);
-        return;
+    const currentPlayer = room.players[room.currentTurnIndex];
+
+    // لو اللفة الأخيرة مفعلة: شطب دور اللاعب الذي انتهى دوره الآن
+    if (room.orbitPendingPlayers) {
+      if (currentPlayer && room.orbitPendingPlayers.has(currentPlayer.id)) {
+        room.orbitPendingPlayers.delete(currentPlayer.id);
+      }
+
+      // انتهاء الجولة إذا انتهت أدوار كل الخصوم
+      if (room.orbitPendingPlayers.size === 0) {
+        return endRound(room, false);
       }
     }
 
     room.currentTurnIndex = (room.currentTurnIndex + room.direction + count) % count;
-    const activePlayer = room.players[room.currentTurnIndex];
+    const nextPlayer = room.players[room.currentTurnIndex];
 
-    // لو اللاعب متفرمل: تخطي دوره
-    if (activePlayer && activePlayer.isFrozen) {
-      activePlayer.isFrozen = false;
-      io.to(room.id).emit('notify', `تم تخطي دور (${activePlayer.name}) لأنه متفرمل!`);
+    // لو اللاعب التالي متفرمل: تخطي دوره وشطبه
+    if (nextPlayer && nextPlayer.isFrozen) {
+      nextPlayer.isFrozen = false;
+      io.to(room.id).emit('notify', `تم تخطي دور (${nextPlayer.name}) لأنه متفرمل!`);
+      if (room.orbitPendingPlayers && room.orbitPendingPlayers.has(nextPlayer.id)) {
+        room.orbitPendingPlayers.delete(nextPlayer.id);
+        if (room.orbitPendingPlayers.size === 0) {
+          return endRound(room, false);
+        }
+      }
       return advanceTurn(room);
     }
 
     // تقليل عداد العين الحسودة
-    if (activePlayer && activePlayer.curseTurns > 0) {
-      activePlayer.curseTurns--;
-      if (activePlayer.curseTurns === 0) {
-        io.to(room.id).emit('notify', `انتهت مدة العين الحسودة عن اللاعب (${activePlayer.name})!`);
+    if (nextPlayer && nextPlayer.curseTurns > 0) {
+      nextPlayer.curseTurns--;
+      if (nextPlayer.curseTurns === 0) {
+        io.to(room.id).emit('notify', `انتهت مدة العين الحسودة عن اللاعب (${nextPlayer.name})!`);
       }
     }
 
@@ -1514,6 +1516,10 @@ io.on('connection', (socket) => {
     const activePlayer = room.players[room.currentTurnIndex];
 
     room.players.forEach(p => {
+      // فحص هل يد اللاعب مكتملة وجاهزة لقول كملها
+      const check = verifyKamelhaHand(p.hand);
+      const canCallKamelha = check.valid && !room.kamelhaCallers.includes(p.id);
+
       io.to(p.id).emit('gameState', {
         hand: p.hand,
         topDiscard: room.discardPile[room.discardPile.length - 1],
@@ -1528,6 +1534,7 @@ io.on('connection', (socket) => {
         targetPoints: room.targetPoints,
         maxRounds: room.maxRounds,
         roundCount: room.roundCount,
+        canCallKamelha,
         players: room.players.map(pl => ({
           id: pl.id,
           name: pl.name,
