@@ -9,7 +9,7 @@ const io = new Server(server);
 app.use(express.static('public'));
 
 const MASTER_KEY = "7788"; 
-let GAME_PASSCODE = "1234"; 
+let GAME_PASSCODE = "0000"; 
 
 // التخزين في الذاكرة
 const registeredPlayers = new Map();
