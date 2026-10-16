@@ -524,6 +524,7 @@ io.on('connection', (socket) => {
     }, seconds * 1000);
   }
 
+  // تمديد الوقت لـ 20 ثانية عند تفعيل أي كوماند
   socket.on('extendTimerForCommand', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.gameStarted) return;
@@ -578,6 +579,7 @@ io.on('connection', (socket) => {
     if (room.discardPile.length === 0) return;
 
     const taken = room.discardPile.pop();
+    // تعليم الكارت لو كان مراية ومسحوب من الأرض
     if (taken.type === 'command' && taken.cmdType === 'mirror') {
       taken.fromGround = true;
     }
@@ -593,6 +595,7 @@ io.on('connection', (socket) => {
     io.to(room.id).emit('commandSplash', { cmdType, cmdName, playerName });
   }
 
+  // الرد على فخ المراية
   socket.on('resolveMirrorResponse', ({ roomId, action }) => {
     const room = rooms[roomId];
     if (!room || !room.pendingMirror) return;
@@ -819,7 +822,6 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // لو ملقاش عند الخصوم: يسرق من الأرض
     let groundIndex = -1;
     for (let i = room.discardPile.length - 1; i >= 0; i--) {
       if (checkCard(room.discardPile[i])) {
@@ -833,7 +835,6 @@ io.on('connection', (socket) => {
       return io.to(thief.id).emit('thiefFoundOnGround', { itemName });
     }
 
-    // لو ملقاش في الأرض: يطلعه من قلب كروت السحب المقلوبة
     checkDrawDeckRefill(room);
     let deckIndex = room.deck.findIndex(checkCard);
 
@@ -990,10 +991,8 @@ io.on('connection', (socket) => {
 
     io.to(roomId).emit('notify', `كارت شقلباظ! بدأ تمرير الكروت بين اللاعبين!`);
     
-    // سؤال صاحب الكارت الأول إن كان عايز يشارك
     io.to(player.id).emit('spinCasterPrompt');
 
-    // الخصوم إجباري
     room.players.forEach(p => {
       if (p.id !== player.id) {
         io.to(p.id).emit('spinRequest');
@@ -1067,7 +1066,7 @@ io.on('connection', (socket) => {
     advanceTurn(room);
   }
 
-  // كارت الكمين
+  // كارت الكمين مع صد المراية
   socket.on('execAmbush', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -1076,29 +1075,66 @@ io.on('connection', (socket) => {
     broadcastCommandSplash(room, 'ambush', 'الكمين', player.name);
     room.discardPile.push(room.drawnCard);
 
-    let seizedCount = 0;
-    room.players.forEach(p => {
-      if (p.id === player.id) return;
+    // البحث عن خصم معه جوكر ومعه مراية أصلية
+    const defendersWithJokerAndMirror = room.players.filter(p => 
+      p.id !== player.id && 
+      p.hand.some(c => c.type === 'command' && c.cmdType === 'joker') &&
+      p.hand.some(c => c.type === 'command' && c.cmdType === 'mirror' && !c.fromGround)
+    );
 
-      const jokers = p.hand.filter(c => c.type === 'command' && c.cmdType === 'joker');
-      if (jokers.length > 0) {
-        p.hand = p.hand.filter(c => !(c.type === 'command' && c.cmdType === 'joker'));
-        room.discardPile.push(...jokers);
-        seizedCount += jokers.length;
+    const executeSeizure = (protectedPlayerId = null) => {
+      let seizedCount = 0;
+      room.players.forEach(p => {
+        if (p.id === player.id || p.id === protectedPlayerId) return;
 
-        checkDrawDeckRefill(room);
-        for (let j = 0; j < jokers.length; j++) {
-          if (room.deck.length > 0) p.hand.push(room.deck.pop());
+        const jokers = p.hand.filter(c => c.type === 'command' && c.cmdType === 'joker');
+        if (jokers.length > 0) {
+          p.hand = p.hand.filter(c => !(c.type === 'command' && c.cmdType === 'joker'));
+          room.discardPile.push(...jokers);
+          seizedCount += jokers.length;
+
+          checkDrawDeckRefill(room);
+          for (let j = 0; j < jokers.length; j++) {
+            if (room.deck.length > 0) p.hand.push(room.deck.pop());
+          }
         }
-      }
-    });
+      });
 
-    if (seizedCount > 0) {
-      io.to(roomId).emit('notify', `كمين بواسطة (${player.name})! تم مصادرة (${seizedCount}) جوكر من الخصوم للأرض!`);
+      if (seizedCount > 0) {
+        io.to(roomId).emit('notify', `كمين بواسطة (${player.name})! تم مصادرة (${seizedCount}) جوكر للأرض!`);
+      } else {
+        io.to(roomId).emit('notify', `نزل الكمين ولم يتم العثور على أي جواكر!`);
+      }
+      advanceTurn(room);
+    };
+
+    const reflectSeizure = () => {
+      // مصادرة جواكر المهاجم نفسه
+      const attackerJokers = player.hand.filter(c => c.type === 'command' && c.cmdType === 'joker');
+      if (attackerJokers.length > 0) {
+        player.hand = player.hand.filter(c => !(c.type === 'command' && c.cmdType === 'joker'));
+        room.discardPile.push(...attackerJokers);
+        checkDrawDeckRefill(room);
+        for (let j = 0; j < attackerJokers.length; j++) {
+          if (room.deck.length > 0) player.hand.push(room.deck.pop());
+        }
+        io.to(roomId).emit('notify', `ارتد الكمين وتم مصادرة (${attackerJokers.length}) جوكر من يد المهاجم (${player.name})!`);
+      } else {
+        io.to(roomId).emit('notify', `ارتد الكمين ولكن المهاجم (${player.name}) ليس معه جواكر!`);
+      }
+      advanceTurn(room);
+    };
+
+    if (defendersWithJokerAndMirror.length > 0) {
+      const defender = defendersWithJokerAndMirror[0];
+      checkMirrorTrap(room, player, defender, 'ambush', 'الكمين',
+        () => executeSeizure(null),
+        () => reflectSeizure(),
+        () => executeSeizure(defender.id)
+      );
     } else {
-      io.to(roomId).emit('notify', `نزل الكمين ولم يعثر على أي جواكر في أيدي الخصوم!`);
+      executeSeizure(null);
     }
-    advanceTurn(room);
   });
 
   // كارت المغناطيس
@@ -1516,7 +1552,6 @@ io.on('connection', (socket) => {
     const activePlayer = room.players[room.currentTurnIndex];
 
     room.players.forEach(p => {
-      // فحص هل يد اللاعب مكتملة وجاهزة لقول كملها
       const check = verifyKamelhaHand(p.hand);
       const canCallKamelha = check.valid && !room.kamelhaCallers.includes(p.id);
 
