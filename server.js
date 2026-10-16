@@ -9,7 +9,7 @@ const io = new Server(server);
 app.use(express.static('public'));
 
 const MASTER_KEY = "7788"; 
-let GAME_PASSCODE = "1234"; 
+let GAME_PASSCODE = "0000"; 
 
 // التخزين في الذاكرة
 const registeredPlayers = new Map();
@@ -70,7 +70,8 @@ function createDeck(deckMode = 'classic', customCommands = []) {
           id: `cmd_${cmdKey}_${i}_${Math.random()}`, 
           type: 'command', 
           cmdType: cmdKey, 
-          name: meta.name 
+          name: meta.name,
+          fromGround: false 
         });
       }
     }
@@ -117,7 +118,7 @@ function checkLastManStanding(room) {
     io.to(room.id).emit('gameOver', {
       winnerName: soleWinner.name,
       scores: room.players,
-      reason: 'فوز تلقائي لانسحاب باقي اللاعبين من الجيم! 🏆'
+      reason: 'فوز تلقائي لانسحاب باقي اللاعبين من الجيم!'
     });
     expireRoomOneMatchVouchers(room);
     return true;
@@ -162,11 +163,15 @@ function validateVoucher(code, playerId) {
   return { valid: true, voucher: v };
 }
 
-// فحص اعتراض كارت المراية في يد الهدف
-function checkMirrorTrap(room, attacker, target, cmdType, cmdName, executeCallback, reflectCallback) {
-  const mirrorIdx = target.hand.findIndex(c => c.type === 'command' && c.cmdType === 'mirror');
+// فحص اعتراض كارت المراية في يد الهدف (شرط ألا تكون مسحوبة من الأرض)
+function checkMirrorTrap(room, attacker, target, cmdType, cmdName, executeCallback, reflectCallback, cancelCallback) {
+  // فحص وجود مراية أصلية وليست مسحوبة من الأرض
+  const mirrorIdx = target.hand.findIndex(c => c.type === 'command' && c.cmdType === 'mirror' && !c.fromGround);
 
   if (mirrorIdx !== -1) {
+    // تجميد مؤقت الدور فوراً أثناء الرد
+    clearTimeout(room.turnTimer);
+
     room.pendingMirror = {
       attacker,
       target,
@@ -174,7 +179,8 @@ function checkMirrorTrap(room, attacker, target, cmdType, cmdName, executeCallba
       cmdType,
       cmdName,
       executeCallback,
-      reflectCallback
+      reflectCallback,
+      cancelCallback
     };
 
     io.to(target.id).emit('mirrorPrompt', {
@@ -295,7 +301,7 @@ io.on('connection', (socket) => {
           clearTimeout(room.turnTimer);
           delete rooms[rId];
         } else {
-          io.to(rId).emit('notify', `تم حظر وطرد اللاعب (${found.name}) من اللعبة! 🚫`);
+          io.to(rId).emit('notify', `تم طرد وحظر اللاعب (${found.name}) من اللعبة!`);
           io.to(rId).emit('updatePlayers', room.players);
           checkLastManStanding(room);
           sendGameState(rId);
@@ -334,7 +340,7 @@ io.on('connection', (socket) => {
     socket.emit('roomJoined', { roomId, players: room.players, isHost: player.isHost });
     if (room.gameStarted) {
       sendGameState(roomId);
-      io.to(roomId).emit('notify', `عاد اللاعب (${player.name}) إلى اللعبة! 🔄`);
+      io.to(roomId).emit('notify', `عاد اللاعب (${player.name}) إلى اللعبة!`);
     }
   });
 
@@ -369,6 +375,7 @@ io.on('connection', (socket) => {
       pendingMirror: null,
       pendingSpinMap: new Map(),
       pendingFireMap: new Map(),
+      pendingMagnet: null,
       spinTimeout: null,
       fireTimeout: null,
       gameStarted: false,
@@ -437,7 +444,7 @@ io.on('connection', (socket) => {
     socket.emit('roomJoined', { roomId, players: room.players, isHost: false });
 
     if (room.gameStarted) {
-      io.to(roomId).emit('notify', `انضم (${newPlayer.name}) إلى الجيم الحالي! 🎮`);
+      io.to(roomId).emit('notify', `انضم (${newPlayer.name}) إلى الجيم الحالي!`);
       sendGameState(roomId);
     }
   });
@@ -466,6 +473,7 @@ io.on('connection', (socket) => {
     room.pendingHunter = null;
     room.pendingThief = null;
     room.pendingMirror = null;
+    room.pendingMagnet = null;
     room.pendingSpinMap.clear();
     room.pendingFireMap.clear();
     room.kamelhaCallers = [];
@@ -490,7 +498,7 @@ io.on('connection', (socket) => {
     io.to(room.id).emit('animateDealing', { numPlayers: room.players.length });
 
     const starterName = room.players[room.currentTurnIndex].name;
-    io.to(room.id).emit('notify', `بدأت الجولة ${room.roundCount}! يبدأ الدور: (${starterName}) 🎯`);
+    io.to(room.id).emit('notify', `بدأت الجولة ${room.roundCount}! يبدأ الدور: (${starterName})`);
 
     startTurnTimer(room, DEFAULT_TURN_TIME);
     sendGameState(room.id);
@@ -504,7 +512,7 @@ io.on('connection', (socket) => {
     room.turnTimer = setTimeout(() => {
       const currPlayer = room.players[room.currentTurnIndex];
       if (!currPlayer) return;
-      io.to(room.id).emit('notify', `⏰ انتهى وقت (${currPlayer.name}) وتم تفويت دوره!`);
+      io.to(room.id).emit('notify', `انتهى وقت (${currPlayer.name}) وتم تفويت دوره!`);
 
       if (room.drawnCard) {
         room.discardPile.push(room.drawnCard);
@@ -518,6 +526,7 @@ io.on('connection', (socket) => {
     }, seconds * 1000);
   }
 
+  // تمديد الوقت لـ 20 ثانية عند تفعيل أي كوماند
   socket.on('extendTimerForCommand', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.gameStarted) return;
@@ -568,10 +577,15 @@ io.on('connection', (socket) => {
     const player = room.players[room.currentTurnIndex];
     if (player?.id !== socket.id) return socket.emit('errorMsg', 'مش دورك!');
     if (room.drawnCard) return socket.emit('errorMsg', 'أنت سحبت كارت مقلوب بالفعل!');
-    if (player.curseTurns > 0) return socket.emit('errorMsg', 'أنت مصاب بعين حسودة وممنوع تسحب من الأرض! 🧿');
+    if (player.curseTurns > 0) return socket.emit('errorMsg', 'أنت مصاب بعين حسودة وممنوع تسحب من الأرض!');
     if (room.discardPile.length === 0) return;
 
     const taken = room.discardPile.pop();
+    // تعليم الكارت لو كان مراية ومسحوب من الأرض عشان ميتفعلش كفخ
+    if (taken.type === 'command' && taken.cmdType === 'mirror') {
+      taken.fromGround = true;
+    }
+
     const oldCard = player.hand.splice(handCardIndex, 1, taken)[0];
     room.discardPile.push(oldCard);
     io.to(roomId).emit('playerDrewCardAnim', { playerId: socket.id, from: 'discard' });
@@ -579,6 +593,8 @@ io.on('connection', (socket) => {
   });
 
   function broadcastCommandSplash(room, cmdType, cmdName, playerName) {
+    // تجميد مؤقت الدور فوراً أثناء تفعيل الكوماند
+    clearTimeout(room.turnTimer);
     io.to(room.id).emit('commandSplash', { cmdType, cmdName, playerName });
   }
 
@@ -587,7 +603,7 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     if (!room || !room.pendingMirror) return;
 
-    const { attacker, target, mirrorIdx, cmdName, executeCallback, reflectCallback } = room.pendingMirror;
+    const { attacker, target, mirrorIdx, cmdName, executeCallback, reflectCallback, cancelCallback } = room.pendingMirror;
     if (target.id !== socket.id) return;
 
     if (action === 'cancel' || action === 'reflect') {
@@ -600,13 +616,15 @@ io.on('connection', (socket) => {
       }
 
       if (action === 'cancel') {
-        io.to(roomId).emit('notify', `🪞 تصدت المراية لكارت (${cmdName}) وألغته تماماً!`);
+        io.to(roomId).emit('notify', `تصدت المراية لكارت (${cmdName}) وحمت اللاعب (${target.name})!`);
         room.pendingMirror = null;
-        advanceTurn(room);
+        if (cancelCallback) cancelCallback();
+        else advanceTurn(room);
       } else if (action === 'reflect') {
-        io.to(roomId).emit('notify', `🪞⚡ عكست المراية كارت (${cmdName}) في صدر (${attacker.name})!`);
+        io.to(roomId).emit('notify', `عكست المراية كارت (${cmdName}) في صدر (${attacker.name})!`);
         room.pendingMirror = null;
-        reflectCallback();
+        if (reflectCallback) reflectCallback();
+        else advanceTurn(room);
       }
     } else {
       room.pendingMirror = null;
@@ -638,7 +656,7 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
     if (room.kamelhaCallers.includes(targetPlayerId)) {
-      return socket.emit('errorMsg', 'هذا اللاعب قال كملها ومحمي بقفل الحصانة! 🔒');
+      return socket.emit('errorMsg', 'هذا اللاعب قال كملها ومحمي بقفل الحصانة!');
     }
 
     const player = room.players[room.currentTurnIndex];
@@ -680,6 +698,11 @@ io.on('connection', (socket) => {
     broadcastCommandSplash(room, 'bank', 'لم كمالتك', player.name);
     room.discardPile.push(room.drawnCard);
     const chosen = room.discardPile.splice(discardIndex, 1)[0];
+    
+    if (chosen.type === 'command' && chosen.cmdType === 'mirror') {
+      chosen.fromGround = true;
+    }
+
     const oldCard = player.hand.splice(handCardIndex, 1, chosen)[0];
     room.discardPile.push(oldCard);
 
@@ -691,7 +714,7 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
     if (room.kamelhaCallers.includes(targetPlayerId)) {
-      return socket.emit('errorMsg', 'هذا اللاعب محمي بقفل الحصانة! 🔒');
+      return socket.emit('errorMsg', 'هذا اللاعب محمي بقفل الحصانة!');
     }
 
     const hunter = room.players[room.currentTurnIndex];
@@ -710,12 +733,24 @@ io.on('connection', (socket) => {
     const itemName = requestedItem === 'joker' ? 'جوكر' : `رقم ${requestedItem}`;
 
     if (foundIndex !== -1) {
-      room.pendingHunter = { targetPlayerId, foundIndex, requestedItem, itemName };
-      socket.emit('huntTargetHasCard', { targetName: target.name, itemName });
+      const execute = () => {
+        room.pendingHunter = { targetPlayerId, foundIndex, requestedItem, itemName };
+        socket.emit('huntTargetHasCard', { targetName: target.name, itemName });
+      };
+
+      const reflect = () => {
+        room.discardPile.push(room.drawnCard);
+        io.to(roomId).emit('notify', `ارتد الصيد في صدر (${hunter.name})!`);
+        advanceTurn(room);
+      };
+
+      if (!checkMirrorTrap(room, hunter, target, 'hunt', 'اصطاد كارتك', execute, reflect)) {
+        execute();
+      }
     } else {
       room.discardPile.push(room.drawnCard);
       room.drawnCard = null;
-      io.to(roomId).emit('notify', `🐟 فشل الصيد! (${target.name}) معهوش ${itemName}.`);
+      io.to(roomId).emit('notify', `فشل الصيد! (${target.name}) معهوش ${itemName}.`);
       advanceTurn(room);
     }
   });
@@ -732,12 +767,13 @@ io.on('connection', (socket) => {
       const hunted = target.hand.splice(room.pendingHunter.foundIndex, 1)[0];
       const given = hunter.hand.splice(handCardIndexToGive, 1, hunted)[0];
       target.hand.push(given);
-      io.to(roomId).emit('notify', `🎯 اصطياد ناجح! أخذ (${hunter.name}) ${room.pendingHunter.itemName} من (${target.name})!`);
+      io.to(roomId).emit('notify', `اصطياد ناجح! أخذ (${hunter.name}) ${room.pendingHunter.itemName} من (${target.name})!`);
     }
     room.pendingHunter = null;
     advanceTurn(room);
   });
 
+  // كارت الحرامي مع متابعة البحث لو الخصم معاه مراية
   socket.on('executeThief', ({ roomId, requestedItem }) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -748,10 +784,15 @@ io.on('connection', (socket) => {
     const itemName = requestedItem === 'joker' ? 'جوكر' : `رقم ${requestedItem}`;
     const checkCard = (c) => requestedItem === 'joker' ? (c.type === 'command' && c.cmdType === 'joker') : (c.type === 'number' && c.value === parseInt(requestedItem));
 
+    continueThiefSearch(room, thief, requestedItem, itemName, checkCard, []);
+  });
+
+  function continueThiefSearch(room, thief, requestedItem, itemName, checkCard, excludedVictimIds) {
     let victim = null;
     let victimCardIndex = -1;
+
     for (const opp of room.players) {
-      if (opp.id !== thief.id && !room.kamelhaCallers.includes(opp.id)) {
+      if (opp.id !== thief.id && !room.kamelhaCallers.includes(opp.id) && !excludedVictimIds.includes(opp.id)) {
         const idx = opp.hand.findIndex(checkCard);
         if (idx !== -1) {
           victim = opp;
@@ -762,10 +803,30 @@ io.on('connection', (socket) => {
     }
 
     if (victim) {
-      room.pendingThief = { tier: 'opponent', victimId: victim.id, cardIndex: victimCardIndex, itemName };
-      return socket.emit('thiefFoundInHand', { victimName: victim.name, itemName });
+      const execute = () => {
+        room.pendingThief = { tier: 'opponent', victimId: victim.id, cardIndex: victimCardIndex, itemName };
+        io.to(thief.id).emit('thiefFoundInHand', { victimName: victim.name, itemName });
+      };
+
+      // لو صد بالمراية: الخصم يتحمى ولكن الحرامي يكمل طريقه!
+      const cancel = () => {
+        excludedVictimIds.push(victim.id);
+        continueThiefSearch(room, thief, requestedItem, itemName, checkCard, excludedVictimIds);
+      };
+
+      const reflect = () => {
+        room.discardPile.push(room.drawnCard);
+        io.to(room.id).emit('notify', `عكست المراية سرقة الحرامي!`);
+        advanceTurn(room);
+      };
+
+      if (!checkMirrorTrap(room, thief, victim, 'thief', 'الحرامي', execute, reflect, cancel)) {
+        execute();
+      }
+      return;
     }
 
+    // لو ملقاش عند الخصوم: يسرق من الأرض
     let groundIndex = -1;
     for (let i = room.discardPile.length - 1; i >= 0; i--) {
       if (checkCard(room.discardPile[i])) {
@@ -776,22 +837,23 @@ io.on('connection', (socket) => {
 
     if (groundIndex !== -1) {
       room.pendingThief = { tier: 'ground', groundIndex, itemName };
-      return socket.emit('thiefFoundOnGround', { itemName });
+      return io.to(thief.id).emit('thiefFoundOnGround', { itemName });
     }
 
+    // لو ملقاش في الأرض: يطلعه من قلب كروت السحب المقلوبة
     checkDrawDeckRefill(room);
     let deckIndex = room.deck.findIndex(checkCard);
 
     if (deckIndex !== -1) {
       room.pendingThief = { tier: 'deck', deckIndex, itemName };
-      return socket.emit('thiefFoundInDeck', { itemName });
+      return io.to(thief.id).emit('thiefFoundInDeck', { itemName });
     }
 
     room.discardPile.push(room.drawnCard);
     room.drawnCard = null;
-    io.to(roomId).emit('notify', `🦹‍♂️ لم يجد الحرامي أي كارت متاح لسرقته!`);
+    io.to(room.id).emit('notify', `لم يجد الحرامي أي كارت متاح لسرقته!`);
     advanceTurn(room);
-  });
+  }
 
   socket.on('confirmThiefSwap', ({ roomId, handCardIndexToGive }) => {
     const room = rooms[roomId];
@@ -808,18 +870,18 @@ io.on('connection', (socket) => {
         const stolen = victim.hand.splice(room.pendingThief.cardIndex, 1)[0];
         const given = thief.hand.splice(handCardIndexToGive, 1, stolen)[0];
         victim.hand.push(given);
-        io.to(roomId).emit('notify', `🦹‍♂️ سرق الحرامي كارت (${itemName}) من يد (${victim.name}) وبدله بكارت من يده!`);
+        io.to(roomId).emit('notify', `سرق الحرامي كارت (${itemName}) من يد (${victim.name}) وبدله بكارت من يده!`);
       }
     } else if (tier === 'ground') {
       const stolen = room.discardPile.splice(room.pendingThief.groundIndex, 1)[0];
       const given = thief.hand.splice(handCardIndexToGive, 1, stolen)[0];
       room.discardPile.push(given);
-      io.to(roomId).emit('notify', `🦹‍♂️ التقط الحرامي كارت (${itemName}) من الأرض ورمى كارت مكانه!`);
+      io.to(roomId).emit('notify', `التقط الحرامي كارت (${itemName}) من الأرض ورمى كارت مكانه!`);
     } else if (tier === 'deck') {
       const stolen = room.deck.splice(room.pendingThief.deckIndex, 1)[0];
       const given = thief.hand.splice(handCardIndexToGive, 1, stolen)[0];
       room.discardPile.push(given);
-      io.to(roomId).emit('notify', `🦹‍♂️ أخرج الحرامي كارت (${itemName}) من قلب كروت السحب المقلوبة!`);
+      io.to(roomId).emit('notify', `أخرج الحرامي كارت (${itemName}) من قلب كروت السحب المقلوبة!`);
     }
 
     room.pendingThief = null;
@@ -841,7 +903,7 @@ io.on('connection', (socket) => {
       target.revealedHand = target.hand;
       target.revealedRemainingTurns = room.players.length;
 
-      io.to(roomId).emit('notify', `👁️ كارت ع المكشوف! أصبحت كروت (${target.name}) مكشوفة للجميع على الترابيزة!`);
+      io.to(roomId).emit('notify', `كارت ع المكشوف! أصبحت كروت (${target.name}) مكشوفة للجميع على الترابيزة!`);
       advanceTurn(room);
     };
 
@@ -850,7 +912,7 @@ io.on('connection', (socket) => {
       player.revealedHand = player.hand;
       player.revealedRemainingTurns = room.players.length;
 
-      io.to(roomId).emit('notify', `👁️ ارتدت العين! أصبحت كروت المهاجم (${player.name}) مكشوفة للجميع على الترابيزة!`);
+      io.to(roomId).emit('notify', `ارتدت العين! أصبحت كروت المهاجم (${player.name}) مكشوفة للجميع على الترابيزة!`);
       advanceTurn(room);
     };
 
@@ -864,7 +926,7 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
     if (room.kamelhaCallers.includes(targetPlayerId)) {
-      return socket.emit('errorMsg', 'هذا اللاعب محمي بقفل الحصانة! 🔒');
+      return socket.emit('errorMsg', 'هذا اللاعب محمي بقفل الحصانة!');
     }
 
     const player = room.players[room.currentTurnIndex];
@@ -878,13 +940,13 @@ io.on('connection', (socket) => {
       const tempHand = player.hand;
       player.hand = target.hand;
       target.hand = tempHand;
-      io.to(roomId).emit('notify', `🔄 بدّل يا نجم! قام (${player.name}) بتبديل يده بالكامل مع (${target.name})!`);
+      io.to(roomId).emit('notify', `بدّل يا نجم! قام (${player.name}) بتبديل يده بالكامل مع (${target.name})!`);
       advanceTurn(room);
     };
 
     const reflect = () => {
       room.discardPile.push(room.drawnCard);
-      io.to(roomId).emit('notify', `🪞 تصدت المراية للتبديل وظلت الكروت كما هي!`);
+      io.to(roomId).emit('notify', `تصدت المراية للتبديل وظلت الكروت كما هي!`);
       advanceTurn(room);
     };
 
@@ -906,14 +968,14 @@ io.on('connection', (socket) => {
     const execute = () => {
       room.discardPile.push(room.drawnCard);
       target.isFrozen = true;
-      io.to(roomId).emit('notify', `🛑 كارت فرملة! تم تجميد اللاعب (${target.name}) وسيتخطى دوره القادم!`);
+      io.to(roomId).emit('notify', `كارت فرملة! تم تجميد اللاعب (${target.name}) وسيتخطى دوره القادم!`);
       advanceTurn(room);
     };
 
     const reflect = () => {
       room.discardPile.push(room.drawnCard);
       player.isFrozen = true;
-      io.to(roomId).emit('notify', `🛑 ارتدت الفرملة! تم تجميد المهاجم (${player.name})!`);
+      io.to(roomId).emit('notify', `ارتدت الفرملة! تم تجميد المهاجم (${player.name})!`);
       advanceTurn(room);
     };
 
@@ -922,7 +984,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // كارت شقلباظ (مع إلغاء المؤقت فوراً لمنع تكرار التبديل)
+  // كارت شقلباظ (مع خيار اختياري لصاحب الكارت لحماية يده)
   socket.on('execSpin', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -933,20 +995,37 @@ io.on('connection', (socket) => {
     room.drawnCard = null;
     room.pendingSpinMap.clear();
 
-    io.to(roomId).emit('notify', `🎭 كارت شقلباظ! كل لاعب يختار كارت من يده لتمريره للي جنبه!`);
-    io.to(roomId).emit('spinRequest');
+    io.to(roomId).emit('notify', `كارت شقلباظ! بدأ تمرير الكروت بين اللاعبين!`);
+    
+    // سؤال صاحب الكارت الأول إن كان عايز يشارك
+    io.to(player.id).emit('spinCasterPrompt');
+
+    // الخصوم إجباري
+    room.players.forEach(p => {
+      if (p.id !== player.id) {
+        io.to(p.id).emit('spinRequest');
+      }
+    });
 
     clearTimeout(room.spinTimeout);
     room.spinTimeout = setTimeout(() => {
-      if (room.pendingSpinMap.size < room.players.length) {
-        room.players.forEach(p => {
-          if (!room.pendingSpinMap.has(p.id) && p.hand.length > 0) {
-            room.pendingSpinMap.set(p.id, p.hand.splice(0, 1)[0]);
-          }
-        });
-        finishSpinExecution(room);
-      }
-    }, 12000);
+      autoFillRemainingSpin(room);
+    }, 15000);
+  });
+
+  socket.on('resolveSpinCasterChoice', ({ roomId, participate }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player) return;
+
+    if (participate) {
+      io.to(player.id).emit('spinRequest');
+    } else {
+      // استثناء صاحب الكارت وحفظ كروته
+      room.pendingSpinMap.set(player.id, null);
+      checkSpinCompletion(room);
+    }
   });
 
   socket.on('submitSpinCard', ({ roomId, handCardIndex }) => {
@@ -957,29 +1036,47 @@ io.on('connection', (socket) => {
 
     const card = player.hand.splice(handCardIndex, 1)[0];
     room.pendingSpinMap.set(player.id, card);
+    checkSpinCompletion(room);
+  });
 
+  function checkSpinCompletion(room) {
     if (room.pendingSpinMap.size === room.players.length) {
       clearTimeout(room.spinTimeout);
       finishSpinExecution(room);
     }
-  });
+  }
+
+  function autoFillRemainingSpin(room) {
+    room.players.forEach(p => {
+      if (!room.pendingSpinMap.has(p.id) && p.hand.length > 0) {
+        room.pendingSpinMap.set(p.id, p.hand.splice(0, 1)[0]);
+      }
+    });
+    finishSpinExecution(room);
+  }
 
   function finishSpinExecution(room) {
     clearTimeout(room.spinTimeout);
-    const count = room.players.length;
-    for (let i = 0; i < count; i++) {
-      const giver = room.players[i];
-      const nextIdx = (i + room.direction + count) % count;
-      const receiver = room.players[nextIdx];
-      const passedCard = room.pendingSpinMap.get(giver.id);
-      if (passedCard) receiver.hand.push(passedCard);
+    // تدوير الكروت بين المشاركين فقط
+    const participants = room.players.filter(p => room.pendingSpinMap.get(p.id) !== null);
+    const count = participants.length;
+
+    if (count > 1) {
+      for (let i = 0; i < count; i++) {
+        const giver = participants[i];
+        const nextIdx = (i + room.direction + count) % count;
+        const receiver = participants[nextIdx];
+        const passedCard = room.pendingSpinMap.get(giver.id);
+        if (passedCard) receiver.hand.push(passedCard);
+      }
+      io.to(room.id).emit('notify', `دارت الترابيزة واستلم كل لاعب كارت جاره!`);
     }
+
     room.pendingSpinMap.clear();
-    io.to(room.id).emit('notify', `🌪️ دارت الترابيزة واستلم كل لاعب كارت جاره!`);
     advanceTurn(room);
   }
 
-  // كارت الكمين (يصادر الجواكر من الخصوم فقط ويحمي صاحب الكارت)
+  // كارت الكمين
   socket.on('execAmbush', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -1007,14 +1104,14 @@ io.on('connection', (socket) => {
     });
 
     if (seizedCount > 0) {
-      io.to(roomId).emit('notify', `🚨 كمين بواسطة (${player.name})! تم مصادرة (${seizedCount}) جوكر من الخصوم للأرض!`);
+      io.to(roomId).emit('notify', `كمين بواسطة (${player.name})! تم مصادرة (${seizedCount}) جوكر من الخصوم للأرض!`);
     } else {
-      io.to(roomId).emit('notify', `🚨 نزل الكمين ولم يعثر على أي جواكر في أيدي الخصوم!`);
+      io.to(roomId).emit('notify', `نزل الكمين ولم يعثر على أي جواكر في أيدي الخصوم!`);
     }
     advanceTurn(room);
   });
 
-  // كارت المغناطيس
+  // كارت المغناطيس (يدعم الأرقام والجواكر + اختيار يدوي للرمي)
   socket.on('execMagnet', ({ roomId, targetNumber }) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -1023,27 +1120,45 @@ io.on('connection', (socket) => {
     broadcastCommandSplash(room, 'magnet', 'المغناطيس', player.name);
     room.discardPile.push(room.drawnCard);
 
-    const matchingIndices = [];
-    room.discardPile.forEach((c, idx) => {
-      if (c.type === 'number' && c.value === targetNumber) {
-        matchingIndices.push(idx);
+    const isTargetJoker = targetNumber === 'joker';
+    const checkMatching = (c) => isTargetJoker ? (c.type === 'command' && c.cmdType === 'joker') : (c.type === 'number' && c.value === parseInt(targetNumber));
+
+    const pulledCards = [];
+    for (let i = room.discardPile.length - 1; i >= 0; i--) {
+      if (checkMatching(room.discardPile[i])) {
+        pulledCards.push(room.discardPile.splice(i, 1)[0]);
       }
+    }
+
+    if (pulledCards.length > 0) {
+      room.pendingMagnet = { pulledCards, player };
+      const itemName = isTargetJoker ? 'جوكر' : `رقم ${targetNumber}`;
+      io.to(player.id).emit('magnetChooseDiscards', { count: pulledCards.length, itemName });
+    } else {
+      const itemName = isTargetJoker ? 'جواكر' : `كروت برقم ${targetNumber}`;
+      io.to(roomId).emit('notify', `لم يجد المغناطيس أي ${itemName} على الأرض!`);
+      advanceTurn(room);
+    }
+  });
+
+  socket.on('submitMagnetDiscards', ({ roomId, discardIndices }) => {
+    const room = rooms[roomId];
+    if (!room || !room.pendingMagnet) return;
+
+    const { pulledCards, player } = room.pendingMagnet;
+    if (player.id !== socket.id) return;
+
+    // فرز المؤشرات تنازلياً للحذف الآمن
+    const sorted = discardIndices.sort((a, b) => b - a);
+    sorted.forEach(idx => {
+      const discarded = player.hand.splice(idx, 1)[0];
+      if (discarded) room.discardPile.push(discarded);
     });
 
-    if (matchingIndices.length > 0) {
-      const pulledCards = [];
-      for (let i = matchingIndices.length - 1; i >= 0; i--) {
-        pulledCards.push(room.discardPile.splice(matchingIndices[i], 1)[0]);
-      }
-
-      const cardsToDiscard = player.hand.splice(0, pulledCards.length);
-      room.discardPile.push(...cardsToDiscard);
-      player.hand.push(...pulledCards);
-
-      io.to(roomId).emit('notify', `🧲 شفط المغناطيس (${pulledCards.length}) كروت برقم ${targetNumber} من الأرض ليد (${player.name})!`);
-    } else {
-      io.to(roomId).emit('notify', `🧲 لم يجد المغناطيس أي كروت برقم ${targetNumber} على الأرض!`);
-    }
+    player.hand.push(...pulledCards);
+    io.to(roomId).emit('notify', `شفط المغناطيس (${pulledCards.length}) كروت من الأرض ليد (${player.name})!`);
+    
+    room.pendingMagnet = null;
     advanceTurn(room);
   });
 
@@ -1060,14 +1175,14 @@ io.on('connection', (socket) => {
     const execute = () => {
       room.discardPile.push(room.drawnCard);
       target.curseTurns = 2;
-      io.to(roomId).emit('notify', `🧿 أصابت عين حسودة (${target.name}) وممنوع يسحب من الأرض لدورين!`);
+      io.to(roomId).emit('notify', `أصابت عين حسودة (${target.name}) وممنوع يسحب من الأرض لدورين!`);
       advanceTurn(room);
     };
 
     const reflect = () => {
       room.discardPile.push(room.drawnCard);
       player.curseTurns = 2;
-      io.to(roomId).emit('notify', `🧿 ارتدت العين الحسودة وأصابت المهاجم (${player.name})!`);
+      io.to(roomId).emit('notify', `ارتدت العين الحسودة وأصابت المهاجم (${player.name})!`);
       advanceTurn(room);
     };
 
@@ -1076,7 +1191,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // كارت ولعانة (مع إلغاء المؤقت فوراً لمنع تكرار التبديل)
+  // كارت ولعانة (مع خيار اختياري لصاحب الكارت لحماية يده)
   socket.on('execFire', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -1087,25 +1202,37 @@ io.on('connection', (socket) => {
     room.drawnCard = null;
     room.pendingFireMap.clear();
 
-    io.to(roomId).emit('notify', `🔥 ولع الجيم! كل لاعب مجبر يرمي كارت في الأرض ويسحب كارت مقلوب جديد!`);
-    io.to(roomId).emit('fireRequest');
+    io.to(roomId).emit('notify', `كارت ولعانة! استعدوا لحرق واستبدال الكروت!`);
+    
+    // سؤال صاحب الكارت الأول إن كان عايز يستبدل
+    io.to(player.id).emit('fireCasterPrompt');
+
+    // الخصوم إجباري
+    room.players.forEach(p => {
+      if (p.id !== player.id) {
+        io.to(p.id).emit('fireRequest');
+      }
+    });
 
     clearTimeout(room.fireTimeout);
     room.fireTimeout = setTimeout(() => {
-      if (room.pendingFireMap.size < room.players.length) {
-        room.players.forEach(p => {
-          if (!room.pendingFireMap.has(p.id) && p.hand.length > 0) {
-            const burned = p.hand.splice(0, 1)[0];
-            room.discardPile.push(burned);
-            checkDrawDeckRefill(room);
-            if (room.deck.length > 0) p.hand.push(room.deck.pop());
-            room.pendingFireMap.set(p.id, true);
-          }
-        });
-        room.pendingFireMap.clear();
-        advanceTurn(room);
-      }
-    }, 12000);
+      autoFillRemainingFire(room);
+    }, 15000);
+  });
+
+  socket.on('resolveFireCasterChoice', ({ roomId, burn }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player) return;
+
+    if (burn) {
+      io.to(player.id).emit('fireRequest');
+    } else {
+      // حماية صاحب الكارت وعدم حرق أي كارت من يده
+      room.pendingFireMap.set(player.id, true);
+      checkFireCompletion(room);
+    }
   });
 
   socket.on('submitFireCard', ({ roomId, handCardIndex }) => {
@@ -1120,12 +1247,30 @@ io.on('connection', (socket) => {
     if (room.deck.length > 0) player.hand.push(room.deck.pop());
     room.pendingFireMap.set(player.id, true);
 
+    checkFireCompletion(room);
+  });
+
+  function checkFireCompletion(room) {
     if (room.pendingFireMap.size === room.players.length) {
       clearTimeout(room.fireTimeout);
       room.pendingFireMap.clear();
       advanceTurn(room);
     }
-  });
+  }
+
+  function autoFillRemainingFire(room) {
+    room.players.forEach(p => {
+      if (!room.pendingFireMap.has(p.id) && p.hand.length > 0) {
+        const burned = p.hand.splice(0, 1)[0];
+        room.discardPile.push(burned);
+        checkDrawDeckRefill(room);
+        if (room.deck.length > 0) p.hand.push(room.deck.pop());
+        room.pendingFireMap.set(p.id, true);
+      }
+    });
+    room.pendingFireMap.clear();
+    advanceTurn(room);
+  }
 
   socket.on('peekAnnoy2P', (roomId) => {
     const room = rooms[roomId];
@@ -1135,7 +1280,7 @@ io.on('connection', (socket) => {
     if (!opponent || opponent.hand.length === 0) return;
 
     if (room.kamelhaCallers.includes(opponent.id)) {
-      return socket.emit('errorMsg', 'الخصم قال كملها ومحمي بقفل الحصانة! 🔒');
+      return socket.emit('errorMsg', 'الخصم قال كملها ومحمي بقفل الحصانة!');
     }
 
     broadcastCommandSplash(room, 'annoy', 'رخم عليهم', player.name);
@@ -1156,7 +1301,7 @@ io.on('connection', (socket) => {
       opponent.hand.push(given);
 
       io.to(roomId).emit('annoySwapAnimation', { p1Id: player.id, p2Id: opponent.id });
-      io.to(roomId).emit('notify', `😈 رخم عليهم: رأى (${player.name}) كارت الخصم وبدّله!`);
+      io.to(roomId).emit('notify', `رخم عليهم: رأى (${player.name}) كارت الخصم وبدّله!`);
     } else {
       io.to(roomId).emit('notify', `رخم عليهم: رأى (${player.name}) كارت الخصم وتركه مكانه.`);
     }
@@ -1168,7 +1313,7 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
     if (room.kamelhaCallers.includes(playerAId) || room.kamelhaCallers.includes(playerBId)) {
-      return socket.emit('errorMsg', 'لا يمكنك اختيار لاعب محمي بقفل كملها! 🔒');
+      return socket.emit('errorMsg', 'لا يمكنك اختيار لاعب محمي بقفل كملها!');
     }
 
     const player = room.players[room.currentTurnIndex];
@@ -1184,7 +1329,7 @@ io.on('connection', (socket) => {
     pB.hand.push(cardA);
 
     io.to(roomId).emit('annoySwapAnimation', { p1Id: pA.id, p2Id: pB.id });
-    io.to(roomId).emit('notify', `😈 رخم عليهم: تم تبديل كارت سراً بين (${pA.name}) و (${pB.name})!`);
+    io.to(roomId).emit('notify', `رخم عليهم: تم تبديل كارت سراً بين (${pA.name}) و (${pB.name})!`);
     advanceTurn(room);
   });
 
@@ -1215,7 +1360,7 @@ io.on('connection', (socket) => {
     if (!player) return;
 
     if (player.isFrozen) {
-      return socket.emit('errorMsg', 'أنت متفرمل وممنوع تقول كملها في هذه اللفة! 🛑');
+      return socket.emit('errorMsg', 'أنت متفرمل وممنوع تقول كملها في هذه اللفة!');
     }
 
     const check = verifyKamelhaHand(player.hand);
@@ -1223,14 +1368,14 @@ io.on('connection', (socket) => {
 
     if (check.isInstantWin) {
       player.points += 5;
-      io.to(roomId).emit('notify', `👑 أسطووورة! جمع (${player.name}) 4 كروت جوكر وفاز بالفورة كاملة!`);
+      io.to(roomId).emit('notify', `جمع (${player.name}) 4 كروت جوكر وفاز بالفورة كاملة!`);
       return endRound(room, true);
     }
 
     if (!room.kamelhaCallers.includes(player.id)) {
       room.kamelhaCallers.push(player.id);
       player.earnedPointsThisRound = check.points;
-      io.to(roomId).emit('notify', `🎉 صاح (${player.name}): "كمّلتهااا!" 🔒 وتم تفعيل قفل الحصانة له!`);
+      io.to(roomId).emit('notify', `صاح (${player.name}): "كمّلتهااا!" وتم تفعيل قفل الحصانة له!`);
       io.to(roomId).emit('soundTrigger', 'kamelha');
       sendGameState(roomId);
 
@@ -1248,6 +1393,7 @@ io.on('connection', (socket) => {
     room.pendingHunter = null;
     room.pendingThief = null;
     room.pendingMirror = null;
+    room.pendingMagnet = null;
     const count = room.players.length;
     if (count === 0) return;
 
@@ -1262,19 +1408,22 @@ io.on('connection', (socket) => {
     room.currentTurnIndex = (room.currentTurnIndex + room.direction + count) % count;
     const activePlayer = room.players[room.currentTurnIndex];
 
+    // لو اللاعب متفرمل: تخطي دوره
     if (activePlayer && activePlayer.isFrozen) {
       activePlayer.isFrozen = false;
-      io.to(room.id).emit('notify', `🛑 تم تخطي دور (${activePlayer.name}) لأنه متفرمل!`);
+      io.to(room.id).emit('notify', `تم تخطي دور (${activePlayer.name}) لأنه متفرمل!`);
       return advanceTurn(room);
     }
 
+    // تقليل عداد العين الحسودة
     if (activePlayer && activePlayer.curseTurns > 0) {
       activePlayer.curseTurns--;
       if (activePlayer.curseTurns === 0) {
-        io.to(room.id).emit('notify', `🧿 انتهت مدة العين الحسودة عن اللاعب (${activePlayer.name})!`);
+        io.to(room.id).emit('notify', `انتهت مدة العين الحسودة عن اللاعب (${activePlayer.name})!`);
       }
     }
 
+    // إخفاء كروت ع المكشوف بعد لفة كاملة
     room.players.forEach(p => {
       if (p.revealedRemainingTurns > 0) {
         p.revealedRemainingTurns--;
@@ -1311,15 +1460,15 @@ io.on('connection', (socket) => {
       const pointsWinner = room.players.find(p => p.points >= room.targetPoints);
       if (pointsWinner) {
         matchWinner = pointsWinner;
-        winReason = `أول من وصل إلى هدف ${room.targetPoints} نقاط وفاز بالمباراة! 🏆`;
+        winReason = `أول من وصل إلى هدف ${room.targetPoints} نقاط وفاز بالمباراة!`;
       }
     }
 
     if (!matchWinner && room.maxRounds > 0 && room.roundCount >= room.maxRounds) {
       const maxScore = Math.max(...room.players.map(p => p.points));
       matchWinner = room.players.find(p => p.points === maxScore);
-      winReason = `فاز بأعلى مجموع نقاط بعد انتهاء كل الجولات (${room.maxRounds} جولة)! 🏆`;
-      winMessage += `\n🏁 انتهت كل جولات المباراة (${room.maxRounds} جولة)!`;
+      winReason = `فاز بأعلى مجموع نقاط بعد انتهاء كل الجولات (${room.maxRounds} جولة)!`;
+      winMessage += `\nانتهت كل جولات المباراة (${room.maxRounds} جولة)!`;
     }
 
     if (instantEnd) {
@@ -1412,7 +1561,7 @@ io.on('connection', (socket) => {
     }
 
     if (leavingPlayer) {
-      io.to(roomId).emit('notify', `غادر اللاعب (${leavingPlayer.name}) الغرفة! 🚪`);
+      io.to(roomId).emit('notify', `غادر اللاعب (${leavingPlayer.name}) الغرفة!`);
     }
 
     if (checkLastManStanding(room)) return;
