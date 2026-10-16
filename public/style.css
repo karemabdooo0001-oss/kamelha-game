@@ -234,7 +234,7 @@ input {
 }
 @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 
-/* تأثير الرعشة والإضاءة القوية لزرار كمّلتهااا عند اكتمال الكروت */
+/* تأثير الرعشة والإضاءة لزرار كمّلتهااا عند اكتمال الكروت */
 .kamelha-ready-glow {
   animation: kamelhaReadyPulse 0.7s infinite alternate ease-in-out !important;
   box-shadow: 0 0 25px 6px #00e676, 0 0 50px rgba(0, 230, 118, 0.8) !important;
@@ -369,9 +369,9 @@ input {
   to { box-shadow: 0 0 25px 7px rgba(0, 230, 118, 0.95); }
 }
 
-.seat-top { top: 8px; left: 50%; transform: translateX(-50%); }
-.seat-left { left: 8px; top: 46%; transform: translateY(-50%); }
-.seat-right { right: 8px; top: 46%; transform: translateY(-50%); }
+.seat-top { top: 6px; left: 50%; transform: translateX(-50%); }
+.seat-left { left: 8px; top: 48%; transform: translateY(-50%); }
+.seat-right { right: 8px; top: 48%; transform: translateY(-50%); }
 
 .seat-info {
   background: rgba(0,0,0,0.7);
@@ -380,7 +380,7 @@ input {
   border-radius: 12px;
   font-size: 0.72rem;
   color: #fff;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
   display: flex;
   gap: 5px;
   align-items: center;
@@ -388,34 +388,51 @@ input {
 .seat-name { font-weight: 800; color: #ffcc00; }
 .seat-score { color: #00e676; font-weight: bold; }
 
-.seat-cards { display: flex; gap: 3px; }
-.seat-left .seat-cards, .seat-right .seat-cards { flex-direction: column; gap: 2px; }
+/* حاوية كروت الخصوم */
+.seat-cards {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
 
+/* رص كروت الجنب عمودياً بشكل أنيق بدون ما تغطي على الترابيزة */
+.seat-left .seat-cards, .seat-right .seat-cards {
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* تكبير كروت الخصوم وضبط أبعادها الطولية الطبيعية بالمللي */
 .mini-card-back {
-  width: clamp(28px, 5.5vw, 55px);
-  height: clamp(42px, 8vw, 82px);
-  border-radius: 6px;
-  border: 1px solid #ffcc00;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  width: clamp(44px, 6.5vw, 68px);
+  height: clamp(64px, 9.5vw, 98px);
+  border-radius: 8px;
+  border: 1.5px solid #ffcc00;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.7);
   overflow: hidden;
   position: relative;
-}
-.mini-card-back img { width: 100%; height: 100%; object-fit: fill; display: block; }
-
-/* كروت الخصم المكشوفة */
-.mini-card-revealed {
-  border: 2px solid #00e5ff !important;
-  box-shadow: 0 0 10px #00e5ff !important;
-  animation: revealGlow 1.5s infinite alternate ease-in-out;
-}
-@keyframes revealGlow {
-  from { box-shadow: 0 0 5px #00e5ff; }
-  to { box-shadow: 0 0 16px #00e5ff; }
+  transition: transform 0.2s, box-shadow 0.2s;
+  flex-shrink: 0;
 }
 
+.mini-card-back img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  display: block;
+}
+
+/* كروت الجنب بنفس النسبة الطولية السليمة للكوتشينة بدون أي تبطيط بالعرض */
 .seat-left .mini-card-back, .seat-right .mini-card-back {
-  width: clamp(38px, 7vw, 75px);
-  height: clamp(26px, 5vw, 52px);
+  width: clamp(40px, 5.8vw, 62px);
+  height: clamp(58px, 8.5vw, 88px);
+}
+
+/* وضوح وإضاءة مميزة لكروت الخصم عند كشفها بع المكشوف */
+.mini-card-revealed {
+  border: 2.5px solid #00e5ff !important;
+  box-shadow: 0 0 14px #00e5ff, 0 0 25px rgba(0, 229, 255, 0.6) !important;
+  transform: scale(1.06);
+  z-index: 2;
 }
 
 /* مقعدك بالأسفل */
