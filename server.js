@@ -9,7 +9,7 @@ const io = new Server(server);
 app.use(express.static('public'));
 
 const MASTER_KEY = "7788"; 
-let GAME_PASSCODE = "0000"; 
+let GAME_PASSCODE = "1234"; 
 
 // التخزين في الذاكرة
 const registeredPlayers = new Map();
@@ -113,6 +113,7 @@ function verifyKamelhaHand(hand) {
 function checkLastManStanding(room) {
   if (room.gameStarted && room.players.length === 1) {
     clearTimeout(room.turnTimer);
+    clearTimeout(room.tieTimeout);
     const soleWinner = room.players[0];
     room.gameStarted = false;
     io.to(room.id).emit('gameOver', {
@@ -297,6 +298,7 @@ io.on('connection', (socket) => {
         room.players = room.players.filter(p => p.playerId !== targetPlayerId);
         if (room.players.length === 0) {
           clearTimeout(room.turnTimer);
+          clearTimeout(room.tieTimeout);
           delete rooms[rId];
         } else {
           io.to(rId).emit('notify', `تم طرد وحظر اللاعب (${found.name}) من اللعبة!`);
@@ -376,6 +378,10 @@ io.on('connection', (socket) => {
       pendingMagnet: null,
       spinTimeout: null,
       fireTimeout: null,
+      tieTimeout: null,
+      isTieVoting: false,
+      tieVotes: new Map(),
+      tiedContenders: [],
       gameStarted: false,
       kamelhaCallers: [],
       orbitPendingPlayers: null,
@@ -461,8 +467,11 @@ io.on('connection', (socket) => {
     clearTimeout(room.turnTimer);
     clearTimeout(room.spinTimeout);
     clearTimeout(room.fireTimeout);
+    clearTimeout(room.tieTimeout);
 
     room.gameStarted = true;
+    room.isTieVoting = false;
+    room.tieVotes.clear();
     room.deck = createDeck(room.deckMode, room.customCommands);
     room.discardPile = [];
     room.direction = 1;
@@ -579,7 +588,6 @@ io.on('connection', (socket) => {
     if (room.discardPile.length === 0) return;
 
     const taken = room.discardPile.pop();
-    // تعليم الكارت لو كان مراية ومسحوب من الأرض
     if (taken.type === 'command' && taken.cmdType === 'mirror') {
       taken.fromGround = true;
     }
@@ -1075,7 +1083,6 @@ io.on('connection', (socket) => {
     broadcastCommandSplash(room, 'ambush', 'الكمين', player.name);
     room.discardPile.push(room.drawnCard);
 
-    // البحث عن خصم معه جوكر ومعه مراية أصلية
     const defendersWithJokerAndMirror = room.players.filter(p => 
       p.id !== player.id && 
       p.hand.some(c => c.type === 'command' && c.cmdType === 'joker') &&
@@ -1109,7 +1116,6 @@ io.on('connection', (socket) => {
     };
 
     const reflectSeizure = () => {
-      // مصادرة جواكر المهاجم نفسه
       const attackerJokers = player.hand.filter(c => c.type === 'command' && c.cmdType === 'joker');
       if (attackerJokers.length > 0) {
         player.hand = player.hand.filter(c => !(c.type === 'command' && c.cmdType === 'joker'));
@@ -1475,10 +1481,66 @@ io.on('connection', (socket) => {
     sendGameState(room.id);
   }
 
+  // استقبال تصويت اللاعب في التعادل
+  socket.on('submitTieVote', ({ roomId, vote }) => {
+    const room = rooms[roomId];
+    if (!room || !room.isTieVoting) return;
+
+    room.tieVotes.set(socket.id, vote); // 'play' أو 'draw'
+
+    // إذا صوّت جميع اللاعبين على الترابيزة
+    if (room.tieVotes.size === room.players.length) {
+      clearTimeout(room.tieTimeout);
+      finalizeTieVotes(room);
+    }
+  });
+
+  function finalizeTieVotes(room) {
+    if (!room.isTieVoting) return;
+    room.isTieVoting = false;
+    clearTimeout(room.tieTimeout);
+
+    // أي لاعب لم يصوّت يُسجل صوته تلقائياً مع التعادل
+    room.players.forEach(p => {
+      if (!room.tieVotes.has(p.id)) {
+        room.tieVotes.set(p.id, 'draw');
+      }
+    });
+
+    let playCount = 0;
+    let drawCount = 0;
+    room.tieVotes.forEach(v => {
+      if (v === 'play') playCount++;
+      else drawCount++;
+    });
+
+    // إذا كانت الأغلبية مع لعب جولة فاصلة
+    if (playCount > drawCount) {
+      io.to(room.id).emit('notify', 'نتيجة التصويت: الأغلبية اختارت لعب جولة فاصلة!');
+      setTimeout(() => {
+        if (rooms[room.id] && rooms[room.id].players.length >= 2) {
+          startNewRound(rooms[room.id]);
+        }
+      }, 3000);
+    } else {
+      // إنهاء المباراة بالتعادل المشترك
+      const coWinners = room.tiedContenders.map(c => c.name).join(' و ');
+      io.to(room.id).emit('gameOver', { 
+        winnerName: coWinners, 
+        scores: room.players, 
+        revealedHands: room.players.map(p => ({ name: p.name, hand: p.hand, points: p.points, isHost: p.isHost })),
+        reason: 'انتهاء المباراة بالتعادل بقرار الأغلبية!'
+      });
+      room.gameStarted = false;
+      expireRoomOneMatchVouchers(room);
+    }
+  }
+
   function endRound(room, instantEnd = false) {
     clearTimeout(room.turnTimer);
     clearTimeout(room.spinTimeout);
     clearTimeout(room.fireTimeout);
+    clearTimeout(room.tieTimeout);
 
     let winMessage = 'نهاية الجولة! نتائج "كمّلها":\n';
     let matchWinner = null;
@@ -1494,33 +1556,106 @@ io.on('connection', (socket) => {
       });
     }
 
-    if (room.targetPoints > 0) {
-      const pointsWinner = room.players.find(p => p.points >= room.targetPoints);
-      if (pointsWinner) {
-        matchWinner = pointsWinner;
-        winReason = `أول من وصل إلى هدف ${room.targetPoints} نقاط وفاز بالمباراة!`;
-      }
-    }
-
-    if (!matchWinner && room.maxRounds > 0 && room.roundCount >= room.maxRounds) {
-      const maxScore = Math.max(...room.players.map(p => p.points));
-      matchWinner = room.players.find(p => p.points === maxScore);
-      winReason = `فاز بأعلى مجموع نقاط بعد انتهاء كل الجولات (${room.maxRounds} جولة)!`;
-      winMessage += `\nانتهت كل جولات المباراة (${room.maxRounds} جولة)!`;
-    }
-
-    if (instantEnd) {
-      matchWinner = room.players.find(p => p.points >= 5);
-      winReason = 'فوز ساحق بـ 4 جواكر!';
-      winMessage = `فوز ساحق بـ 4 جواكر بواسطة ${matchWinner ? matchWinner.name : 'اللاعب'}!`;
-    }
-
     const revealedHands = room.players.map(p => ({
       name: p.name,
       hand: p.hand,
       points: p.points,
       isHost: p.isHost
     }));
+
+    // فحص الفوز الفوري بـ 4 جواكر
+    if (instantEnd) {
+      matchWinner = room.players.find(p => p.points >= 5);
+      winReason = 'فوز ساحق بـ 4 جواكر!';
+      io.to(room.id).emit('gameOver', { 
+        winnerName: matchWinner ? matchWinner.name : 'اللاعب', 
+        scores: room.players, 
+        revealedHands,
+        reason: winReason
+      });
+      room.gameStarted = false;
+      expireRoomOneMatchVouchers(room);
+      return;
+    }
+
+    // فحص من وصل إلى هدف النقاط
+    let reachedTarget = [];
+    if (room.targetPoints > 0) {
+      reachedTarget = room.players.filter(p => p.points >= room.targetPoints);
+    }
+
+    // فحص انتهاء الجولات
+    let maxRoundsReached = false;
+    if (room.maxRounds > 0 && room.roundCount >= room.maxRounds) {
+      maxRoundsReached = true;
+    }
+
+    // إذا وصل أكثر من لاعب لنقاط الهدف في نفس الجولة
+    if (reachedTarget.length > 1) {
+      const maxPts = Math.max(...reachedTarget.map(p => p.points));
+      const tiedTops = reachedTarget.filter(p => p.points === maxPts);
+
+      if (tiedTops.length > 1) {
+        // حالة تعادل في الصدارة: بدء التصويت الديمقراطي لمدة 20 ثانية!
+        room.isTieVoting = true;
+        room.tieVotes.clear();
+        room.tiedContenders = tiedTops;
+
+        io.to(room.id).emit('roundEnded', { msg: winMessage, revealedHands });
+        
+        setTimeout(() => {
+          io.to(room.id).emit('tieVotePrompt', { 
+            contenders: tiedTops.map(c => c.name), 
+            points: maxPts 
+          });
+
+          // مهلة أمان 20 ثانية للتصويت
+          clearTimeout(room.tieTimeout);
+          room.tieTimeout = setTimeout(() => {
+            finalizeTieVotes(room);
+          }, 20000);
+        }, 4000);
+
+        return;
+      } else {
+        matchWinner = tiedTops[0];
+        winReason = `أول من وصل إلى هدف ${room.targetPoints} نقاط وفاز بالمباراة!`;
+      }
+    } else if (reachedTarget.length === 1) {
+      matchWinner = reachedTarget[0];
+      winReason = `أول من وصل إلى هدف ${room.targetPoints} نقاط وفاز بالمباراة!`;
+    }
+
+    // إذا انتهت الجولات ولم يفز أحد بالنقاط بعد
+    if (!matchWinner && maxRoundsReached) {
+      const maxPts = Math.max(...room.players.map(p => p.points));
+      const tiedTops = room.players.filter(p => p.points === maxPts);
+
+      if (tiedTops.length > 1) {
+        room.isTieVoting = true;
+        room.tieVotes.clear();
+        room.tiedContenders = tiedTops;
+
+        io.to(room.id).emit('roundEnded', { msg: winMessage, revealedHands });
+        
+        setTimeout(() => {
+          io.to(room.id).emit('tieVotePrompt', { 
+            contenders: tiedTops.map(c => c.name), 
+            points: maxPts 
+          });
+
+          clearTimeout(room.tieTimeout);
+          room.tieTimeout = setTimeout(() => {
+            finalizeTieVotes(room);
+          }, 20000);
+        }, 4000);
+
+        return;
+      } else {
+        matchWinner = tiedTops[0];
+        winReason = `فاز بأعلى مجموع نقاط بعد انتهاء كل الجولات (${room.maxRounds} جولة)!`;
+      }
+    }
 
     if (matchWinner) {
       io.to(room.id).emit('gameOver', { 
@@ -1598,6 +1733,7 @@ io.on('connection', (socket) => {
       clearTimeout(room.turnTimer);
       clearTimeout(room.spinTimeout);
       clearTimeout(room.fireTimeout);
+      clearTimeout(room.tieTimeout);
       delete rooms[roomId];
       return;
     }
@@ -1631,6 +1767,7 @@ io.on('connection', (socket) => {
               clearTimeout(rooms[rId].turnTimer);
               clearTimeout(rooms[rId].spinTimeout);
               clearTimeout(rooms[rId].fireTimeout);
+              clearTimeout(rooms[rId].tieTimeout);
               delete rooms[rId];
             } else {
               io.to(rId).emit('updatePlayers', rooms[rId].players);
