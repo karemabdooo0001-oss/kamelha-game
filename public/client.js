@@ -582,7 +582,6 @@ if (drawDeckBtn) {
 
 if (discardDeckBtn) {
   discardDeckBtn.onclick = () => {
-    // لو مش دورك: فتح نافذة مراجعة كروت الأرض للتذكر بدلاً من رسالة المنع
     if (!isMyTurn) {
       openInspectDiscardPileModal();
       return;
@@ -629,6 +628,33 @@ socket.on('mirrorPrompt', ({ attackerName, cmdType, cmdName }) => {
   document.getElementById('btn-mirror-ignore').onclick = () => {
     window.closeModal();
     socket.emit('resolveMirrorResponse', { roomId: currentRoomId, action: 'ignore' });
+  };
+});
+
+// نافذة التصويت الديمقراطي عند التعادل
+socket.on('tieVotePrompt', ({ contenders, points }) => {
+  SoundManager.playCommand();
+  window.openModal(`
+    <h2 style="color:#ffcc00;margin-bottom:8px;">تعادل في صدارة المباراة!</h2>
+    <p style="font-size:0.95rem;color:#fff;margin-bottom:6px;">المتعادلون برصيد (<b>${points}</b> نقطة):</p>
+    <p style="color:#00e5ff;font-weight:900;font-size:1.1rem;margin-bottom:12px;">${contenders.join(' و ')}</p>
+    <p style="font-size:0.82rem;color:#ccc;margin-bottom:12px;">صوّت الآن خلال 20 ثانية لتحديد مصير المباراة:</p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button id="btn-vote-play" class="btn primary-btn">لعب جولة أخرى فاصلة</button>
+      <button id="btn-vote-draw" class="btn secondary-btn">إنهاء المباراة بالتعادل</button>
+    </div>
+  `);
+
+  document.getElementById('btn-vote-play').onclick = () => {
+    window.closeModal();
+    showToast('تم تسجيل تصويتك مع (لعب جولة فاصلة)');
+    socket.emit('submitTieVote', { roomId: currentRoomId, vote: 'play' });
+  };
+
+  document.getElementById('btn-vote-draw').onclick = () => {
+    window.closeModal();
+    showToast('تم تسجيل تصويتك مع (إنهاء المباراة بالتعادل)');
+    socket.emit('submitTieVote', { roomId: currentRoomId, vote: 'draw' });
   };
 });
 
@@ -789,7 +815,7 @@ function handleCommandCardModal(card) {
     },
     wild: () => openWildFlow(),
 
-    // الكروت الجديدة (مع تفعيل تمديد الـ 20 ثانية)
+    // الكروت الجديدة
     reveal: () => {
       socket.emit('extendTimerForCommand', currentRoomId);
       openPlayerPicker('اختر لاعباً لكشف كروته للجميع:', targetId => {
