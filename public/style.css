@@ -5,6 +5,32 @@
   font-family: 'Cairo', sans-serif;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  
+  /* شريط التمرير المودرن المتناسق لمتصفح فايرفوكس والأنظمة الحديثة */
+  scrollbar-width: thin;
+  scrollbar-color: #ffcc00 rgba(13, 9, 20, 0.7);
+}
+
+/* تخصيص شريط التمرير (Scrollbar) لكل مربعات وعناصر اللعبة لمتصفحات كروم وإيدج والكمبيوتر */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(13, 9, 20, 0.7);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #ffcc00, #e65100);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 204, 0, 0.4);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ffcc00;
+  box-shadow: 0 0 8px rgba(255, 204, 0, 0.8);
 }
 
 html, body {
