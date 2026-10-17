@@ -256,7 +256,7 @@ updateSoundIcons();
 if (btnSoundLobby) btnSoundLobby.addEventListener('click', () => SoundManager.toggleMute());
 if (btnSoundGame) btnSoundGame.addEventListener('click', () => SoundManager.toggleMute());
 
-// موسوعة ودليل الكروت المصورة بالكامل (بدون أي إيموجي في الأزرار والعناوين)
+// موسوعة ودليل الكروت المصورة بالكامل
 window.openCardEncyclopediaModal = function() {
   window.openModal(`
     <h2 style="color:#ffcc00;margin-bottom:8px;">دليل وقواعد لعبة كمّلها</h2>
@@ -553,6 +553,24 @@ function leaveCurrentRoom() {
 }
 if (btnLeave) btnLeave.onclick = leaveCurrentRoom;
 
+// نافذة مراجعة كروت الأرض عند الضغط بدون دور
+function openInspectDiscardPileModal() {
+  const ground = (latestGameState && latestGameState.discardPile) ? latestGameState.discardPile : [];
+  if (ground.length === 0) {
+    return showToast('لا توجد أي كروت في الأرض حالياً');
+  }
+
+  let html = '<h2 style="color:#ffcc00;margin-bottom:8px;">كروت الأرض المرمية</h2>';
+  html += '<p style="font-size:0.8rem;color:#ccc;margin-bottom:10px;">استعراض ومراجعة الكروت التي نزلت في الأرض (للتذكر فقط):</p>';
+  html += '<div class="modal-grid">';
+  ground.forEach(c => {
+    html += `<div class="bank-pick-card" style="cursor:default;">${createCardHTML(c)}</div>`;
+  });
+  html += '</div>';
+  html += '<button class="btn secondary-btn" onclick="window.closeModal()" style="margin-top:10px;">إغلاق</button>';
+  window.openModal(html);
+}
+
 if (drawDeckBtn) {
   drawDeckBtn.onclick = () => {
     if (!isMyTurn) return alert('مش دورك دلوقتي!');
@@ -564,7 +582,12 @@ if (drawDeckBtn) {
 
 if (discardDeckBtn) {
   discardDeckBtn.onclick = () => {
-    if (!isMyTurn) return alert('مش دورك دلوقتي!');
+    // لو مش دورك: فتح نافذة مراجعة كروت الأرض للتذكر بدلاً من رسالة المنع
+    if (!isMyTurn) {
+      openInspectDiscardPileModal();
+      return;
+    }
+
     if (currentDrawnCard) return alert('أنت سحبت كارت مقلوب بالفعل!');
     showToast('اضغط على كارت من إيدك لتبديله مع كارت الأرض!');
     pickCardFromHand(index => {
@@ -1325,7 +1348,7 @@ socket.on('gameState', data => {
     currentPlayerName.parentElement.style.background = isMyTurn ? '#00e676' : '#ffcc00';
   }
 
-  // تنبيه واهتزاز زرار "كمّلتهااا!" عند اكتمال اليد
+  // تنبيه واهتزاز زرار "كمّلتهااا!" أول ما كروتك تكتمل
   if (btnKamelha) {
     if (data.canCallKamelha) {
       btnKamelha.classList.add('kamelha-ready-glow');
