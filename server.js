@@ -114,6 +114,7 @@ function checkLastManStanding(room) {
   if (room.gameStarted && room.players.length === 1) {
     clearTimeout(room.turnTimer);
     clearTimeout(room.tieTimeout);
+    clearTimeout(room.tieTransitionTimeout);
     const soleWinner = room.players[0];
     room.gameStarted = false;
     io.to(room.id).emit('gameOver', {
@@ -299,6 +300,7 @@ io.on('connection', (socket) => {
         if (room.players.length === 0) {
           clearTimeout(room.turnTimer);
           clearTimeout(room.tieTimeout);
+          clearTimeout(room.tieTransitionTimeout);
           delete rooms[rId];
         } else {
           io.to(rId).emit('notify', `تم طرد وحظر اللاعب (${found.name}) من اللعبة!`);
@@ -379,6 +381,7 @@ io.on('connection', (socket) => {
       spinTimeout: null,
       fireTimeout: null,
       tieTimeout: null,
+      tieTransitionTimeout: null,
       isTieVoting: false,
       tieVotes: new Map(),
       tiedContenders: [],
@@ -468,6 +471,7 @@ io.on('connection', (socket) => {
     clearTimeout(room.spinTimeout);
     clearTimeout(room.fireTimeout);
     clearTimeout(room.tieTimeout);
+    clearTimeout(room.tieTransitionTimeout);
 
     room.gameStarted = true;
     room.isTieVoting = false;
@@ -533,7 +537,6 @@ io.on('connection', (socket) => {
     }, seconds * 1000);
   }
 
-  // تمديد الوقت لـ 20 ثانية عند تفعيل أي كوماند
   socket.on('extendTimerForCommand', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.gameStarted) return;
@@ -1488,7 +1491,14 @@ io.on('connection', (socket) => {
 
     room.tieVotes.set(socket.id, vote); // 'play' أو 'draw'
 
-    // إذا صوّت جميع اللاعبين على الترابيزة
+    // إرسال تحديث التصويت لحظياً للجميع ليرى كل لاعب قرار غيره
+    const voterList = Array.from(room.tieVotes.entries()).map(([sId, v]) => ({
+      name: room.players.find(p => p.id === sId)?.name || 'لاعب',
+      vote: v
+    }));
+    io.to(room.id).emit('tieVoteUpdate', { voters: voterList });
+
+    // إذا صوّت جميع اللاعبين
     if (room.tieVotes.size === room.players.length) {
       clearTimeout(room.tieTimeout);
       finalizeTieVotes(room);
@@ -1521,7 +1531,7 @@ io.on('connection', (socket) => {
         if (rooms[room.id] && rooms[room.id].players.length >= 2) {
           startNewRound(rooms[room.id]);
         }
-      }, 3000);
+      }, 2500);
     } else {
       // إنهاء المباراة بالتعادل المشترك
       const coWinners = room.tiedContenders.map(c => c.name).join(' و ');
@@ -1536,11 +1546,45 @@ io.on('connection', (socket) => {
     }
   }
 
+  // إعادة كل لاعبي الغرفة لغرفة الانتظار للعب مجدداً بنفس الإعدادات
+  socket.on('returnToWaitingRoom', (roomId) => {
+    const room = rooms[roomId];
+    if (!room || room.gameStarted) return;
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player) return;
+
+    // تصفير النقاط وبدء تجهيز الغرفة من جديد
+    room.players.forEach(p => {
+      p.points = 0;
+      p.hand = [];
+      p.isFrozen = false;
+      p.curseTurns = 0;
+      p.revealedHand = null;
+      p.revealedRemainingTurns = 0;
+    });
+
+    room.roundCount = 0;
+    room.roundStarterIndex = 0;
+    room.kamelhaCallers = [];
+    room.isTieVoting = false;
+    room.tieVotes.clear();
+    room.deck = [];
+    room.discardPile = [];
+
+    io.to(room.id).emit('roomReturnedToWaiting', { 
+      roomId: room.id, 
+      players: room.players, 
+      isHost: player.isHost 
+    });
+    io.to(room.id).emit('updatePlayers', room.players);
+  });
+
   function endRound(room, instantEnd = false) {
     clearTimeout(room.turnTimer);
     clearTimeout(room.spinTimeout);
     clearTimeout(room.fireTimeout);
     clearTimeout(room.tieTimeout);
+    clearTimeout(room.tieTransitionTimeout);
 
     let winMessage = 'نهاية الجولة! نتائج "كمّلها":\n';
     let matchWinner = null;
@@ -1584,37 +1628,38 @@ io.on('connection', (socket) => {
       reachedTarget = room.players.filter(p => p.points >= room.targetPoints);
     }
 
-    // فحص انتهاء الجولات
     let maxRoundsReached = false;
     if (room.maxRounds > 0 && room.roundCount >= room.maxRounds) {
       maxRoundsReached = true;
     }
 
-    // إذا وصل أكثر من لاعب لنقاط الهدف في نفس الجولة
+    // في حالة التعادل في الوصول للهدف
     if (reachedTarget.length > 1) {
       const maxPts = Math.max(...reachedTarget.map(p => p.points));
       const tiedTops = reachedTarget.filter(p => p.points === maxPts);
 
       if (tiedTops.length > 1) {
-        // حالة تعادل في الصدارة: بدء التصويت الديمقراطي لمدة 20 ثانية!
         room.isTieVoting = true;
         room.tieVotes.clear();
         room.tiedContenders = tiedTops;
 
+        // عرض كروت نهاية الجولة أولاً لمدة 7 ثواني كاملة
         io.to(room.id).emit('roundEnded', { msg: winMessage, revealedHands });
         
-        setTimeout(() => {
+        // بعد قفل نافذة نهاية الجولة تماماً، يبدأ عداد الـ 20 ثانية الصافي للتصويت!
+        clearTimeout(room.tieTransitionTimeout);
+        room.tieTransitionTimeout = setTimeout(() => {
           io.to(room.id).emit('tieVotePrompt', { 
             contenders: tiedTops.map(c => c.name), 
             points: maxPts 
           });
 
-          // مهلة أمان 20 ثانية للتصويت
+          // مؤقت الأمان يبدأ الآن ويعد 20 ثانية صافية
           clearTimeout(room.tieTimeout);
           room.tieTimeout = setTimeout(() => {
             finalizeTieVotes(room);
           }, 20000);
-        }, 4000);
+        }, 7500);
 
         return;
       } else {
@@ -1626,7 +1671,7 @@ io.on('connection', (socket) => {
       winReason = `أول من وصل إلى هدف ${room.targetPoints} نقاط وفاز بالمباراة!`;
     }
 
-    // إذا انتهت الجولات ولم يفز أحد بالنقاط بعد
+    // في حالة التعادل بانتهاء الجولات
     if (!matchWinner && maxRoundsReached) {
       const maxPts = Math.max(...room.players.map(p => p.points));
       const tiedTops = room.players.filter(p => p.points === maxPts);
@@ -1638,7 +1683,8 @@ io.on('connection', (socket) => {
 
         io.to(room.id).emit('roundEnded', { msg: winMessage, revealedHands });
         
-        setTimeout(() => {
+        clearTimeout(room.tieTransitionTimeout);
+        room.tieTransitionTimeout = setTimeout(() => {
           io.to(room.id).emit('tieVotePrompt', { 
             contenders: tiedTops.map(c => c.name), 
             points: maxPts 
@@ -1648,7 +1694,7 @@ io.on('connection', (socket) => {
           room.tieTimeout = setTimeout(() => {
             finalizeTieVotes(room);
           }, 20000);
-        }, 4000);
+        }, 7500);
 
         return;
       } else {
@@ -1734,6 +1780,7 @@ io.on('connection', (socket) => {
       clearTimeout(room.spinTimeout);
       clearTimeout(room.fireTimeout);
       clearTimeout(room.tieTimeout);
+      clearTimeout(room.tieTransitionTimeout);
       delete rooms[roomId];
       return;
     }
@@ -1768,6 +1815,7 @@ io.on('connection', (socket) => {
               clearTimeout(rooms[rId].spinTimeout);
               clearTimeout(rooms[rId].fireTimeout);
               clearTimeout(rooms[rId].tieTimeout);
+              clearTimeout(rooms[rId].tieTransitionTimeout);
               delete rooms[rId];
             } else {
               io.to(rId).emit('updatePlayers', rooms[rId].players);
