@@ -325,7 +325,7 @@ window.openCardEncyclopediaModal = function() {
           <img src="/cards/magnet.png" class="guide-card-thumb" alt="">
           <div class="guide-card-info">
             <h4>المغناطيس</h4>
-            <p>تختار رقم أو الجوكر، ويشفط كل الكروت المطابقة من الأرض وتختار بإيدك اللي هترميه بدالهم!</p>
+            <p>تختار كارت من الأرض، ويشفط كل الكروت المطابقة له وتختار بإيدك اللي هترميه بدالهم!</p>
           </div>
         </div>
 
@@ -664,6 +664,11 @@ socket.on('tieVotePrompt', ({ contenders, points }) => {
   };
 });
 
+// إغلاق نافذة التصويت فوراً عند حسم النتيجة وبدء الجولة الجديدة
+socket.on('tieVoteResolved', () => {
+  window.closeModal();
+});
+
 // تحديث أصوات اللاعبين لحظياً في نافذة التعادل
 socket.on('tieVoteUpdate', ({ voters }) => {
   const listEl = document.getElementById('tie-voters-list');
@@ -679,8 +684,8 @@ socket.on('tieVoteUpdate', ({ voters }) => {
   }
 });
 
-// استقبال حدث عودة كل لاعبي الغرفة لغرفة الانتظار (Rematch)
-socket.on('roomReturnedToWaiting', ({ roomId, players, isHost }) => {
+// عودة فردية للاعب لغرفة الانتظار
+socket.on('playerBackInWaiting', ({ roomId, players, isHost }) => {
   currentRoomId = roomId;
   hasAlertedKamelhaReady = false;
   window.closeModal();
@@ -689,11 +694,20 @@ socket.on('roomReturnedToWaiting', ({ roomId, players, isHost }) => {
   if (waitingScreen) waitingScreen.classList.remove('hidden');
 
   renderWaitingPlayers(players);
-  showToast('عادت الغرفة لوضع الانتظار لبدء ماتش جديد!');
+  showToast('عدت لغرفة الانتظار، في انتظار باقي اللاعبين!');
 
   if (isHost && btnStart) {
     btnStart.classList.remove('hidden');
     waitMsg.classList.add('hidden');
+  }
+});
+
+// استقبال انتقال القيادة إذا خرج صاحب الغرفة
+socket.on('hostMigrated', ({ newHostId, newHostName }) => {
+  if (newHostId === socket.id && btnStart) {
+    btnStart.classList.remove('hidden');
+    if (waitMsg) waitMsg.classList.add('hidden');
+    showToast('أصبحت أنت قائد الغرفة الجديد!');
   }
 });
 
@@ -754,6 +768,43 @@ socket.on('fireRequest', () => {
     socket.emit('submitFireCard', { roomId: currentRoomId, handCardIndex: index });
   });
 });
+
+// كارت المغناطيس بستايل لم كمالتك البصري الجديد
+function openVisualMagnetPicker() {
+  socket.emit('extendTimerForCommand', currentRoomId);
+  const ground = latestGameState.discardPile;
+  if (!ground || ground.length === 0) {
+    showToast('لا توجد كروت في الأرض لشفطها بالمغناطيس!');
+    cancelCommandExecution();
+    return;
+  }
+
+  let html = '<h2>اختر أي كارت من الأرض ليشفط المغناطيس كل مثيلاته:</h2><div class="modal-grid">';
+  ground.forEach((c, idx) => {
+    html += `<div class="bank-pick-card magnet-ground-card" data-idx="${idx}">${createCardHTML(c)}</div>`;
+  });
+  html += '</div>';
+  html += '<button id="btn-cancel-magnet-pick" class="btn secondary-btn" style="margin-top:10px;">إلغاء ورمي الكارت</button>';
+  window.openModal(html);
+
+  document.getElementById('btn-cancel-magnet-pick').onclick = cancelCommandExecution;
+
+  document.querySelectorAll('.magnet-ground-card').forEach(el => {
+    el.onclick = () => {
+      const idx = parseInt(el.getAttribute('data-idx'));
+      const chosen = ground[idx];
+      window.closeModal();
+      currentDrawnCard = null;
+      SoundManager.playCommand();
+      socket.emit('execMagnetPick', {
+        roomId: currentRoomId,
+        targetType: chosen.type,
+        targetValue: chosen.value,
+        targetCmdType: chosen.cmdType
+      });
+    };
+  });
+}
 
 // كارت المغناطيس: اختيار يدوي للكروت المراد التضحية بها
 socket.on('magnetChooseDiscards', ({ count, itemName }) => {
@@ -889,9 +940,9 @@ function handleCommandCardModal(card) {
       SoundManager.playCommand();
       socket.emit('execAmbush', currentRoomId);
     },
+    // تفعيل المغناطيس بالستايل البصري الجديد
     magnet: () => {
-      socket.emit('extendTimerForCommand', currentRoomId);
-      openMagnetFlow();
+      openVisualMagnetPicker();
     },
     curse: () => {
       socket.emit('extendTimerForCommand', currentRoomId);
@@ -958,36 +1009,6 @@ function openBankPicker() {
         SoundManager.playPlace();
         socket.emit('execBank', { roomId: currentRoomId, discardIndex: discardIdx, handCardIndex: handIdx });
       });
-    };
-  });
-}
-
-function openMagnetFlow() {
-  let html = '<h2>اختر الرقم لشفطه من الأرض:</h2><div class="hunt-grid">';
-  for (let i = 1; i <= 10; i++) {
-    html += `<button class="btn secondary-btn magnet-num-btn" data-val="${i}">${i}</button>`;
-  }
-  html += '</div>';
-  html += '<button id="btn-pull-joker" class="btn primary-btn" style="margin-top:8px;background:#00bcd4;color:#fff;">سحب كروت الجوكر</button>';
-  html += '<button id="btn-cancel-magnet" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت</button>';
-  window.openModal(html);
-
-  document.getElementById('btn-cancel-magnet').onclick = cancelCommandExecution;
-
-  document.getElementById('btn-pull-joker').onclick = () => {
-    window.closeModal();
-    currentDrawnCard = null;
-    SoundManager.playCommand();
-    socket.emit('execMagnet', { roomId: currentRoomId, targetNumber: 'joker' });
-  };
-
-  document.querySelectorAll('.magnet-num-btn').forEach(b => {
-    b.onclick = () => {
-      const val = b.getAttribute('data-val');
-      window.closeModal();
-      currentDrawnCard = null;
-      SoundManager.playCommand();
-      socket.emit('execMagnet', { roomId: currentRoomId, targetNumber: val });
     };
   });
 }
@@ -1480,10 +1501,10 @@ socket.on('roundEnded', ({ msg, revealedHands }) => {
   });
   html += `</div><p style="font-size:0.85rem;color:#aaa;">جاري مراجعة النتائج وحسم الموقف...</p>`;
   window.openModal(html);
-  setTimeout(() => window.closeModal(), 7000);
+  setTimeout(() => window.closeModal(), 6500);
 });
 
-// شاشة النهاية الرسمية مع خيار العودة لغرفة الانتظار (Rematch)
+// شاشة النهاية الرسمية مع خيار العودة الفردية لغرفة الانتظار
 socket.on('gameOver', ({ winnerName, scores, revealedHands, reason }) => {
   clearInterval(timerInterval);
   currentDrawnCard = null;
@@ -1515,13 +1536,13 @@ socket.on('gameOver', ({ winnerName, scores, revealedHands, reason }) => {
   `;
   window.openModal(html);
 
-  // زر العودة لغرفة الانتظار للعب ماتش جديد بنفس الإعدادات
+  // عودة فردية للاعب لغرفة الانتظار
   document.getElementById('btn-rematch').onclick = () => {
     window.closeModal();
-    socket.emit('returnToWaitingRoom', currentRoomId);
+    socket.emit('returnToWaitingIndividual', currentRoomId);
   };
 
-  // زر الخروج للوبي
+  // خروج للوبي الرئيسي
   document.getElementById('btn-leave-to-lobby').onclick = () => {
     if (currentRoomId) socket.emit('leaveRoom', currentRoomId);
     localStorage.removeItem('kamelha_room');
