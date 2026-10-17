@@ -553,7 +553,7 @@ function leaveCurrentRoom() {
 }
 if (btnLeave) btnLeave.onclick = leaveCurrentRoom;
 
-// نافذة مراجعة كروت الأرض عند الضغط بدون دور
+// استعراض كروت الأرض للتذكر عند الضغط بدون دور
 function openInspectDiscardPileModal() {
   const ground = (latestGameState && latestGameState.discardPile) ? latestGameState.discardPile : [];
   if (ground.length === 0) {
@@ -631,31 +631,70 @@ socket.on('mirrorPrompt', ({ attackerName, cmdType, cmdName }) => {
   };
 });
 
-// نافذة التصويت الديمقراطي عند التعادل
+// نافذة التصويت الديمقراطي عند التعادل مع إظهار أصوات اللعيبة لايف
 socket.on('tieVotePrompt', ({ contenders, points }) => {
   SoundManager.playCommand();
   window.openModal(`
     <h2 style="color:#ffcc00;margin-bottom:8px;">تعادل في صدارة المباراة!</h2>
     <p style="font-size:0.95rem;color:#fff;margin-bottom:6px;">المتعادلون برصيد (<b>${points}</b> نقطة):</p>
     <p style="color:#00e5ff;font-weight:900;font-size:1.1rem;margin-bottom:12px;">${contenders.join(' و ')}</p>
-    <p style="font-size:0.82rem;color:#ccc;margin-bottom:12px;">صوّت الآن خلال 20 ثانية لتحديد مصير المباراة:</p>
-    <div style="display:flex;flex-direction:column;gap:10px;">
+    <p style="font-size:0.82rem;color:#ccc;margin-bottom:10px;">صوّت الآن خلال 20 ثانية لتحديد مصير المباراة:</p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
       <button id="btn-vote-play" class="btn primary-btn">لعب جولة أخرى فاصلة</button>
       <button id="btn-vote-draw" class="btn secondary-btn">إنهاء المباراة بالتعادل</button>
+    </div>
+    <div id="tie-voters-box" style="margin-top:14px;background:rgba(0,0,0,0.4);padding:8px;border-radius:10px;text-align:right;font-size:0.75rem;max-height:90px;overflow-y:auto;">
+      <span style="color:#aaa;">أصوات اللاعبين الحالية:</span>
+      <ul id="tie-voters-list" style="list-style:none;margin-top:4px;color:#eee;"></ul>
     </div>
   `);
 
   document.getElementById('btn-vote-play').onclick = () => {
-    window.closeModal();
+    document.getElementById('btn-vote-play').disabled = true;
+    document.getElementById('btn-vote-draw').disabled = true;
     showToast('تم تسجيل تصويتك مع (لعب جولة فاصلة)');
     socket.emit('submitTieVote', { roomId: currentRoomId, vote: 'play' });
   };
 
   document.getElementById('btn-vote-draw').onclick = () => {
-    window.closeModal();
-    showToast('تم تسجيل تصويتك مع (إنهاء المباراة بالتعادل)');
+    document.getElementById('btn-vote-play').disabled = true;
+    document.getElementById('btn-vote-draw').disabled = true;
+    showToast('تم تسجيل تصويتك مع (إنهاء بالتعادل)');
     socket.emit('submitTieVote', { roomId: currentRoomId, vote: 'draw' });
   };
+});
+
+// تحديث أصوات اللاعبين لحظياً في نافذة التعادل
+socket.on('tieVoteUpdate', ({ voters }) => {
+  const listEl = document.getElementById('tie-voters-list');
+  if (listEl && Array.isArray(voters)) {
+    listEl.innerHTML = '';
+    voters.forEach(v => {
+      const li = document.createElement('li');
+      const voteTxt = v.vote === 'play' ? 'لعب جولة فاصلة' : 'إنهاء بالتعادل';
+      const color = v.vote === 'play' ? '#00e676' : '#ffcc00';
+      li.innerHTML = `• ${v.name}: <b style="color:${color};">${voteTxt}</b>`;
+      listEl.appendChild(li);
+    });
+  }
+});
+
+// استقبال حدث عودة كل لاعبي الغرفة لغرفة الانتظار (Rematch)
+socket.on('roomReturnedToWaiting', ({ roomId, players, isHost }) => {
+  currentRoomId = roomId;
+  hasAlertedKamelhaReady = false;
+  window.closeModal();
+
+  if (gameScreen) gameScreen.classList.add('hidden');
+  if (waitingScreen) waitingScreen.classList.remove('hidden');
+
+  renderWaitingPlayers(players);
+  showToast('عادت الغرفة لوضع الانتظار لبدء ماتش جديد!');
+
+  if (isHost && btnStart) {
+    btnStart.classList.remove('hidden');
+    waitMsg.classList.add('hidden');
+  }
 });
 
 // سؤال صاحب كارت شقلباظ
@@ -1439,11 +1478,12 @@ socket.on('roundEnded', ({ msg, revealedHands }) => {
       </div>
     `;
   });
-  html += `</div><p style="font-size:0.85rem;color:#aaa;">الجولة التالية ستبدأ خلال ثوانٍ...</p>`;
+  html += `</div><p style="font-size:0.85rem;color:#aaa;">جاري مراجعة النتائج وحسم الموقف...</p>`;
   window.openModal(html);
-  setTimeout(() => window.closeModal(), 8000);
+  setTimeout(() => window.closeModal(), 7000);
 });
 
+// شاشة النهاية الرسمية مع خيار العودة لغرفة الانتظار (Rematch)
 socket.on('gameOver', ({ winnerName, scores, revealedHands, reason }) => {
   clearInterval(timerInterval);
   currentDrawnCard = null;
@@ -1467,8 +1507,26 @@ socket.on('gameOver', ({ winnerName, scores, revealedHands, reason }) => {
     });
     html += `</div>`;
   }
-  html += `<button onclick="localStorage.removeItem('kamelha_room');location.reload();" class="btn primary-btn" style="margin-top:15px;">العودة للرئيسية</button>`;
+  html += `
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:15px;">
+      <button id="btn-rematch" class="btn primary-btn">العودة لغرفة الانتظار للعب مجدداً</button>
+      <button id="btn-leave-to-lobby" class="btn secondary-btn">خروج للوبي الرئيسي</button>
+    </div>
+  `;
   window.openModal(html);
+
+  // زر العودة لغرفة الانتظار للعب ماتش جديد بنفس الإعدادات
+  document.getElementById('btn-rematch').onclick = () => {
+    window.closeModal();
+    socket.emit('returnToWaitingRoom', currentRoomId);
+  };
+
+  // زر الخروج للوبي
+  document.getElementById('btn-leave-to-lobby').onclick = () => {
+    if (currentRoomId) socket.emit('leaveRoom', currentRoomId);
+    localStorage.removeItem('kamelha_room');
+    location.reload();
+  };
 });
 
 function createCardHTML(card) {
