@@ -617,7 +617,7 @@ input {
   overflow-y: auto;
 }
 
-/* ضبط كروت الأرض لكارت لم كمالتك */
+/* ضبط كروت الأرض لكارت لم كمالتك والمغناطيس */
 .modal-grid {
   display: grid !important;
   grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)) !important;
