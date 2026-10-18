@@ -162,7 +162,7 @@ input {
   flex: 1;
 }
 
-/* نمط اختيار الكوماندز المخصص في اللوبي */
+/* نمط اختيار الكوماندز المخصص في شاشة إنشاء الغرفة */
 .custom-commands-container {
   background: rgba(0,0,0,0.3);
   padding: 8px;
