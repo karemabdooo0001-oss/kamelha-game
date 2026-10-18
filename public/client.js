@@ -302,19 +302,23 @@ updateSoundIcons();
 if (btnSoundLobby) btnSoundLobby.addEventListener('click', () => SoundManager.toggleMute());
 if (btnSoundGame) btnSoundGame.addEventListener('click', () => SoundManager.toggleMute());
 
-// موسوعة ودليل الكروت المصورة بالكامل
+// موسوعة ودليل الكروت المصورة بالكامل مع شروط الفوز الصريحة
 window.openCardEncyclopediaModal = function() {
   window.openModal(`
     <h2 style="color:#ffcc00;margin-bottom:8px;">دليل وقواعد لعبة كمّلها</h2>
     <div class="guide-container">
-      <div class="guide-section-title">الهدف وطريقة المكسب:</div>
-      <p style="font-size:0.8rem;color:#ccc;line-height:1.4;">
-        تجميع <b>4 كروت من نفس الرقم</b>. والمباراة تُحسم إما بالوصول للهدف المحدد من النقاط أو انتهاء الجولات!
+      <div class="guide-section-title">شروط الفوز بالمباراة:</div>
+      <p style="font-size:0.8rem;color:#ccc;line-height:1.5;">
+        تجميع <b>4 كروت من نفس الرقم</b> لإعلان "كمّلتها". ويُحسم الفوز بالمباراة بإحدى طريقتين:<br>
+        1. <b>الوصول لنقاط الفوز:</b> أول لاعب يصل إلى عدد النقاط المحددة للغرفة يفوز بالمباراة فوراً.<br>
+        2. <b>انتهاء الجولات:</b> إذا انتهت جميع الجولات المحددة للمباراة، يفوز اللاعب صاحب أعلى مجموع نقاط!
       </p>
-      <div style="font-size:0.75rem;color:#00e676;margin-top:4px;">
+
+      <div class="guide-section-title">نظام احتساب النقاط للجولة:</div>
+      <div style="font-size:0.75rem;color:#00e676;line-height:1.5;margin-top:4px;">
         • 4 كروت مطابقة بدون جوكر = <b>نقطتان</b>.<br>
-        • مع جوكر = <b>نقطة واحدة</b>.<br>
-        • 4 جواكر = <b>فوز فوري بالمباراة كاملة (5 نقاط)</b>!
+        • 4 كروت مطابقة مع جوكر = <b>نقطة واحدة</b>.<br>
+        • جمع 4 جواكر = <b>فوز فوري وخارق بالمباراة كاملة (5 نقاط)</b>!
       </div>
 
       <div class="guide-section-title">موسوعة الكوماندز وقدراتهم:</div>
@@ -522,7 +526,7 @@ if (btnCreate) {
     localStorage.setItem('kamelha_name', name);
     socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
     
-    const pts = targetPointsInput ? targetPointsInput.value : 5;
+    const pts = targetPointsInput ? targetPointsInput.value : 0;
     const rnds = maxRoundsInput ? maxRoundsInput.value : 0;
     const deckMode = deckModeSelect ? deckModeSelect.value : 'classic';
 
@@ -1468,8 +1472,11 @@ socket.on('gameState', data => {
   latestGameState = data;
   if (!data.hasDrawn) currentDrawnCard = null;
 
-  if (waitingScreen) waitingScreen.classList.add('hidden');
-  if (gameScreen) gameScreen.classList.remove('hidden');
+  // فتح شاشة اللعبة فقط إذا كانت اللعبة قد بدأت بالفعل لتجنب فتح طاولة فارغة في غرفة الانتظار
+  if (data.gameStarted) {
+    if (waitingScreen) waitingScreen.classList.add('hidden');
+    if (gameScreen) gameScreen.classList.remove('hidden');
+  }
 
   if (data.roomId && gameRoomCodeTxt) {
     gameRoomCodeTxt.innerText = data.roomId;
@@ -1508,7 +1515,7 @@ socket.on('gameState', data => {
     } else if (pts === 0 && rnds > 0) {
       matchRulesTag.innerText = `الجولة (${data.roundCount} من ${rnds}) | الأعلى نقاطاً عند النهاية يفوز`;
     } else {
-      matchRulesTag.innerText = `الهدف: أول من يجمع 5 نقاط | الجولة ${data.roundCount}`;
+      matchRulesTag.innerText = `الهدف: مفتوح | الجولة ${data.roundCount}`;
     }
   }
 
