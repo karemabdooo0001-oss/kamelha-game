@@ -311,8 +311,6 @@ io.on('connection', (socket) => {
         room.players = room.players.filter(p => p.playerId !== targetPlayerId);
         if (room.players.length === 0) {
           clearTimeout(room.turnTimer);
-          clearTimeout(room.spinTimeout);
-          clearTimeout(room.fireTimeout);
           clearTimeout(room.tieTimeout);
           clearTimeout(room.tieTransitionTimeout);
           delete rooms[rId];
@@ -406,7 +404,7 @@ io.on('connection', (socket) => {
       turnTimer: null,
       turnDeadline: null,
       currentDuration: DEFAULT_TURN_TIME,
-      targetPoints: parseInt(targetPoints) >= 0 ? parseInt(targetPoints) : 5,
+      targetPoints: parseInt(targetPoints) >= 0 ? parseInt(targetPoints) : 0,
       maxRounds: parseInt(maxRounds) >= 0 ? parseInt(maxRounds) : 0,
       deckMode: deckMode || 'classic',
       customCommands: Array.isArray(customCommands) ? customCommands : []
@@ -1004,7 +1002,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // كارت شقلباظ (مع حماية الـ 1 ضد 1 وكسر المراية)
+  // كارت شقلباظ
   socket.on('execSpin', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -1021,19 +1019,16 @@ io.on('connection', (socket) => {
 
     room.players.forEach(p => {
       if (p.id !== player.id) {
-        // فحص هل الخصم معاه مراية ضد شقلباظ
         const executeOpponentSpin = () => {
           io.to(p.id).emit('spinRequest');
         };
 
         const cancelOpponentSpin = () => {
           if (room.players.length === 2) {
-            // في 1 ضد 1: صد المراية يبطل شقلباظ تماماً
             io.to(roomId).emit('notify', `تصدت المراية، وبطل مفعول كارت شقلباظ!`);
             room.pendingSpinMap.clear();
             return advanceTurn(room);
           } else {
-            // في 3 أو 4 لاعبين: الخصم يخرج بأمان والباقي يمرر
             room.pendingSpinMap.set(p.id, null);
             checkSpinCompletion(room);
           }
@@ -1061,13 +1056,11 @@ io.on('connection', (socket) => {
       io.to(player.id).emit('spinRequest');
     } else {
       if (room.players.length === 2) {
-        // في 1 ضد 1: لو رفض صاحب الكارت التمرير، يبطل شقلباظ فوراً
         io.to(roomId).emit('notify', `رفض اللاعب المشاركة، وبطل مفعول كارت شقلباظ!`);
         room.pendingSpinMap.clear();
         clearTimeout(room.spinTimeout);
         return advanceTurn(room);
       } else {
-        // في 3 و 4 لاعبين: حماية صاحب الكارت والباقيين يمرروا لبعض
         room.pendingSpinMap.set(player.id, null);
         checkSpinCompletion(room);
       }
@@ -1114,7 +1107,6 @@ io.on('connection', (socket) => {
         const passedCard = room.pendingSpinMap.get(giver.id);
         
         if (passedCard) {
-          // كسر المراية وإلغاء فاعليتها لو تم تمريرها في شقلباظ
           if (passedCard.type === 'command' && passedCard.cmdType === 'mirror') {
             passedCard.fromGround = true;
           }
@@ -1299,13 +1291,11 @@ io.on('connection', (socket) => {
         };
 
         const cancelBurn = () => {
-          // المراية تلغي الحرق وتحمي يد الخصم
           room.pendingFireMap.set(p.id, true);
           checkFireCompletion(room);
         };
 
         const reflectBurn = () => {
-          // المراية تعكس النار وتجبر المهاجم على حرق كارت غصب عنه
           io.to(player.id).emit('fireRequest');
           room.pendingFireMap.set(p.id, true);
           checkFireCompletion(room);
@@ -1808,6 +1798,7 @@ io.on('connection', (socket) => {
         targetPoints: room.targetPoints,
         maxRounds: room.maxRounds,
         roundCount: room.roundCount,
+        gameStarted: room.gameStarted,
         canCallKamelha,
         players: room.players.map(pl => ({
           id: pl.id,
@@ -1854,7 +1845,10 @@ io.on('connection', (socket) => {
       advanceTurn(room);
     } else {
       io.to(roomId).emit('updatePlayers', room.players);
-      sendGameState(roomId);
+      // إرسال حالة اللعبة فقط إذا كانت اللعبة قد بدأت بالفعل لمنع فتح الطاولة في شاشة الانتظار
+      if (room.gameStarted) {
+        sendGameState(roomId);
+      }
     }
   });
 
@@ -1882,7 +1876,7 @@ io.on('connection', (socket) => {
               if (checkLastManStanding(rooms[rId])) return;
 
               if (wasHisTurn) advanceTurn(rooms[rId]);
-              else sendGameState(rId);
+              else if (rooms[rId].gameStarted) sendGameState(rId);
             }
           }
         }, 45000);
