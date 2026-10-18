@@ -74,19 +74,19 @@
 
       <h2 style="color:#ffcc00;margin-bottom:12px;">إعدادات إنشاء الغرفة</h2>
 
-      <!-- إعدادات شروط الفوز -->
+      <!-- إعدادات شروط الفوز (نقاط الفوز مفتوحة تلقائياً) -->
       <div class="room-match-settings">
         <h4 style="color:#ffcc00;margin-bottom:8px;font-size:0.85rem;">شروط إنهاء المباراة (أيهما يكتمل أولاً):</h4>
         
         <div class="match-setting-row">
           <label>نقاط الفوز:</label>
           <select id="target-points-input">
-            <option value="0">بدون تحديد (مفتوح)</option>
+            <option value="0" selected>بدون تحديد (مفتوح)</option>
             <option value="1">نقطة واحدة</option>
             <option value="2">نقطتان</option>
             <option value="3">3 نقاط</option>
             <option value="4">4 نقاط</option>
-            <option value="5" selected>5 نقاط (الافتراضي)</option>
+            <option value="5">5 نقاط</option>
             <option value="6">6 نقاط</option>
             <option value="7">7 نقاط</option>
             <option value="8">8 نقاط</option>
@@ -279,7 +279,7 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <!-- منع الكاش التلقائي -->
-  <script src="client.js?v=9.0"></script>
+  <!-- منع الكاش التلقائي بإصدار محدث -->
+  <script src="client.js?v=10.0"></script>
 </body>
 </html>
