@@ -33,7 +33,7 @@
     </div>
   </div>
 
-  <!-- 2. شاشة اللوبي وإنشاء الغرفة -->
+  <!-- 2. القائمة الرئيسية (شاشة اختيار إنشاء أو انضمام) -->
   <div id="lobby-screen" class="screen hidden">
     <button id="btn-sound-lobby" class="sound-toggle-btn" title="كتم/تشغيل الصوت">صوت</button>
 
@@ -50,6 +50,29 @@
         <label>اسمك في اللعبة:</label>
         <input type="text" id="player-name" placeholder="اكتب اسمك...">
       </div>
+
+      <!-- الأزرار الرئيسية المنفصلة -->
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:15px;">
+        <button id="btn-go-create" class="btn primary-btn" style="padding:14px;font-size:1.05rem;">إنشاء غرفة جديدة</button>
+        <button id="btn-go-join" class="btn secondary-btn" style="padding:14px;font-size:1.05rem;">انضمام إلى غرفة</button>
+      </div>
+
+      <!-- زرار دليل الكروت في اللوبي -->
+      <button id="btn-rules-lobby" class="btn info-btn" style="margin-top:14px;">دليل الكروت وطريقة اللعب</button>
+
+      <div class="footer-brand" style="margin-top:18px;">
+        المطور: <b>Wello_0</b> • تذكرة نشطة ومصرحة
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.أ شاشة مخصصة لإعدادات وإنشاء الغرفة -->
+  <div id="create-room-screen" class="screen hidden">
+    <div class="lobby-box">
+      <!-- زرار الرجوع للقائمة الرئيسية -->
+      <button id="btn-back-from-create" class="btn secondary-btn" style="margin-bottom:12px;padding:6px;font-size:0.8rem;background:rgba(255,255,255,0.1);">رجوع للقائمة الرئيسية</button>
+
+      <h2 style="color:#ffcc00;margin-bottom:12px;">إعدادات إنشاء الغرفة</h2>
 
       <!-- إعدادات شروط الفوز -->
       <div class="room-match-settings">
@@ -101,7 +124,7 @@
           </select>
         </div>
 
-        <!-- قائمة اختيار الكوماندز في الوضع المخصص (بدون إيموجي والجوكر بس محدد) -->
+        <!-- قائمة اختيار الكوماندز في الوضع المخصص -->
         <div id="custom-commands-box" class="custom-commands-container" style="display:none;">
           <p style="font-size:0.75rem;color:#00e676;margin:6px 0;">حدد الكوماندز المراد اللعب بها:</p>
           <div class="commands-checkbox-grid">
@@ -129,20 +152,21 @@
         </div>
       </div>
 
-      <button id="btn-create" class="btn primary-btn" style="margin-top:10px;">إنشاء غرفة جديدة</button>
+      <button id="btn-create" class="btn primary-btn" style="margin-top:12px;padding:12px;font-size:1rem;">تأكيد إنشاء الغرفة</button>
+    </div>
+  </div>
 
-      <div class="separator">أو</div>
-      <div class="join-group">
-        <input type="text" id="room-code-input" placeholder="كود الغرفة">
-        <button id="btn-join" class="btn secondary-btn">دخول</button>
-      </div>
+  <!-- 2.ب شاشة مخصصة للانضمام إلى غرفة -->
+  <div id="join-room-screen" class="screen hidden">
+    <div class="lobby-box">
+      <!-- زرار الرجوع للقائمة الرئيسية -->
+      <button id="btn-back-from-join" class="btn secondary-btn" style="margin-bottom:12px;padding:6px;font-size:0.8rem;background:rgba(255,255,255,0.1);">رجوع للقائمة الرئيسية</button>
 
-      <!-- زرار دليل الكروت في اللوبي -->
-      <button id="btn-rules-lobby" class="btn info-btn" style="margin-top:12px;">دليل الكروت وطريقة اللعب</button>
+      <h2 style="color:#ffcc00;margin-bottom:10px;">الانضمام إلى غرفة</h2>
+      <p style="color:#ccc;font-size:0.85rem;margin-bottom:15px;">أدخل كود الغرفة المكون من 4 حروف اللي صاحبك بعتهولك:</p>
 
-      <div class="footer-brand" style="margin-top:15px;">
-        المطور: <b>Wello_0</b> • تذكرة نشطة ومصرحة
-      </div>
+      <input type="text" id="room-code-input" placeholder="اكتب كود الغرفة هنا..." style="font-size:1.1rem;letter-spacing:2px;text-transform:uppercase;">
+      <button id="btn-join" class="btn secondary-btn" style="padding:12px;font-size:1rem;">تأكيد الدخول</button>
     </div>
   </div>
 
@@ -256,6 +280,6 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <!-- منع الكاش التلقائي بإصدار جديد -->
-  <script src="client.js?v=7.0"></script>
+  <script src="client.js?v=8.0"></script>
 </body>
 </html>
