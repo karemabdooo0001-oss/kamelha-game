@@ -98,7 +98,7 @@ html, body {
 }
 @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 12px; opacity: 1; } }
 
-/* اللوبي والدخول */
+/* صناديق اللوبي والإنشاء والدخول */
 .lobby-box {
   background: rgba(26, 20, 41, 0.95);
   padding: 22px;
