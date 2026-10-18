@@ -12,6 +12,8 @@ const gatePassInput = document.getElementById('gate-pass-input');
 const btnSubmitGate = document.getElementById('btn-submit-gate');
 
 const lobbyScreen = document.getElementById('lobby-screen');
+const createRoomScreen = document.getElementById('create-room-screen');
+const joinRoomScreen = document.getElementById('join-room-screen');
 const waitingScreen = document.getElementById('waiting-screen');
 const gameScreen = document.getElementById('game-screen');
 const toastBanner = document.getElementById('toast-banner');
@@ -57,7 +59,7 @@ window.closeModal = function() {
   }
 };
 
-// إظهار وإخفاء قائمة الكوماندز المخصصة في اللوبي مباشرة
+// إظهار وإخفاء قائمة الكوماندز المخصصة في شاشة إنشاء الغرفة
 function syncCustomCommandsVisibility() {
   if (deckModeSelect && customCommandsBox) {
     if (deckModeSelect.value === 'custom') {
@@ -72,7 +74,51 @@ if (deckModeSelect) {
   syncCustomCommandsVisibility();
 }
 
-// أزرار الرجوع
+// أزرار التنقل الرئيسية المنفصلة
+const btnGoCreate = document.getElementById('btn-go-create');
+const btnGoJoin = document.getElementById('btn-go-join');
+const btnBackFromCreate = document.getElementById('btn-back-from-create');
+const btnBackFromJoin = document.getElementById('btn-back-from-join');
+
+if (btnGoCreate) {
+  btnGoCreate.onclick = () => {
+    const name = playerNameInput.value.trim();
+    if (!name) return alert('اكتب اسمك الأول في الخانة!');
+    localStorage.setItem('kamelha_name', name);
+    socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
+
+    if (lobbyScreen) lobbyScreen.classList.add('hidden');
+    if (createRoomScreen) createRoomScreen.classList.remove('hidden');
+  };
+}
+
+if (btnGoJoin) {
+  btnGoJoin.onclick = () => {
+    const name = playerNameInput.value.trim();
+    if (!name) return alert('اكتب اسمك الأول في الخانة!');
+    localStorage.setItem('kamelha_name', name);
+    socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
+
+    if (lobbyScreen) lobbyScreen.classList.add('hidden');
+    if (joinRoomScreen) joinRoomScreen.classList.remove('hidden');
+  };
+}
+
+if (btnBackFromCreate) {
+  btnBackFromCreate.onclick = () => {
+    if (createRoomScreen) createRoomScreen.classList.add('hidden');
+    if (lobbyScreen) lobbyScreen.classList.remove('hidden');
+  };
+}
+
+if (btnBackFromJoin) {
+  btnBackFromJoin.onclick = () => {
+    if (joinRoomScreen) joinRoomScreen.classList.add('hidden');
+    if (lobbyScreen) lobbyScreen.classList.remove('hidden');
+  };
+}
+
+// أزرار الرجوع القديمة
 const btnBackToGate = document.getElementById('btn-back-to-gate');
 const btnBackToLobby = document.getElementById('btn-back-to-lobby');
 
@@ -469,11 +515,10 @@ function copyRoomCode() {
 if (btnCopyCodeWait) btnCopyCodeWait.onclick = copyRoomCode;
 if (btnCopyCodeGame) btnCopyCodeGame.onclick = copyRoomCode;
 
-// إنشاء غرفة
+// زر تأكيد إنشاء الغرفة
 if (btnCreate) {
   btnCreate.onclick = () => {
-    const name = playerNameInput.value.trim();
-    if (!name) return alert('اكتب اسمك الأول!');
+    const name = playerNameInput.value.trim() || localStorage.getItem('kamelha_name') || 'لاعب';
     localStorage.setItem('kamelha_name', name);
     socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
     
@@ -502,22 +547,26 @@ if (btnCreate) {
   };
 }
 
+// زر تأكيد الانضمام لغرفة
 if (btnJoin) {
   btnJoin.onclick = () => {
-    const name = playerNameInput.value.trim();
+    const name = playerNameInput.value.trim() || localStorage.getItem('kamelha_name') || 'لاعب';
     const code = roomCodeInput.value.trim();
-    if (!name || !code) return alert('اكتب اسمك وكود الغرفة!');
+    if (!code) return alert('اكتب كود الغرفة أولاً!');
     localStorage.setItem('kamelha_name', name);
     socket.emit('registerPlayerIdentity', { playerId: myPlayerId, name });
     socket.emit('joinRoom', { playerName: name, roomId: code, playerId: myPlayerId });
   };
 }
 
+// الدخول لغرفة الانتظار وإخفاء كل الشاشات السابقة
 socket.on('roomJoined', ({ roomId, players, isHost }) => {
   currentRoomId = roomId;
   localStorage.setItem('kamelha_room', roomId);
 
   if (lobbyScreen) lobbyScreen.classList.add('hidden');
+  if (createRoomScreen) createRoomScreen.classList.add('hidden');
+  if (joinRoomScreen) joinRoomScreen.classList.add('hidden');
   if (waitingScreen) waitingScreen.classList.remove('hidden');
   if (displayRoomCode) displayRoomCode.innerText = roomId;
   if (gameRoomCodeTxt) gameRoomCodeTxt.innerText = roomId;
@@ -940,7 +989,6 @@ function handleCommandCardModal(card) {
       SoundManager.playCommand();
       socket.emit('execAmbush', currentRoomId);
     },
-    // تفعيل المغناطيس بالستايل البصري الجديد
     magnet: () => {
       openVisualMagnetPicker();
     },
@@ -1504,7 +1552,7 @@ socket.on('roundEnded', ({ msg, revealedHands }) => {
   setTimeout(() => window.closeModal(), 6500);
 });
 
-// شاشة النهاية الرسمية مع خيار العودة الفردية لغرفة الانتظار
+// شاشة النهاية الرسمية مع خيار العودة الفردية لغرفة الانتظار (Rematch)
 socket.on('gameOver', ({ winnerName, scores, revealedHands, reason }) => {
   clearInterval(timerInterval);
   currentDrawnCard = null;
