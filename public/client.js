@@ -318,7 +318,7 @@ window.openCardEncyclopediaModal = function() {
       <div style="font-size:0.75rem;color:#00e676;line-height:1.5;margin-top:4px;">
         • 4 كروت مطابقة بدون جوكر = <b>نقطتان</b>.<br>
         • 4 كروت مطابقة مع جوكر = <b>نقطة واحدة</b>.<br>
-        • جمع 4 جواكر = <b>فوز فوري وخارق بالمباراة كاملة (5 نقاط)</b>!
+        • جمع 4 جواكر = <b>فوز فوري وخارق بالمباراة كاملة</b>!
       </div>
 
       <div class="guide-section-title">موسوعة الكوماندز وقدراتهم:</div>
