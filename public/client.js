@@ -1283,7 +1283,7 @@ socket.on('annoy2PPeekResult', (peekedCard) => {
 
 // كارت براحتك الديناميكي الشامل
 function openWildFlow() {
-  const isCustom = latestGameState && latestGameState.deckMode === 'custom';
+  const isCustom = latestGameState && (latestGameState.deckMode === 'custom' || (latestGameState.customCommands && latestGameState.customCommands.length > 0));
   let html = '<h2>كارت براحتك!</h2>';
   html += '<p style="font-size:0.85rem;color:#ccc;margin-bottom:10px;">اختر الكوماند الذي تريد تحويل الكارت إليه:</p>';
   html += '<div style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;padding-right:4px;">';
