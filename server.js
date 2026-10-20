@@ -1817,6 +1817,8 @@ io.on('connection', (socket) => {
         maxRounds: room.maxRounds,
         roundCount: room.roundCount,
         gameStarted: room.gameStarted,
+        deckMode: room.deckMode,
+        customCommands: room.customCommands,
         canCallKamelha,
         players: room.players.map(pl => ({
           id: pl.id,
