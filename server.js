@@ -167,7 +167,7 @@ function validateVoucher(code, playerId) {
   return { valid: true, voucher: v };
 }
 
-// فحص اعتراض كارت المراية في يد الهدف
+// فحص اعتراض كارت المراية في يد الهدف (شرط ألا تكون مسحوبة من الأرض)
 function checkMirrorTrap(room, attacker, target, cmdType, cmdName, executeCallback, reflectCallback, cancelCallback) {
   const mirrorIdx = target.hand.findIndex(c => c.type === 'command' && c.cmdType === 'mirror' && !c.fromGround);
 
@@ -311,8 +311,6 @@ io.on('connection', (socket) => {
         room.players = room.players.filter(p => p.playerId !== targetPlayerId);
         if (room.players.length === 0) {
           clearTimeout(room.turnTimer);
-          clearTimeout(room.spinTimeout);
-          clearTimeout(room.fireTimeout);
           clearTimeout(room.tieTimeout);
           clearTimeout(room.tieTransitionTimeout);
           delete rooms[rId];
@@ -1004,7 +1002,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // كارت شقلباظ
+  // كارت شقلباظ (مع حماية الـ 1 ضد 1 وكسر المراية)
   socket.on('execSpin', (roomId) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -1427,7 +1425,7 @@ io.on('connection', (socket) => {
     advanceTurn(room);
   });
 
-  // كارت براحتك يتحول ديناميكياً لأي كوماند بما فيها الحرامي والكروت الجديدة
+  // كارت براحتك الديناميكي الشامل
   socket.on('execWildAs', ({ roomId, chosenCmdType }) => {
     const room = rooms[roomId];
     if (!room || !room.drawnCard) return;
@@ -1435,8 +1433,25 @@ io.on('connection', (socket) => {
 
     broadcastCommandSplash(room, 'wild', 'براحتك', player.name);
     room.drawnCard.cmdType = chosenCmdType;
-    const meta = ALL_COMMANDS_META[chosenCmdType];
-    room.drawnCard.name = meta ? meta.name : chosenCmdType;
+    
+    // قاموس تحويل كل الكوماندز بما فيها الحرامي وكل الكروت الجديدة
+    const map = { 
+      hunt: 'اصطاد كارتك', 
+      bank: 'لم كمالتك', 
+      reverse: 'اعكس لفتك', 
+      keda: 'هو كدة', 
+      annoy: 'رخم عليهم',
+      thief: 'الحرامي',
+      reveal: 'ع المكشوف',
+      swap: 'بدّل يا نجم',
+      freeze: 'فرملة',
+      spin: 'شقلباظ',
+      ambush: 'الكمين',
+      magnet: 'المغناطيس',
+      curse: 'عين حسودة',
+      fire: 'ولعانة'
+    };
+    room.drawnCard.name = map[chosenCmdType] || chosenCmdType;
     socket.emit('wildTransformed', room.drawnCard);
   });
 
@@ -1552,8 +1567,9 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     if (!room || !room.isTieVoting) return;
 
-    room.tieVotes.set(socket.id, vote);
+    room.tieVotes.set(socket.id, vote); // 'play' أو 'draw'
 
+    // إرسال تحديث الأصوات لحظياً للجميع
     const voterList = Array.from(room.tieVotes.entries()).map(([sId, v]) => ({
       name: room.players.find(p => p.id === sId)?.name || 'لاعب',
       vote: v
@@ -1571,7 +1587,7 @@ io.on('connection', (socket) => {
     room.isTieVoting = false;
     clearTimeout(room.tieTimeout);
 
-    // أمر فوري بإغلاق نافذة التصويت لجميع اللاعبين على الشاشة
+    // أمر فوري بإغلاق نافذة التصويت لجميع اللاعبين على الشاشة!
     io.to(room.id).emit('tieVoteResolved');
 
     // أي لاعب لم يصوّت يُسجل صوته تلقائياً مع التعادل
@@ -1660,6 +1676,7 @@ io.on('connection', (socket) => {
       isHost: p.isHost
     }));
 
+    // فحص الفوز الفوري بـ 4 جواكر
     if (instantEnd) {
       matchWinner = room.players.find(p => p.points >= 5);
       winReason = 'فوز ساحق بـ 4 جواكر!';
@@ -1674,6 +1691,7 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // فحص من وصل إلى هدف النقاط
     let reachedTarget = [];
     if (room.targetPoints > 0) {
       reachedTarget = room.players.filter(p => p.points >= room.targetPoints);
@@ -1684,6 +1702,7 @@ io.on('connection', (socket) => {
       maxRoundsReached = true;
     }
 
+    // التعادل عند الوصول للهدف
     if (reachedTarget.length > 1) {
       const maxPts = Math.max(...reachedTarget.map(p => p.points));
       const tiedTops = reachedTarget.filter(p => p.points === maxPts);
@@ -1718,6 +1737,7 @@ io.on('connection', (socket) => {
       winReason = `أول من وصل إلى هدف ${room.targetPoints} نقاط وفاز بالمباراة!`;
     }
 
+    // التعادل عند انتهاء الجولات
     if (!matchWinner && maxRoundsReached) {
       const maxPts = Math.max(...room.players.map(p => p.points));
       const tiedTops = room.players.filter(p => p.points === maxPts);
@@ -1797,8 +1817,6 @@ io.on('connection', (socket) => {
         maxRounds: room.maxRounds,
         roundCount: room.roundCount,
         gameStarted: room.gameStarted,
-        deckMode: room.deckMode,
-        customCommands: room.customCommands,
         canCallKamelha,
         players: room.players.map(pl => ({
           id: pl.id,
