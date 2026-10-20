@@ -140,12 +140,20 @@ input:focus {
   box-shadow: 0 0 10px rgba(232, 201, 155, 0.3);
 }
 
+/* توحيد كل العناوين الصفراء الفاقعة إلى ذهبي براند كمّلها الفخم */
+.lobby-box h2,
+.lobby-box h3,
+.lobby-box h4,
+.modal-card h2 {
+  color: #e8c99b !important;
+}
+
 /* صندوق إعدادات شروط الماتش والنمط */
 .room-match-settings {
-  background: rgba(0,0,0,0.4);
-  padding: 10px;
+  background: rgba(10, 4, 18, 0.55);
+  padding: 12px;
   border-radius: 12px;
-  border: 1px dashed rgba(255,204,0,0.4);
+  border: 1px dashed rgba(212, 175, 55, 0.45) !important;
   margin: 10px 0;
   text-align: right;
 }
@@ -156,19 +164,20 @@ input:focus {
   gap: 8px;
 }
 .match-setting-row label {
-  font-size: 0.75rem;
-  color: #ccc;
+  font-size: 0.78rem;
+  color: #c4b2d9;
   white-space: nowrap;
 }
 .match-setting-row select {
-  padding: 6px;
-  border-radius: 6px;
-  background: #111;
-  border: 1px solid #444;
-  color: #ffcc00;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(18, 8, 31, 0.95);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: #e8c99b;
   font-weight: bold;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   flex: 1;
+  outline: none;
 }
 
 /* نمط اختيار الكوماندز المخصص في شاشة إنشاء الغرفة */
