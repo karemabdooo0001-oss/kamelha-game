@@ -182,42 +182,56 @@ input:focus {
 
 /* نمط اختيار الكوماندز المخصص في شاشة إنشاء الغرفة */
 .custom-commands-container {
-  background: rgba(0,0,0,0.3);
-  padding: 8px;
+  background: rgba(12, 5, 22, 0.65);
+  padding: 10px;
   border-radius: 10px;
-  margin-top: 8px;
-  border: 1px dashed #5c6bc0;
+  margin-top: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+.custom-commands-container p {
+  color: #e8c99b !important;
+  font-weight: bold;
 }
 .commands-checkbox-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-  max-height: 160px;
+  gap: 7px;
+  max-height: 165px;
   overflow-y: auto;
   padding: 4px;
   text-align: right;
 }
-.cmd-check-item {
-  font-size: 0.74rem;
-  color: #eee;
+.cmd-check-item,
+.cmd-check-item.new-cmd {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f5ebd9;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
-  background: rgba(255,255,255,0.05);
-  padding: 5px 6px;
-  border-radius: 6px;
+  background: rgba(45, 18, 71, 0.45);
+  border: 1px solid rgba(232, 201, 155, 0.2);
+  padding: 7px 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+.cmd-check-item:hover {
+  background: rgba(74, 28, 117, 0.6);
+  border-color: rgba(232, 201, 155, 0.5);
+}
+.cmd-check-item:has(input:checked) {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.28), rgba(74, 28, 117, 0.7));
+  border-color: #e8c99b;
+  color: #e8c99b;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
 }
 .cmd-check-item input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   margin: 0;
-  accent-color: #ffcc00;
+  accent-color: #d4af37;
   cursor: pointer;
-}
-.cmd-check-item.new-cmd {
-  color: #00e676;
-  border: 1px solid rgba(0,230,118,0.2);
 }
 
 .match-rules-tag {
