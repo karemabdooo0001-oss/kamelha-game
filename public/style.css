@@ -6,18 +6,19 @@
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   
-/* شريط التمرير بألوان براند كمّلها */
+  /* شريط التمرير المودرن بألوان براند كمّلها */
   scrollbar-width: thin;
-  scrollbar-color: #d4af37 rgba(12, 6, 20, 0.8);
+  scrollbar-color: #d4af37 rgba(12, 6, 20, 0.85);
 }
 
+/* تخصيص شريط التمرير (Scrollbar) لكل مربعات وعناصر اللعبة */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(12, 6, 20, 0.8);
+  background: rgba(12, 6, 20, 0.85);
   border-radius: 10px;
 }
 
@@ -39,7 +40,7 @@ html, body {
   background: radial-gradient(circle at center, #2d1247 0%, #140821 55%, #09040e 100%);
   color: #f5ebd9;
   overflow: hidden;
-}  
+}
 
 .screen {
   width: 100vw;
@@ -53,29 +54,41 @@ html, body {
 
 .hidden { display: none !important; }
 
-/* أزرار الصوت والإشعار */
+/* توحيد العناوين والنصوص المضمنة بهوية البراند */
+.lobby-box h2,
+.lobby-box h3,
+.lobby-box h4,
+.modal-card h1,
+.modal-card h2,
+.modal-card h3 {
+  color: #e8c99b !important;
+}
+
+/* أزرار الصوت والإشعار العلوي */
 .sound-toggle-btn {
   position: absolute;
   top: 15px;
   right: 15px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(45, 18, 71, 0.75);
+  border: 1px solid rgba(232, 201, 155, 0.45);
   font-size: 0.85rem;
   font-weight: bold;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 12px;
   cursor: pointer;
-  color: #fff;
+  color: #e8c99b;
   z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 .sound-toggle-mini {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid #555;
-  color: #fff;
-  padding: 3px 8px;
-  border-radius: 6px;
+  background: rgba(45, 18, 71, 0.7);
+  border: 1px solid rgba(232, 201, 155, 0.35);
+  color: #e8c99b;
+  padding: 3px 9px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 0.75rem;
+  font-weight: bold;
 }
 
 .toast {
@@ -83,13 +96,14 @@ html, body {
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  background: #ffcc00;
-  color: #111;
-  padding: 8px 20px;
+  background: linear-gradient(135deg, #e8c99b 0%, #c59b57 100%);
+  color: #160926;
+  border: 1px solid #fff3dc;
+  padding: 8px 22px;
   border-radius: 30px;
-  font-weight: 800;
+  font-weight: 900;
   z-index: 999;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.75), 0 0 15px rgba(212, 175, 55, 0.4);
   font-size: 0.9rem;
   text-align: center;
   max-width: 90vw;
@@ -97,7 +111,7 @@ html, body {
 }
 @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 12px; opacity: 1; } }
 
-/* صناديق اللوبي والإنشاء والدخول بهوية الكارت */
+/* صناديق اللوبي والإنشاء والدخول والانتظار بهوية الكارت */
 .lobby-box {
   background: linear-gradient(145deg, rgba(28, 12, 46, 0.96), rgba(14, 6, 24, 0.98));
   padding: 22px;
@@ -140,17 +154,9 @@ input:focus {
   box-shadow: 0 0 10px rgba(232, 201, 155, 0.3);
 }
 
-/* توحيد كل العناوين الصفراء الفاقعة إلى ذهبي براند كمّلها الفخم */
-.lobby-box h2,
-.lobby-box h3,
-.lobby-box h4,
-.modal-card h2 {
-  color: #e8c99b !important;
-}
-
 /* صندوق إعدادات شروط الماتش والنمط */
 .room-match-settings {
-  background: rgba(10, 4, 18, 0.55);
+  background: rgba(10, 4, 18, 0.55) !important;
   padding: 12px;
   border-radius: 12px;
   border: 1px dashed rgba(212, 175, 55, 0.45) !important;
@@ -178,6 +184,7 @@ input:focus {
   font-size: 0.82rem;
   flex: 1;
   outline: none;
+  cursor: pointer;
 }
 
 /* نمط اختيار الكوماندز المخصص في شاشة إنشاء الغرفة */
@@ -235,17 +242,18 @@ input:focus {
 }
 
 .match-rules-tag {
-  background: rgba(0,0,0,0.4);
-  border: 1px solid rgba(255,204,0,0.3);
-  color: #ffcc00;
+  background: rgba(20, 8, 34, 0.75);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: #e8c99b;
   font-size: 0.72rem;
-  padding: 2px 8px;
+  padding: 2px 10px;
   border-radius: 8px;
   font-weight: bold;
   text-align: center;
   margin-top: 2px;
 }
 
+/* الأزرار العامة */
 .btn {
   padding: 11px;
   border-radius: 10px;
@@ -253,13 +261,15 @@ input:focus {
   font-size: 0.95rem;
   cursor: pointer;
   border: none;
-  transition: transform 0.15s;
+  transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
   width: 100%;
   text-decoration: none;
   display: inline-block;
   text-align: center;
 }
+.btn:hover { filter: brightness(1.06); }
 .btn:active { transform: scale(0.96); }
+
 .primary-btn {
   background: linear-gradient(135deg, #e8c99b 0%, #c59b57 100%);
   color: #160926;
@@ -277,33 +287,36 @@ input:focus {
   color: #e8c99b;
 }
 .order-btn {
-  background: linear-gradient(135deg, #8e24aa, #5e35b1);
+  background: linear-gradient(135deg, #6a1b9a, #4527a0);
   border: 1px solid #e8c99b;
-  color: #fff;
+  color: #f5ebd9;
 }
 .whatsapp-btn { background: #25d366; color: #fff; font-size: 1rem; }
 .call-btn { background: #007bff; color: #fff; font-size: 1rem; }
 
 .btn-swap-green {
-  background: #00e676 !important;
-  color: #111 !important;
+  background: linear-gradient(135deg, #e8c99b 0%, #c59b57 100%) !important;
+  color: #160926 !important;
+  border: 1px solid #fff3dc !important;
   font-weight: 900 !important;
-  box-shadow: 0 4px 15px rgba(0, 230, 118, 0.4) !important;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4) !important;
 }
 .btn-discard-red {
-  background: #ff1744 !important;
-  color: #fff !important;
+  background: linear-gradient(135deg, #8e1c38 0%, #560d20 100%) !important;
+  color: #f5ebd9 !important;
+  border: 1px solid rgba(232, 201, 155, 0.35) !important;
   font-weight: 900 !important;
-  box-shadow: 0 4px 15px rgba(255, 23, 68, 0.4) !important;
+  box-shadow: 0 4px 15px rgba(142, 28, 56, 0.4) !important;
 }
 
 .kamelha-btn {
-  background: linear-gradient(45deg, #ff0055, #ffcc00);
+  background: linear-gradient(135deg, #6a1b9a, #d4af37);
   color: #fff;
+  border: 1.5px solid #fff3dc;
   width: auto;
-  padding: 6px 16px;
+  padding: 6px 18px;
   font-size: 0.95rem;
-  box-shadow: 0 0 15px rgba(255,0,85,0.6);
+  box-shadow: 0 0 18px rgba(212, 175, 55, 0.55);
   animation: bounce 1.5s infinite;
   transition: all 0.3s ease;
 }
@@ -312,43 +325,65 @@ input:focus {
 /* تأثير الرعشة والإضاءة لزرار كمّلتهااا عند اكتمال الكروت */
 .kamelha-ready-glow {
   animation: kamelhaReadyPulse 0.7s infinite alternate ease-in-out !important;
-  box-shadow: 0 0 25px 6px #00e676, 0 0 50px rgba(0, 230, 118, 0.8) !important;
+  box-shadow: 0 0 25px 6px #e8c99b, 0 0 50px rgba(212, 175, 55, 0.9) !important;
   border: 2px solid #fff !important;
-  background: linear-gradient(45deg, #00e676, #ffcc00) !important;
-  color: #000 !important;
+  background: linear-gradient(135deg, #fff3dc, #d4af37) !important;
+  color: #160926 !important;
   font-weight: 900 !important;
 }
 @keyframes kamelhaReadyPulse {
   from {
     transform: scale(1);
-    box-shadow: 0 0 15px 4px #00e676;
+    box-shadow: 0 0 15px 4px #d4af37;
   }
   to {
     transform: scale(1.1);
-    box-shadow: 0 0 35px 8px #00e676, 0 0 60px rgba(0, 230, 118, 0.9);
+    box-shadow: 0 0 35px 8px #e8c99b, 0 0 60px rgba(232, 201, 155, 0.95);
   }
 }
 
-.separator { margin: 8px 0; color: #666; font-size: 0.85rem; }
+.separator { margin: 8px 0; color: #8e7aa3; font-size: 0.85rem; }
 .join-group { display: flex; gap: 8px; }
-.code-badge { background: #ffcc00; color: #000; padding: 2px 10px; border-radius: 8px; font-weight: bold; }
-.player-list-box { background: rgba(0,0,0,0.4); padding: 10px; border-radius: 12px; margin: 12px 0; }
+.code-badge {
+  background: linear-gradient(135deg, #e8c99b, #c59b57);
+  color: #160926;
+  padding: 2px 12px;
+  border-radius: 8px;
+  font-weight: 900;
+}
+.player-list-box {
+  background: rgba(10, 4, 18, 0.55);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  padding: 12px;
+  border-radius: 12px;
+  margin: 12px 0;
+}
 #players-list { list-style: none; margin-top: 6px; }
-#players-list li { background: #251d38; padding: 5px; border-radius: 6px; margin-bottom: 4px; font-size: 0.85rem; }
+#players-list li {
+  background: rgba(45, 18, 71, 0.55);
+  border: 1px solid rgba(232, 201, 155, 0.2);
+  color: #f5ebd9;
+  padding: 6px;
+  border-radius: 8px;
+  margin-bottom: 5px;
+  font-size: 0.88rem;
+  font-weight: bold;
+}
+.waiting-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
 .lobby-extra-buttons { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
-.footer-brand { margin-top: 15px; font-size: 0.75rem; color: #777; }
-.footer-brand b { color: #ffcc00; }
+.footer-brand { margin-top: 15px; font-size: 0.75rem; color: #9a88b0; }
+.footer-brand b { color: #e8c99b; }
 .my-uid-badge {
-  background: rgba(255, 204, 0, 0.1);
-  border: 1px dashed rgba(255, 204, 0, 0.4);
-  color: #aaa;
-  padding: 4px 10px;
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px dashed rgba(232, 201, 155, 0.45);
+  color: #c4b2d9;
+  padding: 5px 12px;
   border-radius: 8px;
   font-size: 0.8rem;
   margin-bottom: 12px;
   display: inline-block;
 }
-.my-uid-badge b { color: #ffcc00; letter-spacing: 1px; }
+.my-uid-badge b { color: #e8c99b; letter-spacing: 1px; }
 
 /* ================= شاشة وطاولة اللعب المحيطية ================= */
 #game-screen {
@@ -377,28 +412,82 @@ input:focus {
 .game-controls { display: flex; gap: 5px; align-items: center; }
 
 .game-room-tag {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 3px 6px;
+  background: rgba(28, 12, 46, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  padding: 3px 8px;
   border-radius: 10px;
   font-size: 0.75rem;
-  color: #aaa;
+  color: #c4b2d9;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
-.game-room-tag b { color: #ffcc00; }
-.btn-copy-mini { background: #ffcc00; color: #111; border: none; padding: 4px 8px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
-.btn-copy-tiny { background: rgba(255, 204, 0, 0.2); border: 1px solid #ffcc00; color: #ffcc00; padding: 2px 6px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
+.game-room-tag b { color: #e8c99b; }
+.btn-copy-mini {
+  background: linear-gradient(135deg, #e8c99b, #c59b57);
+  color: #160926;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-weight: 900;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.btn-copy-tiny {
+  background: rgba(212, 175, 55, 0.2);
+  border: 1px solid #d4af37;
+  color: #e8c99b;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+}
 .room-code-header { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; }
 
-.badge { background: #ffcc00; color: #111; padding: 4px 10px; border-radius: 12px; font-weight: 800; font-size: 0.8rem; }
-.timer-badge { background: #251d38; border: 1px solid #ffcc00; color: #ffcc00; padding: 3px 8px; border-radius: 10px; font-weight: 800; font-size: 0.85rem; }
-.leave-btn { background: rgba(255,255,255,0.1); border: 1px solid #555; color: #ccc; padding: 3px 8px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
-.timer-bar-container { width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
-.timer-bar { height: 100%; width: 100%; background: #00e676; transition: width 0.2s linear, background-color 0.3s; }
+.badge {
+  background: linear-gradient(135deg, #e8c99b, #c59b57);
+  color: #160926;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 900;
+  font-size: 0.8rem;
+  border: 1px solid #fff3dc;
+}
+.timer-badge {
+  background: rgba(28, 12, 46, 0.9);
+  border: 1px solid #d4af37;
+  color: #e8c99b;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+.leave-btn {
+  background: rgba(90, 20, 40, 0.6);
+  border: 1px solid rgba(232, 201, 155, 0.35);
+  color: #f5ebd9;
+  padding: 3px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+.timer-bar-container {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.timer-bar {
+  height: 100%;
+  width: 100%;
+  background: #d4af37;
+  transition: width 0.2s linear, background-color 0.3s;
+}
 
-/* طاولة الكازينو الشاملة */
+/* طاولة اللعب الفخمة المتناسقة مع الكروت */
 .table-arena {
   position: relative;
   width: 98vw;
@@ -411,9 +500,11 @@ input:focus {
   align-items: center;
   margin: 2px auto 0 auto;
   border-radius: 28px;
-  background: radial-gradient(ellipse at center, #163d25 0%, #0d2416 70%, #06110a 100%);
-  border: 4px solid #4a3614;
-  box-shadow: inset 0 0 50px rgba(0,0,0,0.85), 0 0 25px rgba(0,0,0,0.9);
+  background: radial-gradient(ellipse at center, #25133d 0%, #150a24 68%, #090410 100%);
+  border: 3px solid #c59b57;
+  outline: 1px solid rgba(232, 201, 155, 0.22);
+  outline-offset: -7px;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.9), 0 0 25px rgba(0, 0, 0, 0.9);
   padding: 8px;
   box-sizing: border-box;
   overflow: hidden;
@@ -433,15 +524,15 @@ input:focus {
 
 .active-turn-seat .seat-info, 
 .active-turn-seat .my-seat-tag {
-  border: 2px solid #00e676 !important;
-  box-shadow: 0 0 20px 5px rgba(0, 230, 118, 0.85) !important;
-  background: rgba(0, 230, 118, 0.25) !important;
+  border: 2px solid #e8c99b !important;
+  box-shadow: 0 0 20px 5px rgba(212, 175, 55, 0.8) !important;
+  background: rgba(74, 28, 117, 0.85) !important;
   animation: badgePulse 1s infinite alternate ease-in-out;
 }
 
 @keyframes badgePulse {
-  from { box-shadow: 0 0 8px 2px rgba(0, 230, 118, 0.4); }
-  to { box-shadow: 0 0 25px 7px rgba(0, 230, 118, 0.95); }
+  from { box-shadow: 0 0 8px 2px rgba(212, 175, 55, 0.4); }
+  to { box-shadow: 0 0 25px 7px rgba(232, 201, 155, 0.95); }
 }
 
 .seat-top { top: 6px; left: 50%; transform: translateX(-50%); }
@@ -449,18 +540,18 @@ input:focus {
 .seat-right { right: 8px; top: 48%; transform: translateY(-50%); }
 
 .seat-info {
-  background: rgba(0,0,0,0.7);
-  border: 1px solid rgba(255,204,0,0.4);
-  padding: 2px 8px;
+  background: rgba(14, 6, 24, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  padding: 2px 10px;
   border-radius: 12px;
   font-size: 0.72rem;
-  color: #fff;
+  color: #f5ebd9;
   margin-bottom: 4px;
   display: flex;
   gap: 5px;
   align-items: center;
 }
-.seat-name { font-weight: 800; color: #ffcc00; }
+.seat-name { font-weight: 800; color: #e8c99b; }
 .seat-score { color: #00e676; font-weight: bold; }
 
 /* حاوية كروت الخصوم */
@@ -470,19 +561,18 @@ input:focus {
   align-items: center;
 }
 
-/* رص كروت الجنب عمودياً بشكل أنيق بدون ما تغطي على الترابيزة */
 .seat-left .seat-cards, .seat-right .seat-cards {
   flex-direction: column;
   gap: 3px;
 }
 
-/* تكبير كروت الخصوم وضبط أبعادها الطولية الطبيعية بالمللي */
+/* أبعاد كروت الخصوم الطولية الطبيعية */
 .mini-card-back {
   width: clamp(44px, 6.5vw, 68px);
   height: clamp(64px, 9.5vw, 98px);
   border-radius: 8px;
-  border: 1.5px solid #ffcc00;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.7);
+  border: 1.5px solid #d4af37;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.8);
   overflow: hidden;
   position: relative;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -496,16 +586,15 @@ input:focus {
   display: block;
 }
 
-/* كروت الجنب بنفس النسبة الطولية السليمة للكوتشينة بدون أي تبطيط بالعرض */
 .seat-left .mini-card-back, .seat-right .mini-card-back {
   width: clamp(40px, 5.8vw, 62px);
   height: clamp(58px, 8.5vw, 88px);
 }
 
-/* وضوح وإضاءة مميزة لكروت الخصم عند كشفها بع المكشوف */
+/* إضاءة مميزة لكروت الخصم المكشوفة والمحددة بالمغناطيس */
 .mini-card-revealed {
-  border: 2.5px solid #00e5ff !important;
-  box-shadow: 0 0 14px #00e5ff, 0 0 25px rgba(0, 229, 255, 0.6) !important;
+  border: 2.5px solid #e8c99b !important;
+  box-shadow: 0 0 14px #e8c99b, 0 0 25px rgba(212, 175, 55, 0.75) !important;
   transform: scale(1.06);
   z-index: 2;
 }
@@ -535,13 +624,14 @@ input:focus {
   align-items: center;
 }
 .my-seat-tag {
-  background: rgba(0,0,0,0.6);
-  padding: 3px 8px;
+  background: rgba(14, 6, 24, 0.85);
+  padding: 3px 10px;
   border-radius: 12px;
-  border: 1px solid #ffcc00;
+  border: 1px solid #d4af37;
   font-size: 0.8rem;
+  color: #f5ebd9;
 }
-.my-seat-tag b { color: #00e676; }
+.my-seat-tag b { color: #e8c99b; }
 
 /* وسط الطاولة وكومة الأرض */
 .table-center {
@@ -552,7 +642,7 @@ input:focus {
   z-index: 3;
 }
 .deck-spot { text-align: center; cursor: pointer; }
-.deck-spot p { margin-top: 4px; font-size: 0.75rem; color: #ccc; font-weight: bold; }
+.deck-spot p { margin-top: 4px; font-size: 0.75rem; color: #e8c99b; font-weight: bold; }
 
 .messy-pile {
   position: relative;
@@ -570,6 +660,19 @@ input:focus {
   pointer-events: none;
 }
 .messy-under-card img { width: 100%; height: 100%; object-fit: fill; border-radius: 10px; }
+
+.card-placeholder {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed rgba(212, 175, 55, 0.4);
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #9a88b0;
+  background: rgba(10, 4, 18, 0.4);
+}
 
 /* يد اللاعب الأساسي */
 .cards-hand {
@@ -601,10 +704,11 @@ input:focus {
   object-fit: fill;
   border-radius: 10px;
   display: block;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8);
 }
 .card-real-img.selectable img {
-  box-shadow: 0 0 18px 5px #00e676 !important;
+  box-shadow: 0 0 20px 5px #e8c99b !important;
+  border: 2px solid #fff3dc !important;
   transform: translateY(-8px);
 }
 
@@ -612,23 +716,26 @@ input:focus {
 .deck-count-num {
   position: absolute;
   bottom: 6px;
-  background: #ffcc00;
-  color: #000;
+  right: 6px;
+  background: linear-gradient(135deg, #e8c99b, #c59b57);
+  color: #160926;
+  border: 1px solid #fff3dc;
   border-radius: 50%;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 0.75rem;
   font-weight: 900;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.8);
 }
 
 /* الشاشة السينمائية للكوماندز */
 .command-splash-overlay {
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle, rgba(20,0,40,0.92) 0%, rgba(0,0,0,0.96) 100%);
+  background: radial-gradient(circle, rgba(45, 18, 71, 0.94) 0%, rgba(9, 4, 14, 0.98) 100%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -636,9 +743,28 @@ input:focus {
   animation: fadeIn 0.2s ease-out;
 }
 .splash-card-box { text-align: center; animation: splashBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-.splash-big-icon { font-size: 4rem; margin-bottom: 10px; filter: drop-shadow(0 0 20px #ffcc00); color: #ffcc00; font-weight: bold; }
-.splash-title { font-size: 2.4rem; color: #ffcc00; text-shadow: 0 0 25px rgba(255,204,0,0.8), 2px 2px 0 #000; margin-bottom: 8px; }
-.splash-player-name { font-size: 1.2rem; color: #fff; background: rgba(255,255,255,0.1); padding: 6px 18px; border-radius: 20px; display: inline-block; border: 1px solid #ffcc00; }
+.splash-big-icon {
+  font-size: 4rem;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 20px #d4af37);
+  color: #e8c99b;
+  font-weight: bold;
+}
+.splash-title {
+  font-size: 2.4rem;
+  color: #e8c99b;
+  text-shadow: 0 0 25px rgba(212, 175, 55, 0.8), 2px 2px 0 #160926;
+  margin-bottom: 8px;
+}
+.splash-player-name {
+  font-size: 1.2rem;
+  color: #f5ebd9;
+  background: rgba(28, 12, 46, 0.85);
+  padding: 6px 20px;
+  border-radius: 20px;
+  display: inline-block;
+  border: 1.5px solid #d4af37;
+}
 
 @keyframes splashBounce { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -647,7 +773,8 @@ input:focus {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.85);
+  background: rgba(8, 3, 14, 0.88);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -655,15 +782,18 @@ input:focus {
   padding: 12px;
 }
 .modal-card {
-  background: #201a30;
-  border: 2px solid #ffcc00;
+  background: linear-gradient(145deg, #210e38, #11061d);
+  border: 2px solid #d4af37;
+  outline: 1px solid rgba(232, 201, 155, 0.22);
+  outline-offset: -6px;
   border-radius: 18px;
-  padding: 18px;
+  padding: 20px;
   width: 100%;
   max-width: 420px;
   text-align: center;
   max-height: 88vh;
   overflow-y: auto;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.95), 0 0 25px rgba(106, 27, 154, 0.4);
 }
 
 /* ضبط كروت الأرض لكارت لم كمالتك والمغناطيس */
@@ -683,12 +813,13 @@ input:focus {
   align-items: center !important;
   transition: transform 0.15s ease !important;
   cursor: pointer !important;
+  border-radius: 8px;
 }
 .bank-pick-card:hover { transform: translateY(-4px) scale(1.05) !important; }
 .bank-pick-card .card {
   width: 62px !important;
   height: 90px !important;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7) !important;
 }
 
 /* تنسيق دليل الكروت وطريقة اللعب والموسوعة */
@@ -699,10 +830,10 @@ input:focus {
   padding-right: 4px;
 }
 .guide-section-title {
-  color: #ffcc00;
+  color: #e8c99b;
   font-size: 0.95rem;
   margin: 14px 0 8px 0;
-  border-bottom: 1px solid rgba(255,204,0,0.3);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.35);
   padding-bottom: 4px;
   font-weight: 900;
 }
@@ -716,10 +847,10 @@ input:focus {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(0,0,0,0.35);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(14, 6, 24, 0.65);
+  border: 1px solid rgba(232, 201, 155, 0.2);
   border-radius: 10px;
-  padding: 6px 10px;
+  padding: 8px 10px;
 }
 .guide-card-thumb {
   width: 44px;
@@ -727,27 +858,38 @@ input:focus {
   border-radius: 6px;
   flex-shrink: 0;
   object-fit: fill;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
-  border: 1px solid #ffcc00;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+  border: 1px solid #d4af37;
 }
 .guide-card-info h4 {
   font-size: 0.88rem;
-  color: #ffcc00;
+  color: #e8c99b;
   margin-bottom: 2px;
 }
 .guide-card-info p {
   font-size: 0.74rem;
-  color: #ccc;
-  line-height: 1.35;
+  color: #d7c9e8;
+  line-height: 1.4;
 }
 
-.buy-card-info { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 12px; margin: 12px 0; border: 1px solid rgba(255, 204, 0, 0.3); }
-.brand-badge { font-size: 1.5rem; font-weight: 900; color: #ffcc00; }
+.buy-card-info {
+  background: rgba(12, 5, 22, 0.65);
+  padding: 15px;
+  border-radius: 12px;
+  margin: 12px 0;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+}
+.brand-badge { font-size: 1.5rem; font-weight: 900; color: #e8c99b; }
 .phone-number-display { font-size: 1.3rem; font-weight: 800; color: #fff; margin: 6px 0; direction: ltr; }
 .hunt-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 8px; }
 .hunt-num-btn { font-size: 1rem; padding: 7px; }
 .revealed-container { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; max-height: 240px; overflow-y: auto; text-align: right; }
-.revealed-player-row { background: rgba(0,0,0,0.3); padding: 7px; border-radius: 10px; }
-.rev-name { display: block; font-size: 0.8rem; font-weight: 800; margin-bottom: 5px; color: #ffcc00; }
+.revealed-player-row {
+  background: rgba(14, 6, 24, 0.65);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  padding: 8px;
+  border-radius: 10px;
+}
+.rev-name { display: block; font-size: 0.82rem; font-weight: 800; margin-bottom: 5px; color: #e8c99b; }
 .rev-cards { display: flex; gap: 5px; justify-content: center; }
 .rev-cards .card { width: 48px !important; height: 70px !important; box-shadow: none; }
