@@ -118,7 +118,7 @@ if (btnBackFromJoin) {
   };
 }
 
-// أزرار الرجوع القديمة
+// أزرار الرجوع
 const btnBackToGate = document.getElementById('btn-back-to-gate');
 const btnBackToLobby = document.getElementById('btn-back-to-lobby');
 
@@ -327,7 +327,31 @@ window.openCardEncyclopediaModal = function() {
           <img src="/cards/mirror.png" class="guide-card-thumb" alt="">
           <div class="guide-card-info">
             <h4>المراية</h4>
-            <p>كارت فخ في إيدك؛ لو حد هاجمك بكوماند تقدر تلغيه فوراً أو ترده في صدره وتسحب بداله كارت!</p>
+            <p>كارت فخ في إيدك يصد أي هجوم يستهدفك (الحرامي، هو كدة، الكمين، فرملة، بدّل يا نجم، الصيد، عين حسودة، ع المكشوف، ولعانة، شقلباظ) وتلغيه أو ترده وتسحب بداله كارت! (لا تعمل لو سحبتها من الأرض).</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/thief.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>الحرامي</h4>
+            <p>سرقة مضمونة للرقم المطلوب من يد الخصوم أولاً، أو من الأرض، أو من قلب كروت السحب المقلوبة! (ولو صده خصم بمراية، يكمل الحرامي طريقه لخصم تاني أو للأرض).</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/wild.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>براحتك</h4>
+            <p>كارت ذكي يتحول لأي كوماند مفعّل في الماتش الحالي (بما فيها الحرامي وكل الكروت الجديدة)!</p>
+          </div>
+        </div>
+
+        <div class="guide-card-item">
+          <img src="/cards/magnet.png" class="guide-card-thumb" alt="">
+          <div class="guide-card-info">
+            <h4>المغناطيس</h4>
+            <p>تختار كارت من الأرض (رقم أو جوكر) وينور حوالين كل مثيلاته فريم مضيء، وتدوس تأكيد فيشفطهم لحسابك وتختار بنفسك الكروت اللي هترميها بدالهم!</p>
           </div>
         </div>
 
@@ -343,7 +367,7 @@ window.openCardEncyclopediaModal = function() {
           <img src="/cards/fire.png" class="guide-card-thumb" alt="">
           <div class="guide-card-info">
             <h4>ولعانة</h4>
-            <p>كل لاعب على الترابيزة مجبر يختار كارت يرميه في الأرض ويسحب بداله كارت مقلوب عشوائي!</p>
+            <p>كل لاعب على الترابيزة مجبر يرمي كارت في الأرض ويسحب بداله كارت مقلوب، مع خيار حماية اختياري لصاحب الكارت لإبقاء يده كما هي.</p>
           </div>
         </div>
 
@@ -351,7 +375,7 @@ window.openCardEncyclopediaModal = function() {
           <img src="/cards/reveal.png" class="guide-card-thumb" alt="">
           <div class="guide-card-info">
             <h4>ع المكشوف</h4>
-            <p>تكشف الـ 4 كروت بتوع أي خصم قدام الكل على الترابيزة مباشرة بدون نوافذ وتفضح خطته!</p>
+            <p>تكشف الـ 4 كروت بتوع أي خصم قدام الكل على الترابيزة مباشرة بدون نوافذ وتفضح خطته لمدة لفة كاملة.</p>
           </div>
         </div>
 
@@ -367,15 +391,7 @@ window.openCardEncyclopediaModal = function() {
           <img src="/cards/spin.png" class="guide-card-thumb" alt="">
           <div class="guide-card-info">
             <h4>شقلباظ</h4>
-            <p>دربكة جماعية؛ كل لاعب مجبر يختار كارت من إيده ويباصيه للي جنبه في اتجاه اللعب!</p>
-          </div>
-        </div>
-
-        <div class="guide-card-item">
-          <img src="/cards/magnet.png" class="guide-card-thumb" alt="">
-          <div class="guide-card-info">
-            <h4>المغناطيس</h4>
-            <p>تختار كارت من الأرض، ويشفط كل الكروت المطابقة له وتختار بإيدك اللي هترميه بدالهم!</p>
+            <p>تمرير كارت من يد كل لاعب للي جنبه في اتجاه اللعب، مع خيار حماية لصاحب الكارت (وإذا تم تمرير كارت المراية فيه تفقد قوتها وتصل مكسورة).</p>
           </div>
         </div>
 
@@ -383,7 +399,7 @@ window.openCardEncyclopediaModal = function() {
           <img src="/cards/ambush.png" class="guide-card-thumb" alt="">
           <div class="guide-card-info">
             <h4>الكمين</h4>
-            <p>تفتيش عام؛ يصادر كل الجواكر من أيدي الخصوم للأرض ويحميك أنت شخصياً!</p>
+            <p>تفتيش عام ومصادرة لكل الجواكر من أيدي الخصوم فقط للأرض وتوزيع أرقام بدالها، مع حماية جواكر صاحب الكارت!</p>
           </div>
         </div>
 
@@ -440,22 +456,6 @@ window.openCardEncyclopediaModal = function() {
           <div class="guide-card-info">
             <h4>رخم عليهم</h4>
             <p>تبديل كارت عشوائي سراً بين اتنين لاعيبة، أو كشف كارت الخصم وتبديله في لاعبين.</p>
-          </div>
-        </div>
-
-        <div class="guide-card-item">
-          <img src="/cards/wild.png" class="guide-card-thumb" alt="">
-          <div class="guide-card-info">
-            <h4>براحتك</h4>
-            <p>يتحول لأي كوماند تختاره أنت (اصطاد، لم كمالتك، اعكس لفتك، هو كدة، رخم عليهم).</p>
-          </div>
-        </div>
-
-        <div class="guide-card-item">
-          <img src="/cards/thief.png" class="guide-card-thumb" alt="">
-          <div class="guide-card-info">
-            <h4>الحرامي</h4>
-            <p>سرقة مضمونة للكارت المطلوب من يد الخصوم أولاً، أو من الأرض، أو من قلب السحب!</p>
           </div>
         </div>
       </div>
@@ -822,7 +822,9 @@ socket.on('fireRequest', () => {
   });
 });
 
-// كارت المغناطيس بستايل لم كمالتك البصري الجديد
+// كارت المغناطيس المطور بالفريم المضيء وزرار التأكيد
+let currentSelectedMagnetCard = null;
+
 function openVisualMagnetPicker() {
   socket.emit('extendTimerForCommand', currentRoomId);
   const ground = latestGameState.discardPile;
@@ -832,31 +834,68 @@ function openVisualMagnetPicker() {
     return;
   }
 
-  let html = '<h2>اختر أي كارت من الأرض ليشفط المغناطيس كل مثيلاته:</h2><div class="modal-grid">';
+  currentSelectedMagnetCard = null;
+
+  let html = '<h2>اختر أي كارت من الأرض ليشفط المغناطيس كل مثيلاته:</h2>';
+  html += '<p style="font-size:0.8rem;color:#ccc;margin-bottom:8px;">اضغط على الكارت لمشاهدة الفريم المضيء ثم اضغط تأكيد:</p>';
+  html += '<div class="modal-grid" id="magnet-modal-grid">';
   ground.forEach((c, idx) => {
     html += `<div class="bank-pick-card magnet-ground-card" data-idx="${idx}">${createCardHTML(c)}</div>`;
   });
   html += '</div>';
-  html += '<button id="btn-cancel-magnet-pick" class="btn secondary-btn" style="margin-top:10px;">إلغاء ورمي الكارت</button>';
+  html += '<button id="btn-confirm-magnet" class="btn primary-btn" style="display:none;margin-top:10px;">تأكيد الكروت المختارة</button>';
+  html += '<button id="btn-cancel-magnet-pick" class="btn secondary-btn" style="margin-top:8px;">إلغاء ورمي الكارت</button>';
   window.openModal(html);
 
   document.getElementById('btn-cancel-magnet-pick').onclick = cancelCommandExecution;
 
-  document.querySelectorAll('.magnet-ground-card').forEach(el => {
+  const confirmBtn = document.getElementById('btn-confirm-magnet');
+  const cardElements = document.querySelectorAll('.magnet-ground-card');
+
+  cardElements.forEach(el => {
     el.onclick = () => {
       const idx = parseInt(el.getAttribute('data-idx'));
       const chosen = ground[idx];
+      currentSelectedMagnetCard = chosen;
+
+      const isJoker = chosen.type === 'command' && chosen.cmdType === 'joker';
+
+      // عمل فريم مضيء على كل الكروت المطابقة في الأرض
+      cardElements.forEach(otherEl => {
+        const otherIdx = parseInt(otherEl.getAttribute('data-idx'));
+        const otherCard = ground[otherIdx];
+        const isMatch = isJoker 
+          ? (otherCard.type === 'command' && otherCard.cmdType === 'joker') 
+          : (otherCard.type === 'number' && otherCard.value === chosen.value);
+
+        if (isMatch) {
+          otherEl.classList.add('mini-card-revealed');
+        } else {
+          otherEl.classList.remove('mini-card-revealed');
+        }
+      });
+
+      // إظهار زرار التأكيد
+      if (confirmBtn) {
+        confirmBtn.style.display = 'block';
+      }
+    };
+  });
+
+  if (confirmBtn) {
+    confirmBtn.onclick = () => {
+      if (!currentSelectedMagnetCard) return;
       window.closeModal();
       currentDrawnCard = null;
       SoundManager.playCommand();
       socket.emit('execMagnetPick', {
         roomId: currentRoomId,
-        targetType: chosen.type,
-        targetValue: chosen.value,
-        targetCmdType: chosen.cmdType
+        targetType: currentSelectedMagnetCard.type,
+        targetValue: currentSelectedMagnetCard.value,
+        targetCmdType: currentSelectedMagnetCard.cmdType
       });
     };
-  });
+  }
 }
 
 // كارت المغناطيس: اختيار يدوي للكروت المراد التضحية بها
@@ -1242,19 +1281,42 @@ socket.on('annoy2PPeekResult', (peekedCard) => {
   };
 });
 
+// كارت براحتك الديناميكي الشامل
 function openWildFlow() {
-  window.openModal(`
-    <h2>كارت براحتك!</h2>
-    <p>اختر أي كوماند تريد تحويله إليه (ما عدا الجوكر والحرامي):</p>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <button class="btn primary-btn wild-opt" data-type="hunt">اصطاد كارتك</button>
-      <button class="btn primary-btn wild-opt" data-type="bank">لم كمالتك</button>
-      <button class="btn primary-btn wild-opt" data-type="reverse">اعكس لفتك</button>
-      <button class="btn primary-btn wild-opt" data-type="keda">هو كدة</button>
-      <button class="btn primary-btn wild-opt" data-type="annoy">رخم عليهم</button>
-      <button id="btn-cancel-wild" class="btn secondary-btn" style="margin-top:5px;">إلغاء ورمي الكارت</button>
-    </div>
-  `);
+  const isCustom = latestGameState && latestGameState.deckMode === 'custom';
+  let html = '<h2>كارت براحتك!</h2>';
+  html += '<p style="font-size:0.85rem;color:#ccc;margin-bottom:10px;">اختر الكوماند الذي تريد تحويل الكارت إليه:</p>';
+  html += '<div style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;padding-right:4px;">';
+
+  if (!isCustom) {
+    // الكروت الكلاسيكية الأصلية
+    html += '<button class="btn primary-btn wild-opt" data-type="hunt">اصطاد كارتك</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="bank">لم كمالتك</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="reverse">اعكس لفتك</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="keda">هو كدة</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="annoy">رخم عليهم</button>';
+  } else {
+    // كل الكوماندز المتاحة في الوضع المخصص بما فيها الحرامي وكل الكروت الجديدة
+    html += '<button class="btn primary-btn wild-opt" data-type="thief">الحرامي</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="reveal">ع المكشوف</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="swap">بدّل يا نجم</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="freeze">فرملة</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="spin">شقلباظ</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="ambush">الكمين</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="magnet">المغناطيس</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="curse">عين حسودة</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="fire">ولعانة</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="hunt">اصطاد كارتك</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="bank">لم كمالتك</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="reverse">اعكس لفتك</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="keda">هو كدة</button>';
+    html += '<button class="btn primary-btn wild-opt" data-type="annoy">رخم عليهم</button>';
+  }
+
+  html += '<button id="btn-cancel-wild" class="btn secondary-btn" style="margin-top:6px;">إلغاء ورمي الكارت</button>';
+  html += '</div>';
+
+  window.openModal(html);
 
   document.getElementById('btn-cancel-wild').onclick = cancelCommandExecution;
 
@@ -1472,7 +1534,6 @@ socket.on('gameState', data => {
   latestGameState = data;
   if (!data.hasDrawn) currentDrawnCard = null;
 
-  // فتح شاشة اللعبة فقط إذا كانت اللعبة قد بدأت بالفعل لتجنب فتح طاولة فارغة في غرفة الانتظار
   if (data.gameStarted) {
     if (waitingScreen) waitingScreen.classList.add('hidden');
     if (gameScreen) gameScreen.classList.remove('hidden');
