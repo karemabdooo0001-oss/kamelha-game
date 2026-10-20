@@ -1281,36 +1281,47 @@ socket.on('annoy2PPeekResult', (peekedCard) => {
   };
 });
 
-// كارت براحتك الديناميكي الشامل
+// كارت براحتك المفلتر ديناميكياً حسب كروت الغرفة فقط
 function openWildFlow() {
-  const isCustom = latestGameState && (latestGameState.deckMode === 'custom' || (latestGameState.customCommands && latestGameState.customCommands.length > 0));
+  const isCustom = latestGameState && latestGameState.deckMode === 'custom';
+  const customCmds = (latestGameState && Array.isArray(latestGameState.customCommands)) ? latestGameState.customCommands : [];
+
+  // قاموس أسماء كل الكوماندز
+  const commandNames = {
+    thief: 'الحرامي',
+    reveal: 'ع المكشوف',
+    swap: 'بدّل يا نجم',
+    freeze: 'فرملة',
+    spin: 'شقلباظ',
+    ambush: 'الكمين',
+    magnet: 'المغناطيس',
+    curse: 'عين حسودة',
+    fire: 'ولعانة',
+    hunt: 'اصطاد كارتك',
+    bank: 'لم كمالتك',
+    reverse: 'اعكس لفتك',
+    keda: 'هو كدة',
+    annoy: 'رخم عليهم'
+  };
+
   let html = '<h2>كارت براحتك!</h2>';
   html += '<p style="font-size:0.85rem;color:#ccc;margin-bottom:10px;">اختر الكوماند الذي تريد تحويل الكارت إليه:</p>';
   html += '<div style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;padding-right:4px;">';
 
   if (!isCustom) {
-    // الكروت الكلاسيكية الأصلية
-    html += '<button class="btn primary-btn wild-opt" data-type="hunt">اصطاد كارتك</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="bank">لم كمالتك</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="reverse">اعكس لفتك</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="keda">هو كدة</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="annoy">رخم عليهم</button>';
+    // في الوضع الكلاسيكي: الكروت الأصلية الخمسة فقط
+    const classicList = ['hunt', 'bank', 'reverse', 'keda', 'annoy'];
+    classicList.forEach(cmdKey => {
+      html += `<button class="btn primary-btn wild-opt" data-type="${cmdKey}">${commandNames[cmdKey]}</button>`;
+    });
   } else {
-    // كل الكوماندز المتاحة في الوضع المخصص بما فيها الحرامي وكل الكروت الجديدة
-    html += '<button class="btn primary-btn wild-opt" data-type="thief">الحرامي</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="reveal">ع المكشوف</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="swap">بدّل يا نجم</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="freeze">فرملة</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="spin">شقلباظ</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="ambush">الكمين</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="magnet">المغناطيس</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="curse">عين حسودة</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="fire">ولعانة</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="hunt">اصطاد كارتك</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="bank">لم كمالتك</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="reverse">اعكس لفتك</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="keda">هو كدة</button>';
-    html += '<button class="btn primary-btn wild-opt" data-type="annoy">رخم عليهم</button>';
+    // في الوضع المخصص: حصرياً وفقط الكوماندز التي تم اختيارها في الغرفة
+    customCmds.forEach(cmdKey => {
+      // إظهار الكوماند فقط لو كان متعلّم عليه ومتاح للتحويل
+      if (commandNames[cmdKey]) {
+        html += `<button class="btn primary-btn wild-opt" data-type="${cmdKey}">${commandNames[cmdKey]}</button>`;
+      }
+    });
   }
 
   html += '<button id="btn-cancel-wild" class="btn secondary-btn" style="margin-top:6px;">إلغاء ورمي الكارت</button>';
