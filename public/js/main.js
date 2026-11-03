@@ -1,11 +1,21 @@
 import { socket, myPlayerId, playerState } from './services/socketService.js';
 import { soundService } from './services/soundService.js';
-import { elements, showScreen, showToast, openModal, closeModal, showCommandSplash } from './ui/screenManager.js';
+import { 
+  elements, 
+  showScreen, 
+  showToast, 
+  openModal, 
+  closeModal, 
+  showCommandSplash,
+  openCardEncyclopediaModal,
+  openBuyModal
+} from './ui/screenManager.js';
 import { renderMessyDiscardPile, updateTableSeats, updateTurnTimer, createCardHTML } from './ui/tableRenderer.js';
 import { 
   handleNumberOrJokerModal, 
   handleCommandCardModal, 
   handleThiefSuccessPrompt, 
+  handleMagnetChooseDiscards,
   pickCardFromHand,
   setCurrentDrawnCard,
   getCurrentDrawnCard 
@@ -57,8 +67,18 @@ if (elements.btnSubmitGate) {
 }
 
 // -------------------------------------------------------------
-// 2. أزرار التنقل الرئيسية والقوائم
+// 2. أزرار القواعد والشراء والصوت والتنقل
 // -------------------------------------------------------------
+const btnRulesGate = document.getElementById('btn-rules-gate');
+const btnRulesLobby = document.getElementById('btn-rules-lobby');
+const btnRulesWait = document.getElementById('btn-rules-wait');
+const btnBuy = document.getElementById('btn-buy');
+
+if (btnRulesGate) btnRulesGate.onclick = () => openCardEncyclopediaModal();
+if (btnRulesLobby) btnRulesLobby.onclick = () => openCardEncyclopediaModal();
+if (btnRulesWait) btnRulesWait.onclick = () => openCardEncyclopediaModal();
+if (btnBuy) btnBuy.onclick = () => openBuyModal();
+
 const btnGoCreate = document.getElementById('btn-go-create');
 const btnGoJoin = document.getElementById('btn-go-join');
 const btnBackFromCreate = document.getElementById('btn-back-from-create');
@@ -192,9 +212,9 @@ function copyRoomCode() {
 if (elements.btnCopyCodeWait) elements.btnCopyCodeWait.onclick = copyRoomCode;
 if (elements.btnCopyCodeGame) elements.btnCopyCodeGame.onclick = copyRoomCode;
 
-// بدء الجيم ومغادرته
-if (elements.btnStartGame) {
-  elements.btnStartGame.onclick = () => socket.emit('startGame', playerState.currentRoomId);
+// زر بدء الجيم (btn-start)
+if (elements.btnStart) {
+  elements.btnStart.onclick = () => socket.emit('startGame', playerState.currentRoomId);
 }
 
 const btnLeave = document.getElementById('btn-leave');
@@ -306,10 +326,12 @@ socket.on('roomJoined', ({ roomId, players, isHost }) => {
   if (gameRoomCodeTxt) gameRoomCodeTxt.innerText = roomId;
 
   renderWaitingPlayers(players);
-  if (isHost && elements.btnStartGame) {
-    elements.btnStartGame.classList.remove('hidden');
-    const waitMsg = document.getElementById('wait-msg');
-    if (waitMsg) waitMsg.classList.add('hidden');
+  if (isHost && elements.btnStart) {
+    elements.btnStart.classList.remove('hidden');
+    if (elements.waitMsg) elements.waitMsg.classList.add('hidden');
+  } else if (elements.btnStart) {
+    elements.btnStart.classList.add('hidden');
+    if (elements.waitMsg) elements.waitMsg.classList.remove('hidden');
   }
 });
 
@@ -318,8 +340,7 @@ socket.on('updatePlayers', players => renderWaitingPlayers(players));
 function renderWaitingPlayers(players) {
   if (!elements.playersListDiv) return;
   elements.playersListDiv.innerHTML = '';
-  const playerCount = document.getElementById('player-count');
-  if (playerCount) playerCount.innerText = players.length;
+  if (elements.playerCount) elements.playerCount.innerText = players.length;
   players.forEach(p => {
     const li = document.createElement('li');
     li.innerText = `${p.isHost ? '★ ' : ''}${p.name}`;
@@ -327,11 +348,10 @@ function renderWaitingPlayers(players) {
   });
 }
 
-socket.on('hostMigrated', ({ newHostId, newHostName }) => {
-  if (newHostId === socket.id && elements.btnStartGame) {
-    elements.btnStartGame.classList.remove('hidden');
-    const waitMsg = document.getElementById('wait-msg');
-    if (waitMsg) waitMsg.classList.add('hidden');
+socket.on('hostMigrated', ({ newHostId }) => {
+  if (newHostId === socket.id && elements.btnStart) {
+    elements.btnStart.classList.remove('hidden');
+    if (elements.waitMsg) elements.waitMsg.classList.add('hidden');
     showToast('أصبحت أنت قائد الغرفة الجديد!');
   }
 });
@@ -381,6 +401,9 @@ socket.on('thiefFoundOnGround', ({ itemName }) => {
 socket.on('thiefFoundInDeck', ({ itemName }) => {
   handleThiefSuccessPrompt('سرقة من قلب الديك!', `أخرج الحرامي كارت <b>${itemName}</b> من قلب كروت السحب المقلوبة! اضغط لاختيار كارت لترميه مكانه:`);
 });
+
+socket.on('magnetChooseDiscards', handleMagnetChooseDiscards);
+socket.on('wildTransformed', handleCommandCardModal);
 
 socket.on('annoy2PPeekResult', (peekedCard) => {
   openModal(`
@@ -566,10 +589,12 @@ socket.on('playerBackInWaiting', ({ roomId, players, isHost }) => {
   playerState.isHost = isHost;
   showScreen(elements.waitingScreen);
   renderWaitingPlayers(players);
-  if (isHost && elements.btnStartGame) {
-    elements.btnStartGame.classList.remove('hidden');
-    const waitMsg = document.getElementById('wait-msg');
-    if (waitMsg) waitMsg.classList.add('hidden');
+  if (isHost && elements.btnStart) {
+    elements.btnStart.classList.remove('hidden');
+    if (elements.waitMsg) elements.waitMsg.classList.add('hidden');
+  } else if (elements.btnStart) {
+    elements.btnStart.classList.add('hidden');
+    if (elements.waitMsg) elements.waitMsg.classList.remove('hidden');
   }
 });
 
