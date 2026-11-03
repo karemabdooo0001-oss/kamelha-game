@@ -484,6 +484,37 @@ function setupSocketHandler(io) {
     });
 
     // -------------------------------------------------------------
+    // 5.ب الشات والرسائل السريعة والصيحات
+    // -------------------------------------------------------------
+    socket.on('sendChatMessage', ({ roomId, text, isShout }) => {
+      const room = roomService.getRoom(roomId);
+      if (!room) return;
+      const player = room.players.find(p => p.id === socket.id);
+      if (!player) return;
+
+      const cleanText = (text || '').trim().substring(0, 80);
+      if (!cleanText) return;
+
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const msgPayload = {
+        id: 'msg_' + Date.now(),
+        senderId: socket.id,
+        senderName: player.name,
+        text: cleanText,
+        isShout: !!isShout,
+        time: timeStr,
+        ts: Date.now()
+      };
+
+      if (!room.chatHistory) room.chatHistory = [];
+      room.chatHistory.push(msgPayload);
+      if (room.chatHistory.length > 50) room.chatHistory.shift();
+
+      io.to(room.id).emit('chatMessageReceived', msgPayload);
+    });
+
+    // -------------------------------------------------------------
     // 6. مغادرة الغرفة وانقطاع الاتصال
     // -------------------------------------------------------------
     socket.on('leaveRoom', (roomId) => {

@@ -185,7 +185,10 @@
       </div>
 
       <!-- زرار دليل الكروت داخل غرفة الانتظار -->
-      <button id="btn-rules-wait" class="btn info-btn" style="margin-bottom:10px;">دليل الكروت وطريقة اللعب</button>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button id="btn-chat-wait" class="btn info-btn" style="flex:1;background:rgba(212,175,55,0.15);border:1px solid #d4af37;color:#e8c99b;">💬 شات الغرفة</button>
+        <button id="btn-rules-wait" class="btn info-btn" style="flex:1;">دليل الكروت</button>
+      </div>
 
       <div class="waiting-actions">
         <button id="btn-start" class="btn primary-btn hidden">ابدأ اللعبة</button>
@@ -209,6 +212,7 @@
         <div id="timer-box" class="timer-badge">الوقت: <span id="timer-sec">15</span>ث</div>
 
         <div class="game-controls">
+          <button id="btn-chat-game" class="chat-toggle-mini" title="شات وصيحات">💬 شات</button>
           <button id="btn-sound-game" class="sound-toggle-mini">صوت</button>
           <button id="btn-leave" class="leave-btn">خروج</button>
         </div>
@@ -222,6 +226,8 @@
 
     <!-- مسرح طاولة اللعب -->
     <div class="table-arena">
+      <!-- شريط سجل حركات الجولة اللحظي التفاعلي -->
+      <div id="action-log-ticker" class="action-log-ticker">جاهز للبدء...</div>
       <div id="spot-top" class="player-seat seat-top hidden">
         <div class="seat-info"><span class="seat-name">--</span> <span class="seat-score">0ن</span></div>
         <div class="seat-cards"></div>

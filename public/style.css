@@ -893,3 +893,202 @@ input:focus {
 .rev-name { display: block; font-size: 0.82rem; font-weight: 800; margin-bottom: 5px; color: #e8c99b; }
 .rev-cards { display: flex; gap: 5px; justify-content: center; }
 .rev-cards .card { width: 48px !important; height: 70px !important; box-shadow: none; }
+
+/* ============================================================= */
+/* الطابع الملكي (Royal Theme) - الشات، الصيحات، وشريط الأحداث     */
+/* ============================================================= */
+
+/* زر فتح الشات المصغر */
+.chat-toggle-mini {
+  background: linear-gradient(135deg, rgba(74, 28, 117, 0.95) 0%, rgba(35, 12, 60, 0.95) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.7);
+  color: #f5ebd9;
+  padding: 4px 11px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.chat-toggle-mini:hover {
+  transform: translateY(-2px) scale(1.04);
+  border-color: #e8c99b;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.5);
+}
+.chat-toggle-mini:active {
+  transform: scale(0.96);
+}
+
+/* شريط سجل أحداث الجولة اللحظي */
+.action-log-ticker {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(14, 6, 24, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: #e8c99b;
+  padding: 4px 18px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  max-width: 80%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 6;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7), 0 0 10px rgba(212, 175, 55, 0.2);
+  backdrop-filter: blur(6px);
+  transition: all 0.3s ease;
+  animation: tickerGlow 3s infinite alternate ease-in-out;
+}
+
+@keyframes tickerGlow {
+  from { border-color: rgba(212, 175, 55, 0.35); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7); }
+  to { border-color: rgba(232, 201, 155, 0.8); box-shadow: 0 4px 18px rgba(212, 175, 55, 0.35); }
+}
+
+/* فقاعات الكلام التفاعلية فوق كراسي اللاعبين */
+.player-speech-bubble {
+  position: absolute;
+  top: -42px;
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  background: linear-gradient(135deg, rgba(45, 18, 71, 0.96) 0%, rgba(18, 7, 30, 0.96) 100%);
+  border: 1.5px solid #d4af37;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), 0 0 12px rgba(212, 175, 55, 0.35);
+  z-index: 120;
+  pointer-events: none;
+  animation: bubblePopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.player-speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #d4af37;
+}
+
+/* فقاعة الصيحات العالية (Quick Shouts) بألوان ملكية مضيئة */
+.player-speech-bubble.is-shout {
+  border: 2px solid #e8c99b;
+  background: linear-gradient(135deg, rgba(92, 36, 145, 0.98) 0%, rgba(32, 10, 56, 0.98) 100%);
+  box-shadow: 0 6px 22px rgba(232, 201, 155, 0.55), 0 0 16px rgba(212, 175, 55, 0.7);
+  animation: shoutPopIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, shoutPulse 1.2s infinite alternate ease-in-out;
+}
+
+.bubble-sender {
+  font-size: 0.68rem;
+  color: #e8c99b;
+  display: block;
+  font-weight: 800;
+  margin-bottom: 1px;
+}
+
+.bubble-text {
+  font-size: 0.84rem;
+  color: #fff;
+}
+
+/* توجيه الفقاعات بحسب موقع المقعد في الطاولة */
+.seat-top .player-speech-bubble {
+  top: auto;
+  bottom: -46px;
+}
+.seat-top .player-speech-bubble::after {
+  top: -6px;
+  bottom: auto;
+  border-top: none;
+  border-bottom: 6px solid #d4af37;
+}
+
+.seat-left .player-speech-bubble {
+  left: 65px;
+  top: 50%;
+  transform: translateY(-50%) scale(0);
+  animation: bubblePopInLeft 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.seat-left .player-speech-bubble::after {
+  left: -6px;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 6px solid #d4af37;
+  border-left: none;
+}
+
+.seat-right .player-speech-bubble {
+  left: auto;
+  right: 65px;
+  top: 50%;
+  transform: translateY(-50%) scale(0);
+  animation: bubblePopInRight 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.seat-right .player-speech-bubble::after {
+  right: -6px;
+  left: auto;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 6px solid #d4af37;
+  border-right: none;
+}
+
+@keyframes bubblePopIn {
+  from { transform: translateX(-50%) scale(0.3); opacity: 0; }
+  to { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+@keyframes bubblePopInLeft {
+  from { transform: translateY(-50%) scale(0.3); opacity: 0; }
+  to { transform: translateY(-50%) scale(1); opacity: 1; }
+}
+@keyframes bubblePopInRight {
+  from { transform: translateY(-50%) scale(0.3); opacity: 0; }
+  to { transform: translateY(-50%) scale(1); opacity: 1; }
+}
+
+@keyframes shoutPopIn {
+  0% { transform: translateX(-50%) scale(0.2); opacity: 0; }
+  60% { transform: translateX(-50%) scale(1.15); opacity: 1; }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+@keyframes shoutPulse {
+  from { transform: translateX(-50%) scale(1); }
+  to { transform: translateX(-50%) scale(1.05); }
+}
+
+.player-speech-bubble.fade-out {
+  opacity: 0;
+  transform: translateX(-50%) scale(0.8);
+  transition: all 0.4s ease;
+}
+
+/* تأثير التمرير والتفاعل على أزرار العبارات السريعة داخل المودال */
+.quick-phrase-btn:hover {
+  background: rgba(74, 28, 117, 0.9) !important;
+  border-color: #e8c99b !important;
+  transform: scale(1.03);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+}

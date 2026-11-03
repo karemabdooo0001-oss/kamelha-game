@@ -27,6 +27,7 @@ import {
   showRoundEndedModal, 
   showGameOverModal 
 } from './ui/modals/gameResultModal.js';
+import { openChatModal, addChatMessage } from './ui/modals/chatModal.js';
 
 let isMyTurn = false;
 let hasAlertedKamelhaReady = false;
@@ -73,11 +74,15 @@ const btnRulesGate = document.getElementById('btn-rules-gate');
 const btnRulesLobby = document.getElementById('btn-rules-lobby');
 const btnRulesWait = document.getElementById('btn-rules-wait');
 const btnBuy = document.getElementById('btn-buy');
+const btnChatWait = document.getElementById('btn-chat-wait');
+const btnChatGame = document.getElementById('btn-chat-game');
 
 if (btnRulesGate) btnRulesGate.onclick = () => openCardEncyclopediaModal();
 if (btnRulesLobby) btnRulesLobby.onclick = () => openCardEncyclopediaModal();
 if (btnRulesWait) btnRulesWait.onclick = () => openCardEncyclopediaModal();
 if (btnBuy) btnBuy.onclick = () => openBuyModal();
+if (btnChatWait) btnChatWait.onclick = () => openChatModal();
+if (btnChatGame) btnChatGame.onclick = () => openChatModal();
 
 const btnGoCreate = document.getElementById('btn-go-create');
 const btnGoJoin = document.getElementById('btn-go-join');
@@ -489,6 +494,8 @@ socket.on('fireRequest', () => {
 
 socket.on('commandSplash', ({ cmdType, cmdName, playerName }) => {
   showCommandSplash(cmdType, cmdName, playerName);
+  const ticker = document.getElementById('action-log-ticker');
+  if (ticker) ticker.innerText = `⚡ ${playerName} نفّذ كارت [${cmdName}]!`;
 });
 
 socket.on('kedaAnimation', ({ targetId, targetName }) => {
@@ -584,6 +591,15 @@ socket.on('gameState', data => {
 
 socket.on('roundEnded', showRoundEndedModal);
 socket.on('gameOver', showGameOverModal);
+
+// استقبال رسائل الشات والصيحات
+socket.on('chatMessageReceived', msg => {
+  addChatMessage(msg);
+  if (msg.isShout) {
+    const ticker = document.getElementById('action-log-ticker');
+    if (ticker) ticker.innerText = `📢 ${msg.senderName}: "${msg.text}"`;
+  }
+});
 
 socket.on('playerBackInWaiting', ({ roomId, players, isHost }) => {
   playerState.isHost = isHost;
