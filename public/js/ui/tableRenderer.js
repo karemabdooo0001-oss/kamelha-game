@@ -136,8 +136,8 @@ export function renderSeat(seatEl, player, currentTurnId) {
 
 export function updateTurnTimer(deadline, totalSeconds) {
   clearInterval(timerInterval);
-  const timerBar = elements.turnTimerBar;
-  const timerSec = elements.turnTimerSecs;
+  const timerBar = elements.timerBar;
+  const timerSec = elements.timerSec;
   if (!timerBar || !timerSec) return;
 
   timerInterval = setInterval(() => {
