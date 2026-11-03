@@ -431,6 +431,29 @@ export function openVisualMagnetPicker() {
   }
 }
 
+export function handleMagnetChooseDiscards({ count, itemName }) {
+  showToast(`شفط المغناطيس (${count}) ${itemName}! اختر (${count}) كروت من يدك لرميها في الأرض:`);
+  const selectedIndices = [];
+
+  function promptPickNext() {
+    pickCardFromHand(index => {
+      selectedIndices.push(index);
+      if (selectedIndices.length < count) {
+        showToast(`اختر الكارت رقم (${selectedIndices.length + 1}) لرميه:`);
+        promptPickNext();
+      } else {
+        soundService.playPlace();
+        socket.emit('submitMagnetDiscards', {
+          roomId: playerState.currentRoomId,
+          discardIndices: selectedIndices
+        });
+      }
+    });
+  }
+
+  promptPickNext();
+}
+
 export function openPlayerPicker(title, onSelect) {
   const others = playerState.gameState ? playerState.gameState.players.filter(p => p.id !== socket.id && !p.isImmune) : [];
   if (others.length === 0) {
